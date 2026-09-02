@@ -52,8 +52,12 @@
   .bk{background:var(--surface-raised);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:8px;}
   .bk-top{display:flex;justify-content:space-between;gap:10px;font-size:13px;}
   .bk-top .st{font-family:ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;}
-  .bk[data-st="active"] .st{color:var(--good);}
-  .bk[data-st="cancelled"] .st{color:var(--muted-dim);}
+  .bk[data-st="confirmed"] .st,.bk[data-st="completed"] .st{color:var(--good);}
+  .bk[data-st="pending"] .st{color:var(--amber);}
+  .bk[data-st="cancelled"] .st,.bk[data-st="declined"] .st,.bk[data-st="no_show"] .st{color:var(--muted-dim);}
+  .btn.go{background:transparent;border:1px solid var(--amber-dim);color:var(--amber);}
+  .btn.stop{background:transparent;border:1px solid #5c261f;color:var(--red);}
+  .rowbtns{display:flex;flex-wrap:wrap;gap:6px;}
   .bk .meta{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted);margin-top:4px;}
   .bk .who{font-size:12px;margin-top:4px;}
 
@@ -239,24 +243,56 @@
     });
     c.querySelectorAll('.del').forEach(function(b){ b.addEventListener('click', function(){ ownersDraft.splice(+b.dataset.i,1); renderOwners(); }); });
   }
+  var ST_LABEL = { pending:'ожидает', confirmed:'подтверждена', completed:'завершена',
+                   declined:'отклонена', cancelled:'отменена', no_show:'не пришёл' };
+  // действия по текущему статусу: [{path, label, cls}]
+  function bkActions(st){
+    if(st === 'pending') return [
+      { p:'confirm', t:'Подтвердить', c:'go' },
+      { p:'decline', t:'Отклонить',  c:'stop' } ];
+    if(st === 'confirmed') return [
+      { p:'complete', t:'Завершить',  c:'go' },
+      { p:'no-show',  t:'Не пришёл',  c:'stop' },
+      { p:'cancel',   t:'Отменить',   c:'' } ];
+    return [];
+  }
+
   function renderBookings(list){
     var c = $('bookings');
     if(!list.length){ c.innerHTML = '<div class="empty">Броней нет.</div>'; return; }
+    // ожидающие — вверх
+    list = list.slice().sort(function(a,b){
+      var ap = a.status === 'pending' ? 0 : 1, bp = b.status === 'pending' ? 0 : 1;
+      return ap - bp;
+    });
     c.innerHTML = '';
     list.forEach(function(b){
       var d = document.createElement('div'); d.className = 'bk'; d.dataset.st = b.status;
       var hall = (HALLS_BY_ID[b.hallId] || {}).name || b.hallId || '';
       d.innerHTML =
-        '<div class="bk-top"><span>'+esc(dateLabel(b.date))+'</span><span class="st">'+(b.status==='active'?'активна':'отменена')+'</span></div>' +
+        '<div class="bk-top"><span>'+esc(dateLabel(b.date))+'</span><span class="st">'+esc(ST_LABEL[b.status] || b.status)+'</span></div>' +
         '<div class="meta">'+esc(hall)+' · '+minLabel(b.start)+'–'+minLabel(b.end)+' · '+esc(b.people)+' чел · '+esc(b.price)+' BYN</div>' +
         '<div class="who">'+esc(b.name||'—')+' · '+esc(b.phone||'')+'</div>';
-      if(b.status === 'active'){
-        var btn = document.createElement('button'); btn.className = 'btn ghost small'; btn.style.marginTop = '8px'; btn.textContent = 'Отменить';
-        btn.addEventListener('click', function(){
-          btn.disabled = true;
-          api('POST', '/bookings/' + b.id + '/cancel').then(load).catch(function(e){ btn.disabled = false; alert(e.message); });
+      var acts = bkActions(b.status);
+      if(acts.length){
+        var bar = document.createElement('div'); bar.className = 'rowbtns'; bar.style.marginTop = '8px';
+        acts.forEach(function(a){
+          var btn = document.createElement('button');
+          btn.className = 'btn small' + (a.c ? ' ' + a.c : '');
+          btn.textContent = a.t;
+          btn.addEventListener('click', function(){
+            var url = a.p === 'cancel'
+              ? '/bookings/' + b.id + '/cancel'
+              : '/admin/bookings/' + b.id + '/' + a.p;
+            bar.querySelectorAll('button').forEach(function(x){ x.disabled = true; });
+            api('POST', url).then(load).catch(function(e){
+              bar.querySelectorAll('button').forEach(function(x){ x.disabled = false; });
+              flash($('clearNote'), e.message);
+            });
+          });
+          bar.appendChild(btn);
         });
-        d.appendChild(btn);
+        d.appendChild(bar);
       }
       c.appendChild(d);
     });
