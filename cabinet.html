@@ -166,7 +166,7 @@
 
   function loadMe(user){
     return api('GET', '/api/session/me', null, true).then(function(me){
-      renderApp(me, user || null);
+      renderApp(me, user || me.user || null);
     });
   }
 

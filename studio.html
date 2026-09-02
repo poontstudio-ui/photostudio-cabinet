@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Студия · Кабинет</title>
+<style>
+  :root{
+    --bg:#14110F; --surface:#1E1A17; --surface-raised:#262019; --line:#332920;
+    --amber:#E8A33D; --amber-dim:#6b4d21; --red:#C1443C; --good:#3B7355;
+    --text:#F2ECE4; --muted:#8A8078; --muted-dim:#4f4842;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh;line-height:1.5;}
+  .wrap{max-width:640px;margin:0 auto;padding:24px 18px 80px;}
+  a{color:var(--amber);}
+  .top{display:flex;align-items:center;gap:12px;margin-bottom:6px;}
+  .top a.back{color:var(--muted);text-decoration:none;font-size:20px;flex:0 0 auto;}
+  .top h1{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:24px;margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .sub{color:var(--muted);font-size:12px;margin-bottom:22px;}
+  .badge{font-family:ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em;padding:2px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted);}
+  .badge.published{color:var(--good);} .badge.draft{color:var(--muted-dim);} .badge.suspended{color:var(--red);}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px;}
+  .card h2{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:18px;margin:0 0 12px;}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .stat{background:var(--surface-raised);border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;}
+  .stat .v{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:22px;}
+  .stat .l{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
+
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px;}
+  .row input,.row select{
+    background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--text);
+    font:inherit;font-size:14px;padding:9px 10px;
+  }
+  .row input:focus,.row select:focus{outline:none;border-color:var(--amber);}
+  .row .name{flex:1 1 100%;min-width:0;}
+  .row .num{width:92px;}
+  .unitwrap{display:flex;align-items:center;gap:4px;}
+  .unitwrap .u{font-size:11px;color:var(--muted);}
+  .del{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:8px 10px;cursor:pointer;font-size:13px;}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--amber);color:#1a1208;border:none;border-radius:9px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+  .btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line);}
+  .btn.danger{background:var(--red);color:#fff;}
+  .btn.small{padding:7px 12px;font-size:12px;}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+  .note{font-size:12px;min-height:16px;margin-top:8px;}
+
+  .bk{background:var(--surface-raised);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:8px;}
+  .bk-top{display:flex;justify-content:space-between;gap:10px;font-size:13px;}
+  .bk-top .st{font-family:ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;}
+  .bk[data-st="active"] .st{color:var(--good);}
+  .bk[data-st="cancelled"] .st{color:var(--muted-dim);}
+  .bk .meta{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted);margin-top:4px;}
+  .bk .who{font-size:12px;margin-top:4px;}
+
+  .hours-day{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+  .hours-day .d{width:34px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted);}
+  .hours-day input{width:64px;}
+  .muted{color:var(--muted);font-size:12px;}
+  .empty{color:var(--muted);font-size:13px;padding:10px 0;}
+  .err{color:var(--red);font-size:13px;}
+  [hidden]{display:none!important;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="back" href="./cabinet.html">←</a>
+    <h1 id="sName">Студия</h1>
+    <span class="badge" id="sStatus"></span>
+  </div>
+  <div class="sub" id="sSub"></div>
+
+  <div id="loading" class="card"><span class="muted">Загрузка…</span></div>
+  <div id="denied" class="card" hidden><span class="err" id="deniedMsg"></span></div>
+
+  <div id="app" hidden>
+    <div class="card">
+      <h2>Сводка</h2>
+      <div class="stats">
+        <div class="stat"><div class="v" id="stCount">—</div><div class="l">Активных броней</div></div>
+        <div class="stat"><div class="v" id="stRev">—</div><div class="l">Выручка, BYN</div></div>
+        <div class="stat"><div class="v" id="stAvg">—</div><div class="l">Средний чек</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Залы</h2>
+      <div id="hallsEd"></div>
+      <div class="actions">
+        <button class="btn ghost small" id="hallAdd" type="button">+ Зал</button>
+        <button class="btn small" id="hallSave" type="button">Сохранить залы</button>
+      </div>
+      <div class="note" id="hallNote"></div>
+    </div>
+
+    <div class="card">
+      <h2>Оборудование</h2>
+      <div id="equipEd"></div>
+      <div class="actions">
+        <button class="btn ghost small" id="equipAdd" type="button">+ Позиция</button>
+        <button class="btn small" id="equipSave" type="button">Сохранить оборудование</button>
+      </div>
+      <div class="note" id="equipNote"></div>
+    </div>
+
+    <div class="card">
+      <h2>Часы работы</h2>
+      <div class="muted" style="margin-bottom:8px">Целые часы, по дням недели. Пустой день = закрыто нельзя, ставьте равные значения только если день рабочий.</div>
+      <div id="hoursEd"></div>
+      <div class="actions"><button class="btn small" id="hoursSave" type="button">Сохранить часы</button></div>
+      <div class="note" id="hoursNote"></div>
+    </div>
+
+    <div class="card">
+      <h2>Команда</h2>
+      <div class="muted" style="margin-bottom:8px">Telegram ID владельцев. Себя убрать нельзя. ID узнать: @userinfobot.</div>
+      <div id="ownersEd"></div>
+      <div class="row" style="margin-top:6px">
+        <input id="ownerNew" class="num" style="width:160px" inputmode="numeric" placeholder="Telegram ID">
+        <button class="btn ghost small" id="ownerAdd" type="button">Добавить</button>
+      </div>
+      <div class="actions"><button class="btn small" id="ownerSave" type="button">Сохранить команду</button></div>
+      <div class="note" id="ownerNote"></div>
+    </div>
+
+    <div class="card">
+      <h2>Брони</h2>
+      <div id="bookings"><div class="empty">—</div></div>
+      <div class="actions" style="margin-top:10px">
+        <button class="btn ghost small danger" id="clearHist" type="button">Очистить прошедшие</button>
+      </div>
+      <div class="note" id="clearNote"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var API_BASE = 'https://photostudio-backend-yehh.onrender.com';
+  var TOKEN_KEY = 'ps_cabinet_token';
+  var $ = function(id){ return document.getElementById(id); };
+  var esc = function(v){ return String(v==null?'':v).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+  var token = (function(){ try{ return localStorage.getItem(TOKEN_KEY)||''; }catch(e){ return ''; } })();
+  var DAYS = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];   // index = JS getDay
+  var STUDIO_ID = new URLSearchParams(location.search).get('id') || '';
+
+  // /api/session/me is NOT tenant-scoped
+  function meApi(){
+    return fetch(API_BASE + '/api/session/me', { headers:{ 'Authorization':'Bearer ' + token } })
+      .then(function(r){ if(!r.ok){ var e=new Error('me '+r.status); e.status=r.status; throw e; } return r.json(); });
+  }
+  function api(method, path, body){
+    return fetch(API_BASE + '/api/t/' + encodeURIComponent(STUDIO_ID) + path, {
+      method: method,
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer ' + token },
+      body: body ? JSON.stringify(body) : undefined
+    }).then(function(r){
+      return r.json().catch(function(){ return null; }).then(function(d){
+        if(!r.ok){ var e = new Error((d && d.error) || ('Ошибка ' + r.status)); e.status = r.status; throw e; }
+        return d;
+      });
+    });
+  }
+  function flash(el, msg, ok){ el.textContent = msg; el.style.color = ok ? 'var(--amber)' : 'var(--red)'; if(ok) setTimeout(function(){ el.textContent=''; }, 2500); }
+  function minLabel(m){ m=((m%1440)+1440)%1440; return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
+  function dateLabel(iso){ return new Date(String(iso).slice(0,10)+'T00:00:00').toLocaleDateString('ru-RU',{day:'numeric',month:'long'}); }
+
+  var HALLS_BY_ID = {};
+  var hallsDraft = [], equipDraft = [], hoursDraft = [], ownersDraft = [], myId = '';
+
+  // ---------- editors ----------
+  function renderHalls(){
+    var c = $('hallsEd'); c.innerHTML = '';
+    hallsDraft.forEach(function(h, i){
+      var row = document.createElement('div'); row.className = 'row';
+      row.innerHTML =
+        '<input class="name" data-i="'+i+'" data-f="name" placeholder="Название зала" value="'+esc(h.name)+'">' +
+        '<span class="unitwrap"><input class="num" type="number" min="1" step="1" data-i="'+i+'" data-f="capacity" value="'+esc(h.capacity)+'"><span class="u">чел</span></span>' +
+        '<span class="unitwrap"><input class="num" type="number" min="0" step="1" data-i="'+i+'" data-f="rate" value="'+esc(h.rate)+'"><span class="u">BYN/ч</span></span>' +
+        (hallsDraft.length > 1 ? '<button class="del" data-i="'+i+'" type="button">✕</button>' : '');
+      c.appendChild(row);
+    });
+    c.querySelectorAll('input[data-f]').forEach(function(inp){
+      inp.addEventListener('input', function(){
+        var h = hallsDraft[+inp.dataset.i], f = inp.dataset.f;
+        h[f] = f==='name' ? inp.value : (f==='capacity' ? parseInt(inp.value,10) : parseFloat(inp.value));
+      });
+    });
+    c.querySelectorAll('.del').forEach(function(b){ b.addEventListener('click', function(){ hallsDraft.splice(+b.dataset.i,1); renderHalls(); }); });
+  }
+  function renderEquip(){
+    var c = $('equipEd'); c.innerHTML = '';
+    if(!equipDraft.length) c.innerHTML = '<div class="muted">Оборудования нет.</div>';
+    equipDraft.forEach(function(it, i){
+      var row = document.createElement('div'); row.className = 'row';
+      row.innerHTML =
+        '<input class="name" data-i="'+i+'" data-f="name" placeholder="Название" value="'+esc(it.name)+'">' +
+        '<span class="unitwrap"><input class="num" type="number" min="0" step="1" data-i="'+i+'" data-f="price" value="'+esc(it.price)+'"><span class="u">BYN</span></span>' +
+        '<select data-i="'+i+'" data-f="unit"><option value="flat"'+(it.unit==='flat'?' selected':'')+'>за бронь</option><option value="hour"'+(it.unit==='hour'?' selected':'')+'>за час</option></select>' +
+        '<button class="del" data-i="'+i+'" type="button">✕</button>';
+      c.appendChild(row);
+    });
+    c.querySelectorAll('[data-f]').forEach(function(inp){
+      inp.addEventListener('input', function(){
+        var it = equipDraft[+inp.dataset.i], f = inp.dataset.f;
+        it[f] = f==='price' ? parseFloat(inp.value) : inp.value;
+      });
+    });
+    c.querySelectorAll('.del').forEach(function(b){ b.addEventListener('click', function(){ equipDraft.splice(+b.dataset.i,1); renderEquip(); }); });
+  }
+  function renderHours(){
+    var c = $('hoursEd'); c.innerHTML = '';
+    hoursDraft.forEach(function(d, i){
+      var row = document.createElement('div'); row.className = 'hours-day';
+      row.innerHTML =
+        '<span class="d">'+DAYS[i]+'</span>' +
+        '<input type="number" min="0" max="24" data-i="'+i+'" data-f="start" value="'+esc(d.start)+'"> — ' +
+        '<input type="number" min="0" max="24" data-i="'+i+'" data-f="end" value="'+esc(d.end)+'">';
+      c.appendChild(row);
+    });
+    c.querySelectorAll('input').forEach(function(inp){
+      inp.addEventListener('input', function(){ hoursDraft[+inp.dataset.i][inp.dataset.f] = parseInt(inp.value,10); });
+    });
+  }
+  function renderOwners(){
+    var c = $('ownersEd'); c.innerHTML = '';
+    ownersDraft.forEach(function(id, i){
+      var row = document.createElement('div'); row.className = 'row';
+      var me = id === myId;
+      row.innerHTML = '<span style="font-family:ui-monospace,Menlo,monospace;font-size:13px;flex:1">'+esc(id)+(me?' <span class="muted">— вы</span>':'')+'</span>' +
+        (me ? '' : '<button class="del" data-i="'+i+'" type="button">✕</button>');
+      c.appendChild(row);
+    });
+    c.querySelectorAll('.del').forEach(function(b){ b.addEventListener('click', function(){ ownersDraft.splice(+b.dataset.i,1); renderOwners(); }); });
+  }
+  function renderBookings(list){
+    var c = $('bookings');
+    if(!list.length){ c.innerHTML = '<div class="empty">Броней нет.</div>'; return; }
+    c.innerHTML = '';
+    list.forEach(function(b){
+      var d = document.createElement('div'); d.className = 'bk'; d.dataset.st = b.status;
+      var hall = (HALLS_BY_ID[b.hallId] || {}).name || b.hallId || '';
+      d.innerHTML =
+        '<div class="bk-top"><span>'+esc(dateLabel(b.date))+'</span><span class="st">'+(b.status==='active'?'активна':'отменена')+'</span></div>' +
+        '<div class="meta">'+esc(hall)+' · '+minLabel(b.start)+'–'+minLabel(b.end)+' · '+esc(b.people)+' чел · '+esc(b.price)+' BYN</div>' +
+        '<div class="who">'+esc(b.name||'—')+' · '+esc(b.phone||'')+'</div>';
+      if(b.status === 'active'){
+        var btn = document.createElement('button'); btn.className = 'btn ghost small'; btn.style.marginTop = '8px'; btn.textContent = 'Отменить';
+        btn.addEventListener('click', function(){
+          btn.disabled = true;
+          api('POST', '/bookings/' + b.id + '/cancel').then(load).catch(function(e){ btn.disabled = false; alert(e.message); });
+        });
+        d.appendChild(btn);
+      }
+      c.appendChild(d);
+    });
+  }
+
+  // ---------- save handlers ----------
+  $('hallAdd').addEventListener('click', function(){ hallsDraft.push({name:'',capacity:10,rate:30}); renderHalls(); });
+  $('hallSave').addEventListener('click', function(){
+    for(var i=0;i<hallsDraft.length;i++){ var h=hallsDraft[i];
+      if(!h.name||!h.name.trim()) return flash($('hallNote'),'У каждого зала должно быть название');
+      if(!Number.isInteger(h.capacity)||h.capacity<1) return flash($('hallNote'),'Вместимость — целое от 1');
+      if(!(h.rate>=0)) return flash($('hallNote'),'Ставка — число от 0'); }
+    api('PUT','/admin/halls', hallsDraft.map(function(h){ return {id:h.id,name:h.name.trim(),capacity:h.capacity,rate:h.rate}; }))
+      .then(function(u){ hallsDraft = u.filter(function(h){return h.active!==false;}).map(function(h){return {id:h.id,name:h.name,capacity:h.capacity,rate:h.rate};});
+        u.forEach(function(h){ HALLS_BY_ID[h.id]=h; }); renderHalls(); flash($('hallNote'),'Залы обновлены',true); })
+      .catch(function(e){ flash($('hallNote'), e.message); });
+  });
+
+  $('equipAdd').addEventListener('click', function(){ equipDraft.push({name:'',price:10,unit:'flat'}); renderEquip(); });
+  $('equipSave').addEventListener('click', function(){
+    for(var i=0;i<equipDraft.length;i++){ var it=equipDraft[i];
+      if(!it.name||!it.name.trim()) return flash($('equipNote'),'У каждой позиции должно быть название');
+      if(!(it.price>=0)) return flash($('equipNote'),'Цена — число от 0');
+      if(it.unit!=='flat'&&it.unit!=='hour') return flash($('equipNote'),'Единица — за бронь или за час'); }
+    api('PUT','/admin/equipment', equipDraft.map(function(it){ return {id:it.id,name:it.name.trim(),price:it.price,unit:it.unit}; }))
+      .then(function(u){ equipDraft = u.filter(function(e){return e.active!==false;}).map(function(e){return {id:e.id,name:e.name,price:e.price,unit:e.unit};}); renderEquip(); flash($('equipNote'),'Оборудование обновлено',true); })
+      .catch(function(e){ flash($('equipNote'), e.message); });
+  });
+
+  $('hoursSave').addEventListener('click', function(){
+    for(var i=0;i<7;i++){ var d=hoursDraft[i];
+      if(!Number.isInteger(d.start)||!Number.isInteger(d.end)||d.start<0||d.end>24||d.start>=d.end)
+        return flash($('hoursNote'), DAYS[i]+': часы 0..24, начало меньше конца'); }
+    api('PUT','/admin/hours', hoursDraft.map(function(d){ return {start:d.start,end:d.end}; }))
+      .then(function(u){ hoursDraft = u.map(function(d){return {start:d.start,end:d.end};}); renderHours(); flash($('hoursNote'),'Часы обновлены',true); })
+      .catch(function(e){ flash($('hoursNote'), e.message); });
+  });
+
+  $('ownerAdd').addEventListener('click', function(){
+    var v = $('ownerNew').value.trim();
+    if(!/^\d{3,}$/.test(v)) return flash($('ownerNote'),'ID — это число');
+    if(ownersDraft.indexOf(v) >= 0) return flash($('ownerNote'),'Уже в списке');
+    ownersDraft.push(v); $('ownerNew').value=''; renderOwners();
+  });
+  $('ownerSave').addEventListener('click', function(){
+    if(ownersDraft.indexOf(myId) < 0) return flash($('ownerNote'),'Нельзя убрать себя');
+    api('PUT','/admin/owners', ownersDraft)
+      .then(function(r){ ownersDraft = (r.owners||[]).slice(); renderOwners(); flash($('ownerNote'),'Команда обновлена',true); })
+      .catch(function(e){ flash($('ownerNote'), e.message); });
+  });
+
+  $('clearHist').addEventListener('click', function(){
+    if(!confirm('Удалить все прошедшие брони этой студии? Активные и предстоящие не тронутся.')) return;
+    api('POST','/admin/clear-history')
+      .then(function(r){ flash($('clearNote'),'Удалено: ' + (r.removed||0), true); load(); })
+      .catch(function(e){ flash($('clearNote'), e.message); });
+  });
+
+  // ---------- load ----------
+  function load(){
+    return api('GET', '/admin/overview').then(function(ov){
+      myId = String(ov.me || '');
+      (ov.halls||[]).forEach(function(h){ HALLS_BY_ID[h.id] = h; });
+      hallsDraft = (ov.halls||[]).filter(function(h){return h.active!==false;}).map(function(h){return {id:h.id,name:h.name,capacity:h.capacity,rate:h.rate};});
+      equipDraft = (ov.equipment||[]).filter(function(e){return e.active!==false;}).map(function(e){return {id:e.id,name:e.name,price:e.price,unit:e.unit};});
+      ownersDraft = (ov.owners||[]).slice();
+      $('stCount').textContent = ov.stats.count;
+      $('stRev').textContent = ov.stats.revenue;
+      $('stAvg').textContent = ov.stats.avgCheck;
+      renderHalls(); renderEquip(); renderOwners();
+      renderBookings(ov.bookings || []);
+    });
+  }
+
+  function boot(){
+    if(!token){ location.href = './cabinet.html'; return; }
+    if(!STUDIO_ID){ $('loading').hidden = true; $('denied').hidden = false; $('deniedMsg').textContent = 'Не указана студия.'; return; }
+    var membership = null;
+    meApi()
+      .then(function(me){
+        (me.memberships || []).forEach(function(m){ if(m.studioId === STUDIO_ID) membership = m; });
+        if(!membership){ var e = new Error('not a member'); e.status = 403; throw e; }
+        return api('GET','/config');
+      })
+      .then(function(cfg){
+        $('sName').textContent = cfg.name || (membership && membership.studioName) || STUDIO_ID;
+        $('sSub').textContent = [cfg.city, cfg.address, cfg.timezone].filter(Boolean).join(' · ');
+        var st = (membership && membership.studioStatus) || '';
+        $('sStatus').textContent = st; $('sStatus').className = 'badge ' + st;
+        var h = cfg.hours;
+        hoursDraft = (Array.isArray(h) && h.length === 7)
+          ? h.map(function(d){ return {start:d.start, end:d.end}; })
+          : Array.from({length:7}, function(){ return {start:cfg.hoursStart, end:cfg.hoursEnd}; });
+        renderHours();
+        return load();
+      })
+      .then(function(){ $('loading').hidden = true; $('app').hidden = false; })
+      .catch(function(e){
+        $('loading').hidden = true; $('denied').hidden = false;
+        $('deniedMsg').textContent = e.status === 403
+          ? 'Вы не владелец этой студии.'
+          : (e.status === 401 ? 'Сессия истекла — войдите заново.' : (e.message || 'Не удалось загрузить студию.'));
+        if(e.status === 401){ try{ localStorage.removeItem(TOKEN_KEY); }catch(x){} setTimeout(function(){ location.href='./cabinet.html'; }, 1200); }
+      });
+  }
+  boot();
+})();
+</script>
+</body>
+</html>
