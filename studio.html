@@ -101,6 +101,35 @@
     </div>
 
     <div class="card">
+      <h2>Настройки бронирования</h2>
+      <label class="row" style="cursor:pointer">
+        <input type="checkbox" id="setAutoConfirm" style="width:auto;flex:none">
+        <span>Подтверждать брони автоматически</span>
+      </label>
+      <div class="muted" style="margin:2px 0 12px">Выключено — каждая заявка ждёт вашего подтверждения (до 24 ч), потом слот освобождается.</div>
+      <div class="row">
+        <span style="flex:1 1 100%">Буфер после брони, мин</span>
+        <input class="num" type="number" id="setBuffer" min="0" max="120" step="5">
+      </div>
+      <div class="muted" style="margin:2px 0 12px">Режется из времени клиента: бронь 180 мин при буфере 10 → съёмка 170 мин, следующая группа может начать впритык.</div>
+      <div class="row">
+        <span style="flex:1 1 100%">Минимальная длительность брони</span>
+        <select id="setMinDur">
+          <option value="30">30 минут</option>
+          <option value="60">1 час</option>
+          <option value="90">1 ч 30 мин</option>
+          <option value="120">2 часа</option>
+        </select>
+      </div>
+      <div class="row">
+        <span style="flex:1 1 100%">Бесплатная отмена — не позднее чем за, ч</span>
+        <input class="num" type="number" id="setCancelFree" min="0" max="168">
+      </div>
+      <div class="actions"><button class="btn small" id="setSave" type="button">Сохранить настройки</button></div>
+      <div class="note" id="setNote"></div>
+    </div>
+
+    <div class="card">
       <h2>Залы</h2>
       <div id="hallsEd"></div>
       <div class="actions">
@@ -185,6 +214,7 @@
 
   var HALLS_BY_ID = {};
   var hallsDraft = [], equipDraft = [], hoursDraft = [], ownersDraft = [], myId = '';
+  var settingsDraft = { autoConfirm:false, bufferMin:10, minBookingMin:60, cancelFreeHours:24 };
 
   // ---------- editors ----------
   function renderHalls(){
@@ -226,6 +256,13 @@
     });
     c.querySelectorAll('.del').forEach(function(b){ b.addEventListener('click', function(){ equipDraft.splice(+b.dataset.i,1); renderEquip(); }); });
   }
+  function renderSettings(){
+    $('setAutoConfirm').checked = !!settingsDraft.autoConfirm;
+    $('setBuffer').value = settingsDraft.bufferMin;
+    $('setMinDur').value = String(settingsDraft.minBookingMin);
+    $('setCancelFree').value = settingsDraft.cancelFreeHours;
+  }
+
   function renderHours(){
     var c = $('hoursEd'); c.innerHTML = '';
     hoursDraft.forEach(function(d, i){
@@ -330,6 +367,31 @@
       .catch(function(e){ flash($('equipNote'), e.message); });
   });
 
+  $('setSave').addEventListener('click', function(){
+    var buf = parseInt($('setBuffer').value, 10);
+    var minDur = parseInt($('setMinDur').value, 10);
+    var cf = parseInt($('setCancelFree').value, 10);
+    if(!Number.isInteger(buf) || buf < 0 || buf > 120) return flash($('setNote'), 'Буфер — от 0 до 120 минут');
+    if([30,60,90,120].indexOf(minDur) < 0) return flash($('setNote'), 'Минимальная длительность — 30/60/90/120');
+    if(!Number.isInteger(cf) || cf < 0 || cf > 168) return flash($('setNote'), 'Окно отмены — от 0 до 168 часов');
+    var payload = {
+      autoConfirm: $('setAutoConfirm').checked,
+      bufferMin: buf, minBookingMin: minDur, cancelFreeHours: cf,
+    };
+    $('setSave').disabled = true;
+    api('PUT', '/admin/settings', payload)
+      .then(function(u){
+        settingsDraft = {
+          autoConfirm: !!u.autoConfirm, bufferMin: u.bufferMin,
+          minBookingMin: u.minBookingMin, cancelFreeHours: u.cancelFreeHours,
+        };
+        renderSettings();
+        flash($('setNote'), 'Настройки сохранены', true);
+      })
+      .catch(function(e){ flash($('setNote'), e.message); })
+      .then(function(){ $('setSave').disabled = false; });
+  });
+
   $('hoursSave').addEventListener('click', function(){
     for(var i=0;i<7;i++){ var d=hoursDraft[i];
       if(!Number.isInteger(d.start)||!Number.isInteger(d.end)||d.start<0||d.end>24||d.start>=d.end)
@@ -395,6 +457,13 @@
           ? h.map(function(d){ return {start:d.start, end:d.end}; })
           : Array.from({length:7}, function(){ return {start:cfg.hoursStart, end:cfg.hoursEnd}; });
         renderHours();
+        settingsDraft = {
+          autoConfirm: !!cfg.autoConfirm,
+          bufferMin: Number.isInteger(cfg.bufferMin) ? cfg.bufferMin : 10,
+          minBookingMin: Number.isInteger(cfg.minBookingMin) ? cfg.minBookingMin : 60,
+          cancelFreeHours: Number.isInteger(cfg.cancelFreeHours) ? cfg.cancelFreeHours : 24,
+        };
+        renderSettings();
         return load();
       })
       .then(function(){ $('loading').hidden = true; $('app').hidden = false; })
