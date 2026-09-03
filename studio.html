@@ -248,7 +248,67 @@
 
   // ---------- editors ----------
   function mapHall(h){ return {id:h.id,name:h.name,capacity:h.capacity,rate:h.rate,
-    hallType:h.hallType||null,daylight:!!h.daylight,areaM2:h.areaM2!=null?h.areaM2:null,ceilingCm:h.ceilingCm!=null?h.ceilingCm:null}; }
+    hallType:h.hallType||null,daylight:!!h.daylight,areaM2:h.areaM2!=null?h.areaM2:null,ceilingCm:h.ceilingCm!=null?h.ceilingCm:null,
+    photos:Array.isArray(h.photos)?h.photos.slice():[]}; }
+
+  function renderHallPhotos(i){
+    var h = hallsDraft[i];
+    var box = document.querySelector('.hall-photos[data-i="'+i+'"]');
+    if(!box) return;
+    if(!h.id){
+      box.innerHTML = '<span class="muted">Сохраните зал, чтобы добавить фото.</span>';
+      return;
+    }
+    var thumbs = (h.photos||[]).map(function(u){
+      return '<span class="ph-thumb" style="position:relative;display:inline-block">' +
+        '<img src="'+esc(u)+'" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--line)">' +
+        '<button class="ph-del" data-url="'+esc(u)+'" type="button" title="Удалить" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1">×</button>' +
+        '</span>';
+    }).join('');
+    box.innerHTML =
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' + thumbs +
+      ((h.photos||[]).length < 8
+        ? '<button class="btn ghost small ph-add" type="button">+ Фото</button>' : '') +
+      '</div><div class="note ph-note"></div>';
+
+    box.querySelectorAll('.ph-del').forEach(function(b){
+      b.addEventListener('click', function(){
+        var next = (h.photos||[]).filter(function(u){ return u !== b.dataset.url; });
+        saveHallPhotos(i, next);
+      });
+    });
+    var add = box.querySelector('.ph-add');
+    if(add) add.addEventListener('click', function(){
+      var inp = document.createElement('input');
+      inp.type = 'file'; inp.accept = 'image/jpeg,image/png,image/webp';
+      inp.addEventListener('change', function(){ if(inp.files[0]) uploadHallPhoto(i, inp.files[0]); });
+      inp.click();
+    });
+  }
+
+  function saveHallPhotos(i, photos){
+    var h = hallsDraft[i];
+    return api('PUT', '/admin/halls/' + encodeURIComponent(h.id) + '/photos', photos)
+      .then(function(r){ h.photos = Array.isArray(r.photos) ? r.photos : photos;
+        if(HALLS_BY_ID[h.id]) HALLS_BY_ID[h.id].photos = h.photos;
+        renderHallPhotos(i); })
+      .catch(function(e){ var n = document.querySelector('.hall-photos[data-i="'+i+'"] .ph-note'); if(n) flash(n, e.message); });
+  }
+
+  function uploadHallPhoto(i, file){
+    var h = hallsDraft[i];
+    var n = document.querySelector('.hall-photos[data-i="'+i+'"] .ph-note');
+    if(file.size > 5*1024*1024){ if(n) flash(n, 'Файл больше 5 МБ'); return; }
+    if(n) flash(n, 'Загрузка…', true);
+    api('POST', '/admin/halls/' + encodeURIComponent(h.id) + '/photo-upload', { contentType: file.type })
+      .then(function(r){
+        return fetch(r.uploadUrl, { method:'PUT', body:file, headers:{ 'Content-Type': file.type } })
+          .then(function(res){ if(!res.ok) throw new Error('R2 отклонил загрузку ('+res.status+')'); return r.publicUrl; });
+      })
+      .then(function(publicUrl){ return saveHallPhotos(i, (h.photos||[]).concat([publicUrl])); })
+      .then(function(){ if(n) flash(n, 'Фото добавлено', true); })
+      .catch(function(e){ if(n) flash(n, e.message); });
+  }
 
   function renderHalls(){
     var c = $('hallsEd'); c.innerHTML = '';
@@ -267,8 +327,10 @@
           '<label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)"><input type="checkbox" data-i="'+i+'" data-f="daylight"'+(h.daylight?' checked':'')+' style="width:auto">дневной свет</label>' +
           '<span class="unitwrap"><input class="num" type="number" min="1" step="1" data-i="'+i+'" data-f="areaM2" value="'+esc(h.areaM2!=null?h.areaM2:'')+'" placeholder="—"><span class="u">м²</span></span>' +
           '<span class="unitwrap"><input class="num" type="number" min="150" max="2000" step="5" data-i="'+i+'" data-f="ceilingCm" value="'+esc(h.ceilingCm!=null?h.ceilingCm:'')+'" placeholder="—"><span class="u">см потолок</span></span>' +
-        '</span>';
+        '</span>' +
+        '<span class="hall-photos" data-i="'+i+'" style="flex:1 1 100%;margin-top:4px"></span>';
       c.appendChild(row);
+      renderHallPhotos(i);
     });
     c.querySelectorAll('[data-f]').forEach(function(inp){
       var evt = (inp.tagName==='SELECT' || inp.type==='checkbox') ? 'change' : 'input';
