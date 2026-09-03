@@ -113,14 +113,13 @@
       </div>
       <div class="muted" style="margin:2px 0 12px">Режется из времени клиента: бронь 180 мин при буфере 10 → съёмка 170 мин, следующая группа может начать впритык.</div>
       <div class="row">
-        <span style="flex:1 1 100%">Минимальная длительность брони</span>
+        <span style="flex:1 1 100%">Шаг и минимальная длительность брони</span>
         <select id="setMinDur">
           <option value="30">30 минут</option>
           <option value="60">1 час</option>
-          <option value="90">1 ч 30 мин</option>
-          <option value="120">2 часа</option>
         </select>
       </div>
+      <div class="muted" style="margin:2px 0 12px">Определяет и минимум брони, и шаг в окне выбора времени у клиента.</div>
       <div class="row">
         <span style="flex:1 1 100%">Бесплатная отмена — не позднее чем за, ч</span>
         <input class="num" type="number" id="setCancelFree" min="0" max="168">
@@ -416,7 +415,7 @@
     var minDur = parseInt($('setMinDur').value, 10);
     var cf = parseInt($('setCancelFree').value, 10);
     if(!Number.isInteger(buf) || buf < 0 || buf > 120) return flash($('setNote'), 'Буфер — от 0 до 120 минут');
-    if([30,60,90,120].indexOf(minDur) < 0) return flash($('setNote'), 'Минимальная длительность — 30/60/90/120');
+    if([30,60].indexOf(minDur) < 0) return flash($('setNote'), 'Шаг брони — 30 или 60 минут');
     if(!Number.isInteger(cf) || cf < 0 || cf > 168) return flash($('setNote'), 'Окно отмены — от 0 до 168 часов');
     var payload = {
       autoConfirm: $('setAutoConfirm').checked,
