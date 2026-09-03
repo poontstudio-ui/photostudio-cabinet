@@ -148,6 +148,12 @@
     </div>
 
     <div class="card">
+      <h2>Google Calendar</h2>
+      <div id="calBody"><span class="muted">Загрузка…</span></div>
+      <div class="note" id="calNote"></div>
+    </div>
+
+    <div class="card">
       <h2>Залы</h2>
       <div id="hallsEd"></div>
       <div class="actions">
@@ -530,6 +536,7 @@
       renderHalls(); renderEquip(); renderOwners();
       renderBookings(ov.bookings || []);
       renderBlockHallOptions();
+      loadCalendar();
       return loadBlocks();
     });
   }
@@ -541,6 +548,57 @@
     sel.innerHTML = '<option value="all">Все залы</option>' +
       halls.map(function(h){ return '<option value="'+esc(h.id)+'">'+esc(h.name)+'</option>'; }).join('');
     if(cur) sel.value = cur;
+  }
+
+  function rootApi(method, path){
+    return fetch(API_BASE + path, {
+      method: method,
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer ' + token },
+    }).then(function(r){
+      return r.json().catch(function(){ return null; }).then(function(d){
+        if(!r.ok){ var e = new Error((d && d.error) || ('Ошибка ' + r.status)); e.status = r.status; throw e; }
+        return d;
+      });
+    });
+  }
+
+  function loadCalendar(){
+    return api('GET', '/admin/calendar').then(renderCalendar).catch(function(){
+      $('calBody').innerHTML = '<span class="muted">Не удалось загрузить статус.</span>';
+    });
+  }
+
+  function renderCalendar(st){
+    var c = $('calBody');
+    if(!st.available){
+      c.innerHTML = '<span class="muted">Синхронизация с Google Calendar пока не включена на сервере.</span>';
+      return;
+    }
+    if(!st.connected){
+      c.innerHTML =
+        '<div class="muted" style="margin-bottom:8px">События вашего календаря закроют слоты у нас, а брони с платформы попадут в календарь.</div>' +
+        '<button class="btn small" id="calConnect" type="button">Подключить Google Calendar</button>';
+      $('calConnect').addEventListener('click', function(){
+        var b = $('calConnect'); b.disabled = true;
+        rootApi('GET', '/api/oauth/google/start?studio=' + encodeURIComponent(STUDIO_ID))
+          .then(function(r){ location.href = r.url; })
+          .catch(function(e){ b.disabled = false; flash($('calNote'), e.message); });
+      });
+      return;
+    }
+    var last = st.lastSyncAt ? new Date(st.lastSyncAt) : null;
+    var ago = last ? Math.round((Date.now() - last.getTime()) / 60000) + ' мин назад' : 'ещё не было';
+    c.innerHTML =
+      '<div style="margin-bottom:6px">Подключён · календарь <b>' + esc(st.calendarId || 'primary') + '</b></div>' +
+      '<div class="muted" style="margin-bottom:8px">Последняя синхронизация: ' + esc(ago) +
+        (st.lastError ? ' · <span class="err">ошибка: ' + esc(st.lastError) + '</span>' : '') + '</div>' +
+      '<button class="btn ghost small" id="calDisconnect" type="button">Отключить</button>';
+    $('calDisconnect').addEventListener('click', function(){
+      var b = $('calDisconnect'); b.disabled = true;
+      rootApi('DELETE', '/api/t/' + encodeURIComponent(STUDIO_ID) + '/admin/calendar')
+        .then(function(){ flash($('calNote'), 'Календарь отключён', true); return loadCalendar(); })
+        .catch(function(e){ b.disabled = false; flash($('calNote'), e.message); });
+    });
   }
 
   function loadBlocks(){
@@ -621,6 +679,21 @@
         if(e.status === 401){ try{ localStorage.removeItem(TOKEN_KEY); }catch(x){} setTimeout(function(){ location.href='./cabinet.html'; }, 1200); }
       });
   }
+  (function(){
+    var m = /[?&]calendar=([a-z]+)/.exec(location.search);
+    if(!m) return;
+    var MSG = {
+      connected: ['Google Calendar подключён', true],
+      denied: ['Доступ к календарю не выдан', false],
+      error: ['Не удалось подключить календарь', false],
+      norefresh: ['Google не выдал refresh-токен — отзовите доступ приложению в аккаунте Google и попробуйте снова', false],
+      badstate: ['Ссылка авторизации устарела, попробуйте снова', false],
+    };
+    var info = MSG[m[1]];
+    if(info) setTimeout(function(){ flash($('calNote'), info[0], info[1]); }, 800);
+    history.replaceState(null, '', location.pathname + '?id=' + encodeURIComponent(STUDIO_ID));
+  })();
+
   boot();
 })();
 </script>
