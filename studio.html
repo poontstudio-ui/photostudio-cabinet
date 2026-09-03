@@ -213,6 +213,7 @@
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
   var token = (function(){ try{ return localStorage.getItem(TOKEN_KEY)||''; }catch(e){ return ''; } })();
   var DAYS = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];   // index = JS getDay
+  var HALL_TYPES = {cyclorama:'Циклорама',interior:'Интерьер',hardlight:'Тёмный/жёсткий свет',daylight:'Дневной свет',other:'Другое'};
   var STUDIO_ID = new URLSearchParams(location.search).get('id') || '';
 
   // /api/session/me is NOT tenant-scoped
@@ -246,21 +247,38 @@
   ];
 
   // ---------- editors ----------
+  function mapHall(h){ return {id:h.id,name:h.name,capacity:h.capacity,rate:h.rate,
+    hallType:h.hallType||null,daylight:!!h.daylight,areaM2:h.areaM2!=null?h.areaM2:null,ceilingCm:h.ceilingCm!=null?h.ceilingCm:null}; }
+
   function renderHalls(){
     var c = $('hallsEd'); c.innerHTML = '';
     hallsDraft.forEach(function(h, i){
       var row = document.createElement('div'); row.className = 'row';
+      var typeOpts = '<option value="">Тип зала…</option>' +
+        Object.keys(HALL_TYPES).map(function(k){
+          return '<option value="'+k+'"'+(h.hallType===k?' selected':'')+'>'+HALL_TYPES[k]+'</option>'; }).join('');
       row.innerHTML =
         '<input class="name" data-i="'+i+'" data-f="name" placeholder="Название зала" value="'+esc(h.name)+'">' +
         '<span class="unitwrap"><input class="num" type="number" min="1" step="1" data-i="'+i+'" data-f="capacity" value="'+esc(h.capacity)+'"><span class="u">чел</span></span>' +
         '<span class="unitwrap"><input class="num" type="number" min="0" step="1" data-i="'+i+'" data-f="rate" value="'+esc(h.rate)+'"><span class="u">BYN/ч</span></span>' +
-        (hallsDraft.length > 1 ? '<button class="del" data-i="'+i+'" type="button">✕</button>' : '');
+        (hallsDraft.length > 1 ? '<button class="del" data-i="'+i+'" type="button">✕</button>' : '') +
+        '<span class="hall-props" style="flex:1 1 100%;display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:2px">' +
+          '<select data-i="'+i+'" data-f="hallType" style="flex:1 1 140px">'+typeOpts+'</select>' +
+          '<label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)"><input type="checkbox" data-i="'+i+'" data-f="daylight"'+(h.daylight?' checked':'')+' style="width:auto">дневной свет</label>' +
+          '<span class="unitwrap"><input class="num" type="number" min="1" step="1" data-i="'+i+'" data-f="areaM2" value="'+esc(h.areaM2!=null?h.areaM2:'')+'" placeholder="—"><span class="u">м²</span></span>' +
+          '<span class="unitwrap"><input class="num" type="number" min="150" max="2000" step="5" data-i="'+i+'" data-f="ceilingCm" value="'+esc(h.ceilingCm!=null?h.ceilingCm:'')+'" placeholder="—"><span class="u">см потолок</span></span>' +
+        '</span>';
       c.appendChild(row);
     });
-    c.querySelectorAll('input[data-f]').forEach(function(inp){
-      inp.addEventListener('input', function(){
+    c.querySelectorAll('[data-f]').forEach(function(inp){
+      var evt = (inp.tagName==='SELECT' || inp.type==='checkbox') ? 'change' : 'input';
+      inp.addEventListener(evt, function(){
         var h = hallsDraft[+inp.dataset.i], f = inp.dataset.f;
-        h[f] = f==='name' ? inp.value : (f==='capacity' ? parseInt(inp.value,10) : parseFloat(inp.value));
+        if(f==='name') h.name = inp.value;
+        else if(f==='hallType') h.hallType = inp.value || null;
+        else if(f==='daylight') h.daylight = inp.checked;
+        else if(f==='rate') h.rate = parseFloat(inp.value);
+        else { var v = parseInt(inp.value,10); h[f] = Number.isInteger(v) ? v : null; }
       });
     });
     c.querySelectorAll('.del').forEach(function(b){ b.addEventListener('click', function(){ hallsDraft.splice(+b.dataset.i,1); renderHalls(); }); });
@@ -413,8 +431,12 @@
       if(!h.name||!h.name.trim()) return flash($('hallNote'),'У каждого зала должно быть название');
       if(!Number.isInteger(h.capacity)||h.capacity<1) return flash($('hallNote'),'Вместимость — целое от 1');
       if(!(h.rate>=0)) return flash($('hallNote'),'Ставка — число от 0'); }
-    api('PUT','/admin/halls', hallsDraft.map(function(h){ return {id:h.id,name:h.name.trim(),capacity:h.capacity,rate:h.rate}; }))
-      .then(function(u){ hallsDraft = u.filter(function(h){return h.active!==false;}).map(function(h){return {id:h.id,name:h.name,capacity:h.capacity,rate:h.rate};});
+    api('PUT','/admin/halls', hallsDraft.map(function(h){ return {
+        id:h.id, name:h.name.trim(), capacity:h.capacity, rate:h.rate,
+        hallType:h.hallType||null, daylight:!!h.daylight,
+        areaM2:Number.isInteger(h.areaM2)?h.areaM2:null,
+        ceilingCm:Number.isInteger(h.ceilingCm)?h.ceilingCm:null }; }))
+      .then(function(u){ hallsDraft = u.filter(function(h){return h.active!==false;}).map(mapHall);
         u.forEach(function(h){ HALLS_BY_ID[h.id]=h; }); renderHalls(); flash($('hallNote'),'Залы обновлены',true); })
       .catch(function(e){ flash($('hallNote'), e.message); });
   });
@@ -527,7 +549,7 @@
     return api('GET', '/admin/overview').then(function(ov){
       myId = String(ov.me || '');
       (ov.halls||[]).forEach(function(h){ HALLS_BY_ID[h.id] = h; });
-      hallsDraft = (ov.halls||[]).filter(function(h){return h.active!==false;}).map(function(h){return {id:h.id,name:h.name,capacity:h.capacity,rate:h.rate};});
+      hallsDraft = (ov.halls||[]).filter(function(h){return h.active!==false;}).map(mapHall);
       equipDraft = (ov.equipment||[]).filter(function(e){return e.active!==false;}).map(function(e){return {id:e.id,name:e.name,price:e.price,unit:e.unit};});
       ownersDraft = (ov.owners||[]).slice();
       $('stCount').textContent = ov.stats.count;
