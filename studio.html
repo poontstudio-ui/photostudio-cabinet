@@ -130,6 +130,26 @@
     </div>
 
     <div class="card">
+      <h2>Заблокировать время</h2>
+      <div class="muted" style="margin-bottom:8px">Ремонт, корпоратив, съёмка мимо платформы. Клиенты не смогут забронировать этот интервал.</div>
+      <div class="row">
+        <select id="blkHall" style="flex:1 1 100%"></select>
+      </div>
+      <div class="row">
+        <input type="date" id="blkDate">
+        <input type="time" id="blkFrom" step="1800">
+        <span>–</span>
+        <input type="time" id="blkTo" step="1800">
+      </div>
+      <div class="row">
+        <input type="text" id="blkNote" maxlength="200" placeholder="Причина (необязательно)" style="flex:1 1 100%">
+      </div>
+      <div class="actions"><button class="btn small" id="blkAdd" type="button">Заблокировать</button></div>
+      <div class="note" id="blkNoteMsg"></div>
+      <div id="blkList" style="margin-top:8px"></div>
+    </div>
+
+    <div class="card">
       <h2>Залы</h2>
       <div id="hallsEd"></div>
       <div class="actions">
@@ -213,6 +233,7 @@
   function dateLabel(iso){ return new Date(String(iso).slice(0,10)+'T00:00:00').toLocaleDateString('ru-RU',{day:'numeric',month:'long'}); }
 
   var HALLS_BY_ID = {};
+  var blocksList = [];
   var hallsDraft = [], equipDraft = [], hoursDraft = [], ownersDraft = [], myId = '';
   var settingsDraft = { autoConfirm:false, bufferMin:10, minBookingMin:60, cancelFreeHours:24 };
 
@@ -367,6 +388,29 @@
       .catch(function(e){ flash($('equipNote'), e.message); });
   });
 
+  function hhmmToMin(v){
+    var m = /^(\d{2}):(\d{2})$/.exec(v || '');
+    return m ? (+m[1])*60 + (+m[2]) : NaN;
+  }
+  $('blkAdd').addEventListener('click', function(){
+    var date = $('blkDate').value;
+    var start = hhmmToMin($('blkFrom').value);
+    var end = hhmmToMin($('blkTo').value);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return flash($('blkNoteMsg'), 'Укажите дату');
+    if(!Number.isInteger(start) || !Number.isInteger(end) || end <= start) return flash($('blkNoteMsg'), 'Начало должно быть раньше конца');
+    if(start % 30 || end % 30) return flash($('blkNoteMsg'), 'Время кратно 30 минутам');
+    var payload = {
+      hallId: $('blkHall').value || 'all',
+      date: date, start: start, end: end,
+      note: $('blkNote').value.trim() || undefined,
+    };
+    $('blkAdd').disabled = true;
+    api('POST', '/admin/blocks', payload)
+      .then(function(){ $('blkNote').value = ''; flash($('blkNoteMsg'), 'Время заблокировано', true); return loadBlocks(); })
+      .catch(function(e){ flash($('blkNoteMsg'), e.message); })
+      .then(function(){ $('blkAdd').disabled = false; });
+  });
+
   $('setSave').addEventListener('click', function(){
     var buf = parseInt($('setBuffer').value, 10);
     var minDur = parseInt($('setMinDur').value, 10);
@@ -434,6 +478,56 @@
       $('stAvg').textContent = ov.stats.avgCheck;
       renderHalls(); renderEquip(); renderOwners();
       renderBookings(ov.bookings || []);
+      renderBlockHallOptions();
+      return loadBlocks();
+    });
+  }
+
+  function renderBlockHallOptions(){
+    var sel = $('blkHall');
+    var cur = sel.value;
+    var halls = (hallsDraft || []).filter(function(h){ return h.id; });
+    sel.innerHTML = '<option value="all">Все залы</option>' +
+      halls.map(function(h){ return '<option value="'+esc(h.id)+'">'+esc(h.name)+'</option>'; }).join('');
+    if(cur) sel.value = cur;
+  }
+
+  function loadBlocks(){
+    return api('GET', '/admin/blocks').then(function(list){
+      blocksList = Array.isArray(list) ? list : [];
+      renderBlocks();
+    }).catch(function(){ /* блокировки не критичны для загрузки страницы */ });
+  }
+
+  function renderBlocks(){
+    var c = $('blkList');
+    if(!blocksList.length){ c.innerHTML = '<div class="muted">Активных блокировок нет.</div>'; return; }
+    // группируем по batchId
+    var byBatch = {};
+    blocksList.forEach(function(b){ (byBatch[b.batchId] = byBatch[b.batchId] || []).push(b); });
+    c.innerHTML = '';
+    Object.keys(byBatch).forEach(function(bid){
+      var rows = byBatch[bid];
+      var first = rows[0];
+      var names = rows.map(function(r){ return (HALLS_BY_ID[r.hallId]||{}).name || r.hallId; });
+      var totalHalls = (hallsDraft||[]).length;
+      var scope = rows.length >= totalHalls && totalHalls > 0 ? 'Все залы' : names.join(', ');
+      var row = document.createElement('div');
+      row.className = 'row';
+      row.style.cssText = 'justify-content:space-between;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:6px';
+      row.innerHTML =
+        '<span style="flex:1 1 auto;min-width:0">' +
+          '<b>'+esc(dateLabel(first.date))+'</b> · '+minLabel(first.start)+'–'+minLabel(first.end)+' · '+esc(scope) +
+          (first.note ? '<br><span class="muted">'+esc(first.note)+'</span>' : '') +
+        '</span>' +
+        '<button class="btn small ghost" data-batch="'+esc(bid)+'" style="flex:none">Снять</button>';
+      row.querySelector('button').addEventListener('click', function(ev){
+        var btn = ev.currentTarget; btn.disabled = true;
+        api('DELETE', '/admin/blocks/' + encodeURIComponent(bid))
+          .then(loadBlocks)
+          .catch(function(e){ btn.disabled = false; flash($('blkNoteMsg'), e.message); });
+      });
+      c.appendChild(row);
     });
   }
 
