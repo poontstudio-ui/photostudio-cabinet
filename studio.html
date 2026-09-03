@@ -120,11 +120,10 @@
         </select>
       </div>
       <div class="muted" style="margin:2px 0 12px">Определяет и минимум брони, и шаг в окне выбора времени у клиента.</div>
-      <div class="row">
-        <span style="flex:1 1 100%">Бесплатная отмена — не позднее чем за, ч</span>
-        <input class="num" type="number" id="setCancelFree" min="0" max="168">
-      </div>
-      <div class="actions"><button class="btn small" id="setSave" type="button">Сохранить настройки</button></div>
+      <div style="margin-top:6px"><span class="muted">Правила отмены и переноса</span></div>
+      <div id="polEd" style="margin:6px 0"></div>
+      <button class="btn ghost small" id="polAdd" type="button">+ Ступень</button>
+      <div class="actions" style="margin-top:10px"><button class="btn small" id="setSave" type="button">Сохранить настройки</button></div>
       <div class="note" id="setNote"></div>
     </div>
 
@@ -235,6 +234,10 @@
   var blocksList = [];
   var hallsDraft = [], equipDraft = [], hoursDraft = [], ownersDraft = [], myId = '';
   var settingsDraft = { autoConfirm:false, bufferMin:10, minBookingMin:60, cancelFreeHours:24 };
+  var policyDraft = [
+    { hoursBefore:24, refundPct:100, rescheduleFree:true },
+    { hoursBefore:0,  refundPct:50,  rescheduleFree:false },
+  ];
 
   // ---------- editors ----------
   function renderHalls(){
@@ -280,7 +283,41 @@
     $('setAutoConfirm').checked = !!settingsDraft.autoConfirm;
     $('setBuffer').value = settingsDraft.bufferMin;
     $('setMinDur').value = String(settingsDraft.minBookingMin);
-    $('setCancelFree').value = settingsDraft.cancelFreeHours;
+    renderPolicy();
+  }
+
+  function renderPolicy(){
+    var c = $('polEd'); c.innerHTML = '';
+    policyDraft.forEach(function(t, i){
+      var last = i === policyDraft.length - 1;
+      var row = document.createElement('div');
+      row.className = 'row';
+      row.style.cssText = 'gap:6px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:6px;flex-wrap:wrap';
+      row.innerHTML =
+        '<span style="flex:1 1 100%;font-size:12px;color:var(--muted)">' +
+          (last ? 'Позже (ловит всё остальное):'
+                : ('За <input type="number" min="1" max="720" value="' + esc(t.hoursBefore) +
+                   '" data-i="' + i + '" data-f="hoursBefore" style="width:64px"> ч и раньше:')) +
+        '</span>' +
+        'возврат <input type="number" min="0" max="100" value="' + esc(t.refundPct) +
+          '" data-i="' + i + '" data-f="refundPct" style="width:60px"> %' +
+        '<label style="display:flex;align-items:center;gap:4px;font-size:12px">' +
+          '<input type="checkbox" data-i="' + i + '" data-f="rescheduleFree"' + (t.rescheduleFree ? ' checked' : '') +
+          ' style="width:auto"> перенос бесплатный</label>' +
+        (policyDraft.length > 1 && !last
+          ? '<button class="btn ghost small del" data-i="' + i + '" type="button" style="flex:none">×</button>' : '');
+      c.appendChild(row);
+    });
+    c.querySelectorAll('input[data-f]').forEach(function(inp){
+      inp.addEventListener('change', function(){
+        var i = +inp.dataset.i, f = inp.dataset.f;
+        if(f === 'rescheduleFree') policyDraft[i][f] = inp.checked;
+        else policyDraft[i][f] = parseInt(inp.value, 10);
+      });
+    });
+    c.querySelectorAll('.del').forEach(function(b){
+      b.addEventListener('click', function(){ policyDraft.splice(+b.dataset.i, 1); renderPolicy(); });
+    });
   }
 
   function renderHours(){
@@ -410,16 +447,30 @@
       .then(function(){ $('blkAdd').disabled = false; });
   });
 
+  $('polAdd').addEventListener('click', function(){
+    // новая ступень вставляется перед последней (последняя всегда hoursBefore 0)
+    var prev = policyDraft[policyDraft.length - 2];
+    var h = prev ? Math.max(1, prev.hoursBefore - 6) : 12;
+    policyDraft.splice(policyDraft.length - 1, 0, { hoursBefore:h, refundPct:80, rescheduleFree:true });
+    renderPolicy();
+  });
+
   $('setSave').addEventListener('click', function(){
     var buf = parseInt($('setBuffer').value, 10);
     var minDur = parseInt($('setMinDur').value, 10);
-    var cf = parseInt($('setCancelFree').value, 10);
     if(!Number.isInteger(buf) || buf < 0 || buf > 120) return flash($('setNote'), 'Буфер — от 0 до 120 минут');
     if([30,60].indexOf(minDur) < 0) return flash($('setNote'), 'Шаг брони — 30 или 60 минут');
-    if(!Number.isInteger(cf) || cf < 0 || cf > 168) return flash($('setNote'), 'Окно отмены — от 0 до 168 часов');
+    // политика: строго по убыванию часов, последняя — 0
+    var pol = policyDraft.map(function(t){ return {
+      hoursBefore: t.hoursBefore|0, refundPct: t.refundPct|0, rescheduleFree: !!t.rescheduleFree }; });
+    pol[pol.length - 1].hoursBefore = 0;
+    for(var i = 0; i < pol.length; i++){
+      if(pol[i].refundPct < 0 || pol[i].refundPct > 100) return flash($('setNote'), 'Возврат — 0..100 %');
+      if(i > 0 && pol[i].hoursBefore >= pol[i-1].hoursBefore) return flash($('setNote'), 'Часы ступеней — строго по убыванию');
+    }
     var payload = {
       autoConfirm: $('setAutoConfirm').checked,
-      bufferMin: buf, minBookingMin: minDur, cancelFreeHours: cf,
+      bufferMin: buf, minBookingMin: minDur, cancelPolicy: pol,
     };
     $('setSave').disabled = true;
     api('PUT', '/admin/settings', payload)
@@ -428,6 +479,7 @@
           autoConfirm: !!u.autoConfirm, bufferMin: u.bufferMin,
           minBookingMin: u.minBookingMin, cancelFreeHours: u.cancelFreeHours,
         };
+        if(Array.isArray(u.cancelPolicy) && u.cancelPolicy.length) policyDraft = u.cancelPolicy;
         renderSettings();
         flash($('setNote'), 'Настройки сохранены', true);
       })
@@ -556,6 +608,7 @@
           minBookingMin: Number.isInteger(cfg.minBookingMin) ? cfg.minBookingMin : 60,
           cancelFreeHours: Number.isInteger(cfg.cancelFreeHours) ? cfg.cancelFreeHours : 24,
         };
+        if(Array.isArray(cfg.cancelPolicy) && cfg.cancelPolicy.length) policyDraft = cfg.cancelPolicy;
         renderSettings();
         return load();
       })
