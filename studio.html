@@ -7,91 +7,187 @@
 <title>Студия · Кабинет</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans+Condensed:wght@500;600;700&family=Golos+Text:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
   :root{
-  /* Шрифты. ВСЕ ТРИ обязаны нести кириллицу — прежние Barlow Condensed и
-     Work Sans её не содержат и молча падали в системный фолбэк. */
-  --f-display:'Fira Sans Condensed','Roboto Condensed',system-ui,sans-serif;
-  --f-body:'Golos Text',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
-    --bg:#14110F; --surface:#1E1A17; --surface-raised:#262019; --line:#332920;
-    --amber:#E8A33D; --amber-dim:#6b4d21; --red:#C1443C; --good:#3B7355;
-    --text:#F2ECE4; --muted:#8A8078; --muted-dim:#4f4842;
+    --f: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --f-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+
+    --bg:#f1f2f4; --surface:#ffffff; --surface-2:#f7f8f9;
+    --border:#e3e5e9; --border-strong:#cfd2d8;
+    --text:#1c1e21; --text-2:#5a5f68; --text-3:#8a9099;
+
+    --blue:#0a72ef; --blue-dark:#0559c4; --blue-bg:#eaf2fe;
+    --orange:#f6821f;
+    --green:#12864d; --green-bg:#e7f6ee;
+    --red:#cf3a3a; --red-bg:#fce9e9;
+    --amber:#9a6400; --amber-bg:#fdf3e2;
+
+    --r:8px; --r-sm:6px;
+    --shadow:0 1px 2px rgba(20,22,28,.06), 0 1px 3px rgba(20,22,28,.04);
+    --sidebar-w:236px;
   }
   *{box-sizing:border-box}
   html,body{margin:0}
-  body{background:var(--bg);color:var(--text);font-family:var(--f-body);min-height:100vh;line-height:1.5;}
-  .wrap{max-width:640px;margin:0 auto;padding:24px 18px 80px;}
-  a{color:var(--amber);}
-  .top{display:flex;align-items:center;gap:12px;margin-bottom:6px;}
-  .top a.back{color:var(--muted);text-decoration:none;font-size:20px;flex:0 0 auto;}
-  .top h1{font-family:var(--f-display);font-weight:700;font-size:24px;margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .sub{color:var(--muted);font-size:12px;margin-bottom:22px;}
-  .badge{font-family:var(--f-mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;padding:2px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted);}
-  .badge.published{color:var(--good);} .badge.draft{color:var(--muted-dim);} .badge.suspended{color:var(--red);}
+  body{background:var(--bg);color:var(--text);font-family:var(--f);
+       font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  a{color:var(--blue);text-decoration:none;}
+  a:hover{text-decoration:underline;}
+  [hidden]{display:none!important;}
 
-  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px;}
-  .card h2{font-family:var(--f-display);font-weight:600;font-size:18px;margin:0 0 12px;}
-  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
-  .stat{background:var(--surface-raised);border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;}
-  .stat .v{font-family:var(--f-display);font-weight:700;font-size:22px;}
-  .stat .l{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
-
-  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px;}
-  .row input,.row select{
-    background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--text);
-    font:inherit;font-size:14px;padding:9px 10px;
+  /* ---------- каркас ---------- */
+  .shell{display:flex;min-height:100vh;}
+  .sidebar{
+    width:var(--sidebar-w);flex:0 0 var(--sidebar-w);
+    background:var(--surface);border-right:1px solid var(--border);
+    padding:18px 14px;position:sticky;top:0;height:100vh;overflow-y:auto;
+    display:flex;flex-direction:column;gap:2px;
   }
-  .row input:focus,.row select:focus{outline:none;border-color:var(--amber);}
+  .brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:16px;
+         letter-spacing:-.01em;margin-bottom:14px;padding:0 6px;}
+  .brand-mark{width:18px;height:18px;border-radius:5px;background:var(--orange);flex:none;
+              display:inline-block;}
+  .brand-studio{font-weight:600;font-size:13px;color:var(--text);padding:0 6px;
+                overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .brand-sub{font-size:11px;color:var(--text-3);padding:2px 6px 12px;line-height:1.4;}
+  .nav{display:flex;flex-direction:column;gap:1px;margin-top:4px;}
+  .nav-group{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+             color:var(--text-3);padding:14px 6px 5px;}
+  .nav a{display:block;padding:7px 8px;border-radius:var(--r-sm);color:var(--text-2);
+         font-size:13px;font-weight:500;}
+  .nav a:hover{background:var(--surface-2);color:var(--text);text-decoration:none;}
+  .nav a.active{background:var(--blue-bg);color:var(--blue-dark);}
+  .nav-back{margin-top:auto;padding:10px 8px 4px;font-size:12px;color:var(--text-3);}
+  .nav-back:hover{color:var(--text-2);text-decoration:none;}
+
+  .content{flex:1 1 auto;min-width:0;padding:26px 30px 90px;max-width:900px;}
+  .sidebar-toggle{display:none;}
+
+  .page-head{display:flex;align-items:center;gap:10px;margin-bottom:2px;}
+  .page-head h1{font-size:20px;font-weight:600;letter-spacing:-.01em;margin:0;}
+  .sub{color:var(--text-2);font-size:13px;margin-bottom:22px;}
+
+  .badge{font-family:var(--f-mono);font-size:10px;text-transform:uppercase;letter-spacing:.05em;
+         padding:3px 8px;border-radius:999px;border:1px solid var(--border-strong);color:var(--text-2);
+         background:var(--surface-2);}
+  .badge.published{color:var(--green);border-color:#bfe3cd;background:var(--green-bg);}
+  .badge.draft{color:var(--text-3);}
+  .badge.suspended{color:var(--red);border-color:#f0c9c9;background:var(--red-bg);}
+
+  /* ---------- карточки ---------- */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+        padding:20px 22px;margin-bottom:16px;box-shadow:var(--shadow);scroll-margin-top:18px;}
+  .card h2{font-size:15px;font-weight:600;margin:0 0 14px;letter-spacing:-.005em;}
+
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  .stat{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);
+        padding:14px 16px;}
+  .stat .v{font-size:22px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;}
+  .stat .l{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em;margin-top:3px;}
+
+  /* ---------- формы ---------- */
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:9px;}
+  .row input,.row select,.row textarea{
+    background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--r-sm);
+    color:var(--text);font:inherit;font-size:13px;padding:8px 10px;
+  }
+  .row input::placeholder{color:var(--text-3);}
+  .row input:focus,.row select:focus{outline:none;border-color:var(--blue);
+    box-shadow:0 0 0 3px var(--blue-bg);}
   .row .name{flex:1 1 100%;min-width:0;}
-  .row .num{width:92px;}
-  .unitwrap{display:flex;align-items:center;gap:4px;}
-  .unitwrap .u{font-size:11px;color:var(--muted);}
-  .del{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:8px 10px;cursor:pointer;font-size:13px;}
+  .row .num{width:96px;}
+  .row input[type=checkbox]{width:16px;height:16px;accent-color:var(--blue);}
+  .unitwrap{display:flex;align-items:center;gap:5px;}
+  .unitwrap .u{font-size:11px;color:var(--text-3);}
+  .del{background:var(--surface);border:1px solid var(--border-strong);color:var(--text-2);
+       border-radius:var(--r-sm);padding:7px 10px;cursor:pointer;font-size:13px;line-height:1;}
+  .del:hover{border-color:var(--red);color:var(--red);}
 
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--amber);color:#1a1208;border:none;border-radius:9px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
-  .btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line);}
-  .btn.danger{background:var(--red);color:#fff;}
-  .btn.small{padding:7px 12px;font-size:12px;}
-  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
-  .note{font-size:12px;min-height:16px;margin-top:8px;}
-
-  .bk{background:var(--surface-raised);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:8px;}
-  .bk-top{display:flex;justify-content:space-between;gap:10px;font-size:13px;}
-  .bk-top .st{font-family:var(--f-mono);font-size:10px;text-transform:uppercase;}
-  .bk[data-st="confirmed"] .st,.bk[data-st="completed"] .st{color:var(--good);}
-  .bk[data-st="pending"] .st{color:var(--amber);}
-  .bk[data-st="cancelled"] .st,.bk[data-st="declined"] .st,.bk[data-st="no_show"] .st{color:var(--muted-dim);}
-  .btn.go{background:transparent;border:1px solid var(--amber-dim);color:var(--amber);}
-  .btn.stop{background:transparent;border:1px solid #5c261f;color:var(--red);}
+  /* ---------- кнопки ---------- */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+       background:var(--blue);color:#fff;border:1px solid var(--blue);border-radius:var(--r-sm);
+       padding:9px 15px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;line-height:1;}
+  .btn:hover{background:var(--blue-dark);border-color:var(--blue-dark);}
+  .btn:disabled{opacity:.55;cursor:default;}
+  .btn.ghost{background:var(--surface);color:var(--text-2);border-color:var(--border-strong);}
+  .btn.ghost:hover{background:var(--surface-2);color:var(--text);border-color:var(--border-strong);}
+  .btn.danger{background:var(--red);border-color:var(--red);color:#fff;}
+  .btn.danger:hover{background:#b73030;border-color:#b73030;}
+  .btn.small{padding:6px 11px;font-size:12px;}
+  .btn.go{background:var(--green-bg);color:var(--green);border-color:#bfe3cd;}
+  .btn.go:hover{background:#d9efe2;}
+  .btn.stop{background:var(--red-bg);color:var(--red);border-color:#f0c9c9;}
+  .btn.stop:hover{background:#f7dede;}
+  .btn.ghost.danger{background:var(--surface);color:var(--red);border-color:#f0c9c9;}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
   .rowbtns{display:flex;flex-wrap:wrap;gap:6px;}
-  .bk .meta{font-family:var(--f-mono);font-size:11px;color:var(--muted);margin-top:4px;}
-  .bk .who{font-size:12px;margin-top:4px;}
+  .note{font-size:12px;min-height:16px;margin-top:8px;color:var(--text-2);}
+
+  /* ---------- брони ---------- */
+  .bk{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);
+      padding:12px 14px;margin-bottom:8px;}
+  .bk-top{display:flex;justify-content:space-between;gap:10px;font-size:13px;font-weight:500;}
+  .bk-top .st{font-family:var(--f-mono);font-size:10px;text-transform:uppercase;letter-spacing:.03em;}
+  .bk[data-st="confirmed"] .st,.bk[data-st="completed"] .st{color:var(--green);}
+  .bk[data-st="pending"] .st{color:var(--amber);}
+  .bk[data-st="cancelled"] .st,.bk[data-st="declined"] .st,.bk[data-st="no_show"] .st{color:var(--text-3);}
+  .bk .meta{font-family:var(--f-mono);font-size:11px;color:var(--text-2);margin-top:5px;}
+  .bk .who{font-size:12px;color:var(--text-2);margin-top:4px;}
 
   .hours-day{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
-  .hours-day .d{width:34px;font-family:var(--f-mono);font-size:11px;color:var(--muted);}
-  .hours-day input{width:64px;}
-  .muted{color:var(--muted);font-size:12px;}
-  .empty{color:var(--muted);font-size:13px;padding:10px 0;}
+  .hours-day .d{width:34px;font-family:var(--f-mono);font-size:11px;color:var(--text-3);}
+  .hours-day input{width:66px;}
+  .muted{color:var(--text-2);font-size:12px;}
+  .empty{color:var(--text-3);font-size:13px;padding:12px 0;}
   .err{color:var(--red);font-size:13px;}
-  [hidden]{display:none!important;}
+
+  @media(max-width:760px){
+    .sidebar{position:fixed;left:0;top:0;z-index:40;transform:translateX(-100%);
+             transition:transform .18s ease;box-shadow:0 0 40px rgba(0,0,0,.18);}
+    .shell[data-nav="open"] .sidebar{transform:translateX(0);}
+    .shell[data-nav="open"]::after{content:"";position:fixed;inset:0;z-index:30;
+             background:rgba(20,22,28,.35);}
+    .content{padding:18px 16px 90px;}
+    .sidebar-toggle{display:inline-flex;align-items:center;justify-content:center;
+             width:36px;height:36px;border:1px solid var(--border-strong);background:var(--surface);
+             border-radius:var(--r-sm);font-size:16px;cursor:pointer;margin-bottom:14px;}
+    .card{padding:16px;}
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="top">
-    <a class="back" href="./cabinet.html">←</a>
-    <h1 id="sName">Студия</h1>
-    <span class="badge" id="sStatus"></span>
-  </div>
-  <div class="sub" id="sSub"></div>
+<div class="shell" id="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><span class="brand-mark"></span>Poont</div>
+    <div class="brand-studio" id="sName">Студия</div>
+    <div class="brand-sub" id="sSub"></div>
+    <span class="badge" id="sStatus" style="margin:0 6px 8px"></span>
+    <nav class="nav" id="nav">
+      <div class="nav-group">Обзор</div>
+      <a href="#sec-summary">Сводка</a>
+      <a href="#sec-bookings">Брони</a>
+      <div class="nav-group">Бронирование</div>
+      <a href="#sec-settings">Настройки</a>
+      <a href="#sec-block">Заблокировать время</a>
+      <a href="#sec-calendar">Google Calendar</a>
+      <div class="nav-group">Студия</div>
+      <a href="#sec-halls">Залы</a>
+      <a href="#sec-equip">Оборудование</a>
+      <a href="#sec-hours">Часы работы</a>
+      <a href="#sec-team">Команда</a>
+    </nav>
+    <a class="nav-back" href="./cabinet.html">← Все студии</a>
+  </aside>
+  <main class="content">
+    <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Меню">☰</button>
+    <div class="page-head"><h1>Управление студией</h1></div>
+    <div class="sub">Настройки, залы, брони и синхронизация.</div>
 
-  <div id="loading" class="card"><span class="muted">Загрузка…</span></div>
-  <div id="denied" class="card" hidden><span class="err" id="deniedMsg"></span></div>
+    <div id="loading" class="card"><span class="muted">Загрузка…</span></div>
+    <div id="denied" class="card" hidden><span class="err" id="deniedMsg"></span></div>
 
-  <div id="app" hidden>
-    <div class="card">
+    <div id="app" hidden>
+    <div class="card" id="sec-summary">
       <h2>Сводка</h2>
       <div class="stats">
         <div class="stat"><div class="v" id="stCount">—</div><div class="l">Активных броней</div></div>
@@ -100,7 +196,7 @@
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" id="sec-settings">
       <h2>Настройки бронирования</h2>
       <label class="row" style="cursor:pointer">
         <input type="checkbox" id="setAutoConfirm" style="width:auto;flex:none">
@@ -127,7 +223,7 @@
       <div class="note" id="setNote"></div>
     </div>
 
-    <div class="card">
+    <div class="card" id="sec-block">
       <h2>Заблокировать время</h2>
       <div class="muted" style="margin-bottom:8px">Ремонт, корпоратив, съёмка мимо платформы. Клиенты не смогут забронировать этот интервал.</div>
       <div class="row">
@@ -147,13 +243,13 @@
       <div id="blkList" style="margin-top:8px"></div>
     </div>
 
-    <div class="card">
+    <div class="card" id="sec-calendar">
       <h2>Google Calendar</h2>
       <div id="calBody"><span class="muted">Загрузка…</span></div>
       <div class="note" id="calNote"></div>
     </div>
 
-    <div class="card">
+    <div class="card" id="sec-halls">
       <h2>Залы</h2>
       <div id="hallsEd"></div>
       <div class="actions">
@@ -163,7 +259,7 @@
       <div class="note" id="hallNote"></div>
     </div>
 
-    <div class="card">
+    <div class="card" id="sec-equip">
       <h2>Оборудование</h2>
       <div id="equipEd"></div>
       <div class="actions">
@@ -173,7 +269,7 @@
       <div class="note" id="equipNote"></div>
     </div>
 
-    <div class="card">
+    <div class="card" id="sec-hours">
       <h2>Часы работы</h2>
       <div class="muted" style="margin-bottom:8px">Целые часы, по дням недели. Пустой день = закрыто нельзя, ставьте равные значения только если день рабочий.</div>
       <div id="hoursEd"></div>
@@ -181,7 +277,7 @@
       <div class="note" id="hoursNote"></div>
     </div>
 
-    <div class="card">
+    <div class="card" id="sec-team">
       <h2>Команда</h2>
       <div class="muted" style="margin-bottom:8px">Telegram ID владельцев. Себя убрать нельзя. ID узнать: @userinfobot.</div>
       <div id="ownersEd"></div>
@@ -193,7 +289,7 @@
       <div class="note" id="ownerNote"></div>
     </div>
 
-    <div class="card">
+    <div class="card" id="sec-bookings">
       <h2>Брони</h2>
       <div id="bookings"><div class="empty">—</div></div>
       <div class="actions" style="margin-top:10px">
@@ -201,9 +297,32 @@
       </div>
       <div class="note" id="clearNote"></div>
     </div>
-  </div>
+    </div>
+  </main>
 </div>
 
+<script>
+(function(){
+  var shell = document.getElementById('shell');
+  var tgl = document.getElementById('sidebarToggle');
+  if(tgl) tgl.addEventListener('click', function(){
+    shell.dataset.nav = shell.dataset.nav === 'open' ? '' : 'open';
+  });
+  var links = [].slice.call(document.querySelectorAll('#nav a'));
+  links.forEach(function(a){ a.addEventListener('click', function(){ shell.dataset.nav=''; }); });
+  var secs = links.map(function(a){ return document.querySelector(a.getAttribute('href')); }).filter(Boolean)
+    .sort(function(a,b){ return a.offsetTop - b.offsetTop; });
+  function onScroll(){
+    var y = window.scrollY + 100, cur = null;
+    secs.forEach(function(sec){ if(sec.offsetHeight && sec.offsetTop <= y) cur = sec.id; });
+    if(!cur && secs[0] && secs[0].offsetHeight) cur = secs[0].id;
+    links.forEach(function(a){ a.classList.toggle('active', a.getAttribute('href') === '#'+cur); });
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('load', onScroll);
+  setTimeout(onScroll, 1200); setTimeout(onScroll, 2500);
+})();
+</script>
 <script>
 (function(){
   var API_BASE = 'https://photostudio-backend-yehh.onrender.com';
