@@ -102,6 +102,12 @@
   .del{background:var(--surface);border:1px solid var(--border-strong);color:var(--text-2);
        border-radius:var(--r-sm);padding:7px 10px;cursor:pointer;font-size:13px;line-height:1;}
   .del:hover{border-color:var(--red);color:var(--red);}
+  .pr-day{border:1px solid var(--border-strong);background:var(--surface);color:var(--text-3);
+          border-radius:var(--r-sm);padding:4px 7px;font-size:11px;cursor:pointer;line-height:1;}
+  .pr-day.on{background:var(--blue-bg);border-color:var(--blue);color:var(--blue-dark);font-weight:600;}
+  .hall-prules .pr-row .num{width:70px;}
+  .hall-prules select{padding:5px 6px;font-size:12px;border:1px solid var(--border-strong);
+                      border-radius:var(--r-sm);background:var(--surface);color:var(--text);}
 
   /* ---------- кнопки ---------- */
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;
@@ -368,7 +374,95 @@
   // ---------- editors ----------
   function mapHall(h){ return {id:h.id,name:h.name,capacity:h.capacity,rate:h.rate,
     hallType:h.hallType||null,daylight:!!h.daylight,areaM2:h.areaM2!=null?h.areaM2:null,ceilingCm:h.ceilingCm!=null?h.ceilingCm:null,
-    photos:Array.isArray(h.photos)?h.photos.slice():[]}; }
+    photos:Array.isArray(h.photos)?h.photos.slice():[],
+    priceRules:Array.isArray(h.priceRules)?h.priceRules.map(function(r){return {dow:Array.isArray(r.dow)?r.dow.slice():null,from:r.from,to:r.to,rate:r.rate};}):[]}; }
+
+  // ---------- тарифы по времени (динамическое ценообразование) ----------
+  var DOW_ORDER = [1,2,3,4,5,6,0];
+  var DOW_LBL = {0:'Вс',1:'Пн',2:'Вт',3:'Ср',4:'Чт',5:'Пт',6:'Сб'};
+  function hhmm(m){ return (m<600?'0':'')+Math.floor(m/60)+':'+(m%60<10?'0':'')+(m%60); }
+  function timeOpts(sel){
+    var o = '';
+    for(var m=0;m<=1440;m+=30) o += '<option value="'+m+'"'+(m===sel?' selected':'')+'>'+hhmm(m)+'</option>';
+    return o;
+  }
+  function renderHallPriceRules(i){
+    var h = hallsDraft[i];
+    var box = document.querySelector('.hall-prules[data-i="'+i+'"]');
+    if(!box) return;
+    if(!h.id){ box.innerHTML = '<span class="muted">Сохраните зал, чтобы задать тарифы по времени.</span>'; return; }
+    var rules = h.priceRules || (h.priceRules = []);
+    var rows = rules.map(function(r, ri){
+      var days = DOW_ORDER.map(function(d){
+        var on = Array.isArray(r.dow) && r.dow.indexOf(d) !== -1;
+        return '<button type="button" class="pr-day'+(on?' on':'')+'" data-i="'+i+'" data-ri="'+ri+'" data-d="'+d+'">'+DOW_LBL[d]+'</button>';
+      }).join('');
+      return '<div class="pr-row" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:6px 0;border-top:1px solid var(--line)">' +
+        '<span class="pr-days" style="display:flex;gap:2px">'+days+'</span>' +
+        '<span class="muted" style="font-size:11px">'+((!r.dow||!r.dow.length)?'все дни':'')+'</span>' +
+        '<select class="pr-f" data-i="'+i+'" data-ri="'+ri+'">'+timeOpts(r.from)+'</select>' +
+        '<span class="muted">–</span>' +
+        '<select class="pr-t" data-i="'+i+'" data-ri="'+ri+'">'+timeOpts(r.to)+'</select>' +
+        '<span class="unitwrap"><input class="num pr-rate" type="number" min="0" step="1" data-i="'+i+'" data-ri="'+ri+'" value="'+esc(r.rate)+'"><span class="u">BYN/ч</span></span>' +
+        '<button type="button" class="del pr-del" data-i="'+i+'" data-ri="'+ri+'">✕</button>' +
+        '</div>';
+    }).join('');
+    box.innerHTML =
+      '<div class="muted" style="font-size:12px;margin-bottom:2px">Тарифы по времени. Вне окон — базовая ставка '+esc(h.rate)+' BYN/ч. Если окна пересеклись, берётся верхнее.</div>' +
+      rows +
+      '<div style="margin-top:6px;display:flex;gap:8px;align-items:center">' +
+        '<button type="button" class="btn ghost small pr-add">+ Тариф</button>' +
+        (rules.length ? '<button type="button" class="btn small pr-save">Сохранить тарифы</button>' : '') +
+      '</div><div class="note pr-note"></div>';
+
+    box.querySelectorAll('.pr-day').forEach(function(b){ b.addEventListener('click', function(){
+      var r = rules[+b.dataset.ri]; if(!Array.isArray(r.dow)) r.dow = [];
+      var d = +b.dataset.d, k = r.dow.indexOf(d);
+      if(k===-1) r.dow.push(d); else r.dow.splice(k,1);
+      renderHallPriceRules(i);
+    }); });
+    box.querySelectorAll('.pr-f,.pr-t,.pr-rate').forEach(function(inp){ inp.addEventListener('input', function(){
+      var r = rules[+inp.dataset.ri];
+      if(inp.classList.contains('pr-f')) r.from = +inp.value;
+      else if(inp.classList.contains('pr-t')) r.to = +inp.value;
+      else r.rate = parseFloat(inp.value);
+    }); });
+    box.querySelectorAll('.pr-del').forEach(function(b){ b.addEventListener('click', function(){
+      rules.splice(+b.dataset.ri,1); renderHallPriceRules(i);
+    }); });
+    var add = box.querySelector('.pr-add');
+    if(add) add.addEventListener('click', function(){
+      rules.push({ dow:[], from:1080, to:1440, rate: h.rate || 0 });
+      renderHallPriceRules(i);
+    });
+    var save = box.querySelector('.pr-save');
+    if(save) save.addEventListener('click', function(){ saveHallPriceRules(i); });
+  }
+  function saveHallPriceRules(i){
+    var h = hallsDraft[i];
+    var n = document.querySelector('.hall-prules[data-i="'+i+'"] .pr-note');
+    var clean = [];
+    for(var k=0;k<(h.priceRules||[]).length;k++){
+      var r = h.priceRules[k];
+      if(!(r.from % 30 === 0 && r.to % 30 === 0 && r.from < r.to && r.to <= 1440)){
+        if(n) flash(n, 'Окно #'+(k+1)+': конец должен быть позже начала, шаг 30 мин'); return;
+      }
+      if(!(typeof r.rate === 'number' && isFinite(r.rate) && r.rate >= 0)){
+        if(n) flash(n, 'Окно #'+(k+1)+': ставка — число не меньше 0'); return;
+      }
+      clean.push({ from:r.from, to:r.to, rate:r.rate,
+        dow:(Array.isArray(r.dow) && r.dow.length) ? r.dow.slice().sort(function(a,b){return a-b;}) : undefined });
+    }
+    api('PUT', '/admin/halls/' + encodeURIComponent(h.id) + '/price-rules', clean)
+      .then(function(res){
+        h.priceRules = Array.isArray(res.priceRules) ? res.priceRules : clean;
+        if(HALLS_BY_ID[h.id]) HALLS_BY_ID[h.id].priceRules = h.priceRules;
+        renderHallPriceRules(i);
+        var nn = document.querySelector('.hall-prules[data-i="'+i+'"] .pr-note');
+        if(nn) flash(nn, 'Тарифы сохранены', true);
+      })
+      .catch(function(e){ if(n) flash(n, e.message); });
+  }
 
   function renderHallPhotos(i){
     var h = hallsDraft[i];
@@ -447,9 +541,11 @@
           '<span class="unitwrap"><input class="num" type="number" min="1" step="1" data-i="'+i+'" data-f="areaM2" value="'+esc(h.areaM2!=null?h.areaM2:'')+'" placeholder="—"><span class="u">м²</span></span>' +
           '<span class="unitwrap"><input class="num" type="number" min="150" max="2000" step="5" data-i="'+i+'" data-f="ceilingCm" value="'+esc(h.ceilingCm!=null?h.ceilingCm:'')+'" placeholder="—"><span class="u">см потолок</span></span>' +
         '</span>' +
-        '<span class="hall-photos" data-i="'+i+'" style="flex:1 1 100%;margin-top:4px"></span>';
+        '<span class="hall-photos" data-i="'+i+'" style="flex:1 1 100%;margin-top:4px"></span>' +
+        '<span class="hall-prules" data-i="'+i+'" style="flex:1 1 100%;margin-top:6px"></span>';
       c.appendChild(row);
       renderHallPhotos(i);
+      renderHallPriceRules(i);
     });
     c.querySelectorAll('[data-f]').forEach(function(inp){
       var evt = (inp.tagName==='SELECT' || inp.type==='checkbox') ? 'change' : 'input';
