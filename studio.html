@@ -222,6 +222,18 @@
         </select>
       </div>
       <div class="muted" style="margin:2px 0 12px">Определяет и минимум брони, и шаг в окне выбора времени у клиента.</div>
+
+      <label class="row" style="cursor:pointer">
+        <input type="checkbox" id="setLmEnabled" style="width:auto;flex:none">
+        <span>Скидка на «горящие» окна</span>
+      </label>
+      <div class="row" style="margin-top:6px">
+        <span style="flex:1 1 100%">Окно вперёд, ч · размер скидки, %</span>
+        <input class="num" type="number" id="setLmHours" min="1" max="72" step="1">
+        <input class="num" type="number" id="setLmPct" min="1" max="90" step="1">
+      </div>
+      <div class="muted" style="margin:2px 0 12px">Свободный слот, до которого меньше указанных часов, клиент видит дешевле на этот процент. Пакеты не затрагиваются.</div>
+
       <div style="margin-top:6px"><span class="muted">Правила отмены и переноса</span></div>
       <div id="polEd" style="margin:6px 0"></div>
       <button class="btn ghost small" id="polAdd" type="button">+ Ступень</button>
@@ -365,7 +377,8 @@
   var HALLS_BY_ID = {};
   var blocksList = [];
   var hallsDraft = [], equipDraft = [], hoursDraft = [], ownersDraft = [], myId = '';
-  var settingsDraft = { autoConfirm:false, bufferMin:10, minBookingMin:60, cancelFreeHours:24 };
+  var settingsDraft = { autoConfirm:false, bufferMin:10, minBookingMin:60, cancelFreeHours:24,
+    lastminuteEnabled:false, lastminuteHours:24, lastminutePct:20 };
   var policyDraft = [
     { hoursBefore:24, refundPct:100, rescheduleFree:true },
     { hoursBefore:0,  refundPct:50,  rescheduleFree:false },
@@ -651,6 +664,9 @@
     $('setAutoConfirm').checked = !!settingsDraft.autoConfirm;
     $('setBuffer').value = settingsDraft.bufferMin;
     $('setMinDur').value = String(settingsDraft.minBookingMin);
+    $('setLmEnabled').checked = !!settingsDraft.lastminuteEnabled;
+    $('setLmHours').value = settingsDraft.lastminuteHours;
+    $('setLmPct').value = settingsDraft.lastminutePct;
     renderPolicy();
   }
 
@@ -840,16 +856,26 @@
       if(pol[i].refundPct < 0 || pol[i].refundPct > 100) return flash($('setNote'), 'Возврат — 0..100 %');
       if(i > 0 && pol[i].hoursBefore >= pol[i-1].hoursBefore) return flash($('setNote'), 'Часы ступеней — строго по убыванию');
     }
+    var lmH = parseInt($('setLmHours').value, 10);
+    var lmP = parseInt($('setLmPct').value, 10);
+    if(!Number.isInteger(lmH) || lmH < 1 || lmH > 72) return flash($('setNote'), 'Горящее окно — от 1 до 72 часов');
+    if(!Number.isInteger(lmP) || lmP < 1 || lmP > 90) return flash($('setNote'), 'Скидка — от 1 до 90 %');
     var payload = {
       autoConfirm: $('setAutoConfirm').checked,
       bufferMin: buf, minBookingMin: minDur, cancelPolicy: pol,
+      lastminuteEnabled: $('setLmEnabled').checked,
+      lastminuteHours: lmH, lastminutePct: lmP,
     };
     $('setSave').disabled = true;
     api('PUT', '/admin/settings', payload)
       .then(function(u){
+        var lm = u.lastminute || {};
         settingsDraft = {
           autoConfirm: !!u.autoConfirm, bufferMin: u.bufferMin,
           minBookingMin: u.minBookingMin, cancelFreeHours: u.cancelFreeHours,
+          lastminuteEnabled: !!lm.enabled,
+          lastminuteHours: Number.isInteger(lm.hours) ? lm.hours : 24,
+          lastminutePct: Number.isInteger(lm.pct) ? lm.pct : 20,
         };
         if(Array.isArray(u.cancelPolicy) && u.cancelPolicy.length) policyDraft = u.cancelPolicy;
         renderSettings();
@@ -1026,11 +1052,15 @@
           ? h.map(function(d){ return {start:d.start, end:d.end}; })
           : Array.from({length:7}, function(){ return {start:cfg.hoursStart, end:cfg.hoursEnd}; });
         renderHours();
+        var lm = cfg.lastminute || {};
         settingsDraft = {
           autoConfirm: !!cfg.autoConfirm,
           bufferMin: Number.isInteger(cfg.bufferMin) ? cfg.bufferMin : 10,
           minBookingMin: Number.isInteger(cfg.minBookingMin) ? cfg.minBookingMin : 60,
           cancelFreeHours: Number.isInteger(cfg.cancelFreeHours) ? cfg.cancelFreeHours : 24,
+          lastminuteEnabled: !!lm.enabled,
+          lastminuteHours: Number.isInteger(lm.hours) ? lm.hours : 24,
+          lastminutePct: Number.isInteger(lm.pct) ? lm.pct : 20,
         };
         if(Array.isArray(cfg.cancelPolicy) && cfg.cancelPolicy.length) policyDraft = cfg.cancelPolicy;
         renderSettings();
