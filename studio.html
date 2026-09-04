@@ -351,6 +351,8 @@
   var token = (function(){ try{ return localStorage.getItem(TOKEN_KEY)||''; }catch(e){ return ''; } })();
   var DAYS = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];   // index = JS getDay
   var HALL_TYPES = {cyclorama:'Циклорама',interior:'Интерьер',hardlight:'Тёмный/жёсткий свет',daylight:'Дневной свет',other:'Другое'};
+  // Какие свойства зала показывать — зависит от вертикали студии (П4-1), из /config.
+  var HALL_PROPS = {hallType:true,daylight:true,areaM2:true,ceilingCm:true};
   var STUDIO_ID = new URLSearchParams(location.search).get('id') || '';
 
   // /api/session/me is NOT tenant-scoped
@@ -608,17 +610,17 @@
       var typeOpts = '<option value="">Тип зала…</option>' +
         Object.keys(HALL_TYPES).map(function(k){
           return '<option value="'+k+'"'+(h.hallType===k?' selected':'')+'>'+HALL_TYPES[k]+'</option>'; }).join('');
+      var propsInner =
+        (HALL_PROPS.hallType ? '<select data-i="'+i+'" data-f="hallType" style="flex:1 1 140px">'+typeOpts+'</select>' : '') +
+        (HALL_PROPS.daylight ? '<label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)"><input type="checkbox" data-i="'+i+'" data-f="daylight"'+(h.daylight?' checked':'')+' style="width:auto">дневной свет</label>' : '') +
+        (HALL_PROPS.areaM2 ? '<span class="unitwrap"><input class="num" type="number" min="1" step="1" data-i="'+i+'" data-f="areaM2" value="'+esc(h.areaM2!=null?h.areaM2:'')+'" placeholder="—"><span class="u">м²</span></span>' : '') +
+        (HALL_PROPS.ceilingCm ? '<span class="unitwrap"><input class="num" type="number" min="150" max="2000" step="5" data-i="'+i+'" data-f="ceilingCm" value="'+esc(h.ceilingCm!=null?h.ceilingCm:'')+'" placeholder="—"><span class="u">см потолок</span></span>' : '');
       row.innerHTML =
         '<input class="name" data-i="'+i+'" data-f="name" placeholder="Название зала" value="'+esc(h.name)+'">' +
         '<span class="unitwrap"><input class="num" type="number" min="1" step="1" data-i="'+i+'" data-f="capacity" value="'+esc(h.capacity)+'"><span class="u">чел</span></span>' +
         '<span class="unitwrap"><input class="num" type="number" min="0" step="1" data-i="'+i+'" data-f="rate" value="'+esc(h.rate)+'"><span class="u">BYN/ч</span></span>' +
         (hallsDraft.length > 1 ? '<button class="del" data-i="'+i+'" type="button">✕</button>' : '') +
-        '<span class="hall-props" style="flex:1 1 100%;display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:2px">' +
-          '<select data-i="'+i+'" data-f="hallType" style="flex:1 1 140px">'+typeOpts+'</select>' +
-          '<label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)"><input type="checkbox" data-i="'+i+'" data-f="daylight"'+(h.daylight?' checked':'')+' style="width:auto">дневной свет</label>' +
-          '<span class="unitwrap"><input class="num" type="number" min="1" step="1" data-i="'+i+'" data-f="areaM2" value="'+esc(h.areaM2!=null?h.areaM2:'')+'" placeholder="—"><span class="u">м²</span></span>' +
-          '<span class="unitwrap"><input class="num" type="number" min="150" max="2000" step="5" data-i="'+i+'" data-f="ceilingCm" value="'+esc(h.ceilingCm!=null?h.ceilingCm:'')+'" placeholder="—"><span class="u">см потолок</span></span>' +
-        '</span>' +
+        (propsInner ? '<span class="hall-props" style="flex:1 1 100%;display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:2px">' + propsInner + '</span>' : '') +
         '<span class="hall-photos" data-i="'+i+'" style="flex:1 1 100%;margin-top:4px"></span>' +
         '<span class="hall-prules" data-i="'+i+'" style="flex:1 1 100%;margin-top:6px"></span>' +
         '<span class="hall-packages" data-i="'+i+'" style="flex:1 1 100%;margin-top:6px"></span>';
@@ -1052,6 +1054,7 @@
           ? h.map(function(d){ return {start:d.start, end:d.end}; })
           : Array.from({length:7}, function(){ return {start:cfg.hoursStart, end:cfg.hoursEnd}; });
         renderHours();
+        if(cfg.verticalUi && cfg.verticalUi.hallProps) HALL_PROPS = cfg.verticalUi.hallProps;
         var lm = cfg.lastminute || {};
         settingsDraft = {
           autoConfirm: !!cfg.autoConfirm,
