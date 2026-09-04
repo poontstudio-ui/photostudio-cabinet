@@ -375,7 +375,7 @@
   function mapHall(h){ return {id:h.id,name:h.name,capacity:h.capacity,rate:h.rate,
     hallType:h.hallType||null,daylight:!!h.daylight,areaM2:h.areaM2!=null?h.areaM2:null,ceilingCm:h.ceilingCm!=null?h.ceilingCm:null,
     photos:Array.isArray(h.photos)?h.photos.slice():[],
-    priceRules:Array.isArray(h.priceRules)?h.priceRules.map(function(r){return {dow:Array.isArray(r.dow)?r.dow.slice():null,from:r.from,to:r.to,rate:r.rate};}):[]}; }
+    priceRules:Array.isArray(h.priceRules)?h.priceRules.map(function(r){return {dow:Array.isArray(r.dow)?r.dow.slice():null,from:r.from,to:r.to,rate:r.rate,minMin:r.minMin!=null?r.minMin:null};}):[]}; }
 
   // ---------- тарифы по времени (динамическое ценообразование) ----------
   var DOW_ORDER = [1,2,3,4,5,6,0];
@@ -404,6 +404,7 @@
         '<span class="muted">–</span>' +
         '<select class="pr-t" data-i="'+i+'" data-ri="'+ri+'">'+timeOpts(r.to)+'</select>' +
         '<span class="unitwrap"><input class="num pr-rate" type="number" min="0" step="1" data-i="'+i+'" data-ri="'+ri+'" value="'+esc(r.rate)+'"><span class="u">BYN/ч</span></span>' +
+        '<span class="unitwrap"><input class="num pr-min" type="number" min="30" step="30" placeholder="—" data-i="'+i+'" data-ri="'+ri+'" value="'+esc(r.minMin!=null?r.minMin:'')+'"><span class="u">мин. бронь</span></span>' +
         '<button type="button" class="del pr-del" data-i="'+i+'" data-ri="'+ri+'">✕</button>' +
         '</div>';
     }).join('');
@@ -421,10 +422,11 @@
       if(k===-1) r.dow.push(d); else r.dow.splice(k,1);
       renderHallPriceRules(i);
     }); });
-    box.querySelectorAll('.pr-f,.pr-t,.pr-rate').forEach(function(inp){ inp.addEventListener('input', function(){
+    box.querySelectorAll('.pr-f,.pr-t,.pr-rate,.pr-min').forEach(function(inp){ inp.addEventListener('input', function(){
       var r = rules[+inp.dataset.ri];
       if(inp.classList.contains('pr-f')) r.from = +inp.value;
       else if(inp.classList.contains('pr-t')) r.to = +inp.value;
+      else if(inp.classList.contains('pr-min')){ var mm = parseInt(inp.value,10); r.minMin = Number.isInteger(mm) ? mm : null; }
       else r.rate = parseFloat(inp.value);
     }); });
     box.querySelectorAll('.pr-del').forEach(function(b){ b.addEventListener('click', function(){
@@ -450,8 +452,12 @@
       if(!(typeof r.rate === 'number' && isFinite(r.rate) && r.rate >= 0)){
         if(n) flash(n, 'Окно #'+(k+1)+': ставка — число не меньше 0'); return;
       }
+      if(r.minMin != null && !(Number.isInteger(r.minMin) && r.minMin % 30 === 0 && r.minMin >= 30 && r.minMin <= 480)){
+        if(n) flash(n, 'Окно #'+(k+1)+': мин. бронь — кратна 30, от 30 до 480'); return;
+      }
       clean.push({ from:r.from, to:r.to, rate:r.rate,
-        dow:(Array.isArray(r.dow) && r.dow.length) ? r.dow.slice().sort(function(a,b){return a-b;}) : undefined });
+        dow:(Array.isArray(r.dow) && r.dow.length) ? r.dow.slice().sort(function(a,b){return a-b;}) : undefined,
+        minMin:(r.minMin != null ? r.minMin : undefined) });
     }
     api('PUT', '/admin/halls/' + encodeURIComponent(h.id) + '/price-rules', clean)
       .then(function(res){
