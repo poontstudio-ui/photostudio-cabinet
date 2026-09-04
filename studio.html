@@ -171,6 +171,7 @@
     <nav class="nav" id="nav">
       <div class="nav-group">Обзор</div>
       <a href="#sec-summary">Сводка</a>
+      <a href="#sec-profile">Профиль</a>
       <a href="#sec-bookings">Брони</a>
       <div class="nav-group">Бронирование</div>
       <a href="#sec-settings">Настройки</a>
@@ -200,6 +201,19 @@
         <div class="stat"><div class="v" id="stRev">—</div><div class="l">Выручка, BYN</div></div>
         <div class="stat"><div class="v" id="stAvg">—</div><div class="l">Средний чек</div></div>
       </div>
+    </div>
+
+    <div class="card" id="sec-profile">
+      <h2>Профиль студии</h2>
+      <div class="row"><input class="name" id="pfName" placeholder="Название студии"></div>
+      <div class="row"><input class="name" id="pfSub" placeholder="Подзаголовок (необязательно)"></div>
+      <div class="row"><input class="name" id="pfCity" placeholder="Город"></div>
+      <div class="row"><input class="name" id="pfAddr" placeholder="Адрес — улица, дом"></div>
+      <div class="row"><input class="name" id="pfPhone" placeholder="Телефон"></div>
+      <div class="muted" id="pfMapHint" style="margin:2px 0 6px" hidden>Метка на карте ставится по адресу автоматически. Перетащите её, если она встала неточно, и сохраните.</div>
+      <div id="pfMap" style="width:100%;height:220px;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border);background:var(--surface-2)" hidden></div>
+      <div class="actions" style="margin-top:10px"><button class="btn small" id="pfSave" type="button">Сохранить профиль</button></div>
+      <div class="note" id="pfNote"></div>
     </div>
 
     <div class="card" id="sec-settings">
@@ -355,6 +369,23 @@
   var HALL_PROPS = {hallType:true,daylight:true,areaM2:true,ceilingCm:true};
   var STUDIO_ID = new URLSearchParams(location.search).get('id') || '';
 
+  // Yandex Maps JS API — ленивая загрузка, ключ из /config.
+  var MAPS_KEY = '';
+  var _ymapsPromise = null;
+  function loadYmaps(){
+    if(_ymapsPromise) return _ymapsPromise;
+    if(!MAPS_KEY) return Promise.reject(new Error('нет ключа карт'));
+    _ymapsPromise = new Promise(function(resolve, reject){
+      var s = document.createElement('script');
+      s.src = 'https://api-maps.yandex.ru/2.1/?apikey=' + encodeURIComponent(MAPS_KEY) + '&lang=ru_RU';
+      s.async = true;
+      s.onload = function(){ window.ymaps.ready(function(){ resolve(window.ymaps); }); };
+      s.onerror = function(){ _ymapsPromise = null; reject(new Error('карты не загрузились')); };
+      document.head.appendChild(s);
+    });
+    return _ymapsPromise;
+  }
+
   // /api/session/me is NOT tenant-scoped
   function meApi(){
     return fetch(API_BASE + '/api/session/me', { headers:{ 'Authorization':'Bearer ' + token } })
@@ -381,6 +412,8 @@
   var hallsDraft = [], equipDraft = [], hoursDraft = [], ownersDraft = [], myId = '';
   var settingsDraft = { autoConfirm:false, bufferMin:10, minBookingMin:60, cancelFreeHours:24,
     lastminuteEnabled:false, lastminuteHours:24, lastminutePct:20 };
+  var profileDraft = { name:'', subtitle:'', city:'', address:'', phone:'', lat:null, lon:null };
+  var _pfMap = null, _pfPin = null, _pfPinMoved = false, _pfMapInit = false;
   var policyDraft = [
     { hoursBefore:24, refundPct:100, rescheduleFree:true },
     { hoursBefore:0,  refundPct:50,  rescheduleFree:false },
@@ -662,6 +695,95 @@
     });
     c.querySelectorAll('.del').forEach(function(b){ b.addEventListener('click', function(){ equipDraft.splice(+b.dataset.i,1); renderEquip(); }); });
   }
+  // ---------- профиль студии + карта ----------
+  function renderProfile(){
+    $('pfName').value = profileDraft.name;
+    $('pfSub').value = profileDraft.subtitle;
+    $('pfCity').value = profileDraft.city;
+    $('pfAddr').value = profileDraft.address;
+    $('pfPhone').value = profileDraft.phone;
+    initProfileMap();
+  }
+  function pfCenter(){
+    return (profileDraft.lat != null && profileDraft.lon != null)
+      ? [profileDraft.lat, profileDraft.lon] : [53.9006, 27.5590];  // Минск по умолчанию
+  }
+  function pfPlacePin(coords){
+    profileDraft.lat = +coords[0].toFixed(6);
+    profileDraft.lon = +coords[1].toFixed(6);
+    _pfPinMoved = true;
+    if(!_pfMap) return;
+    if(_pfPin){ _pfPin.geometry.setCoordinates(coords); }
+    else {
+      loadYmaps().then(function(ymaps){
+        _pfPin = new ymaps.Placemark(coords, {}, { draggable:true, preset:'islands#redDotIcon' });
+        _pfPin.events.add('dragend', function(){
+          var c = _pfPin.geometry.getCoordinates();
+          profileDraft.lat = +c[0].toFixed(6); profileDraft.lon = +c[1].toFixed(6);
+          _pfPinMoved = true;
+        });
+        _pfMap.geoObjects.add(_pfPin);
+      });
+    }
+  }
+  function initProfileMap(){
+    if(!MAPS_KEY){ $('pfMap').hidden = true; $('pfMapHint').hidden = true; return; }
+    $('pfMap').hidden = false; $('pfMapHint').hidden = false;
+    if(_pfMapInit){
+      if(_pfMap){ _pfMap.setCenter(pfCenter(), profileDraft.lat != null ? 16 : 11); }
+      return;
+    }
+    _pfMapInit = true;
+    loadYmaps().then(function(ymaps){
+      _pfMap = new ymaps.Map($('pfMap'),
+        { center: pfCenter(), zoom: profileDraft.lat != null ? 16 : 11, controls: ['zoomControl'] },
+        { suppressMapOpenBlock: true });
+      _pfMap.events.add('click', function(e){ pfPlacePin(e.get('coords')); });
+      if(profileDraft.lat != null){
+        _pfPin = new ymaps.Placemark([profileDraft.lat, profileDraft.lon], {},
+          { draggable:true, preset:'islands#redDotIcon' });
+        _pfPin.events.add('dragend', function(){
+          var c = _pfPin.geometry.getCoordinates();
+          profileDraft.lat = +c[0].toFixed(6); profileDraft.lon = +c[1].toFixed(6);
+          _pfPinMoved = true;
+        });
+        _pfMap.geoObjects.add(_pfPin);
+      }
+    }).catch(function(){ _pfMapInit = false; $('pfMap').hidden = true; $('pfMapHint').hidden = true; });
+  }
+  $('pfSave').addEventListener('click', function(){
+    var name = $('pfName').value.trim(), city = $('pfCity').value.trim();
+    if(name.length < 2 || name.length > 120) return flash($('pfNote'), 'Название — от 2 до 120 символов');
+    if(city.length < 2 || city.length > 120) return flash($('pfNote'), 'Город — от 2 до 120 символов');
+    if($('pfAddr').value.length > 200) return flash($('pfNote'), 'Адрес — до 200 символов');
+    if($('pfPhone').value.length > 30) return flash($('pfNote'), 'Телефон — до 30 символов');
+    var payload = {
+      name: name, subtitle: $('pfSub').value.trim(), city: city,
+      address: $('pfAddr').value.trim(), phone: $('pfPhone').value.trim(),
+    };
+    if(_pfPinMoved && profileDraft.lat != null){ payload.lat = profileDraft.lat; payload.lon = profileDraft.lon; }
+    $('pfSave').disabled = true;
+    api('PUT', '/admin/profile', payload)
+      .then(function(u){
+        profileDraft = {
+          name: u.name || '', subtitle: u.subtitle || '', city: u.city || '',
+          address: u.address || '', phone: u.phone || '',
+          lat: Number.isFinite(u.lat) ? u.lat : null, lon: Number.isFinite(u.lon) ? u.lon : null,
+        };
+        _pfPinMoved = false;
+        $('sSub').textContent = [profileDraft.city, profileDraft.address].filter(Boolean).join(' · ');
+        $('sName').textContent = profileDraft.name || STUDIO_ID;
+        if(profileDraft.lat != null && _pfMap){
+          pfPlacePin([profileDraft.lat, profileDraft.lon]);
+          _pfPinMoved = false;
+          _pfMap.setCenter([profileDraft.lat, profileDraft.lon], 16);
+        }
+        flash($('pfNote'), u.geocoded ? 'Сохранено · метка по адресу' : 'Профиль сохранён', true);
+      })
+      .catch(function(e){ flash($('pfNote'), e.message); })
+      .then(function(){ $('pfSave').disabled = false; });
+  });
+
   function renderSettings(){
     $('setAutoConfirm').checked = !!settingsDraft.autoConfirm;
     $('setBuffer').value = settingsDraft.bufferMin;
@@ -1055,6 +1177,14 @@
           : Array.from({length:7}, function(){ return {start:cfg.hoursStart, end:cfg.hoursEnd}; });
         renderHours();
         if(cfg.verticalUi && cfg.verticalUi.hallProps) HALL_PROPS = cfg.verticalUi.hallProps;
+        MAPS_KEY = typeof cfg.yandexMapsKey === 'string' ? cfg.yandexMapsKey : '';
+        profileDraft = {
+          name: cfg.name || '', subtitle: cfg.subtitle || '',
+          city: cfg.city || '', address: cfg.address || '', phone: cfg.phone || '',
+          lat: Number.isFinite(cfg.lat) ? cfg.lat : null,
+          lon: Number.isFinite(cfg.lon) ? cfg.lon : null,
+        };
+        renderProfile();
         var lm = cfg.lastminute || {};
         settingsDraft = {
           autoConfirm: !!cfg.autoConfirm,
