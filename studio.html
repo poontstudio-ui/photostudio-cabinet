@@ -224,7 +224,7 @@
       <div class="row"><input class="name" id="pfPhone" placeholder="Телефон"></div>
       <div class="muted" id="pfMapHint" style="margin:2px 0 6px" hidden>Выберите адрес из подсказок или перетащите метку на карте — вплоть до въезда или угла здания. Правка одного текста адреса метку не сдвинет.</div>
       <div id="pfMap" style="width:100%;height:220px;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border);background:var(--surface-2)" hidden></div>
-      <div class="actions" style="margin-top:10px"><button class="btn small" id="pfSave" type="button">Сохранить профиль</button></div>
+      <div class="actions" style="margin-top:10px"><button class="btn small" id="pfSave" type="button" disabled>Сохранить профиль</button></div>
       <div class="note" id="pfNote"></div>
     </div>
 
@@ -435,6 +435,7 @@
     lastminuteEnabled:false, lastminuteHours:24, lastminutePct:20 };
   var profileDraft = { name:'', subtitle:'', city:'', address:'', phone:'', lat:null, lon:null };
   var _pfMap = null, _pfPin = null, _pfPinMoved = false, _pfMapInit = false;
+  var pfSavedSnapshot = null;  // последние сохранённые текстовые поля — для «Сохранить» только при реальных правках
   var policyDraft = [
     { hoursBefore:24, refundPct:100, rescheduleFree:true },
     { hoursBefore:0,  refundPct:50,  rescheduleFree:false },
@@ -723,8 +724,29 @@
     $('pfCity').value = profileDraft.city;
     $('pfAddr').value = profileDraft.address;
     $('pfPhone').value = profileDraft.phone;
+    pfSavedSnapshot = {
+      name: profileDraft.name, subtitle: profileDraft.subtitle, city: profileDraft.city,
+      address: profileDraft.address, phone: profileDraft.phone,
+    };
+    _pfPinMoved = false;
+    checkProfileDirty();
     initProfileMap();
   }
+  // «Сохранить профиль» активна, только когда что-то реально изменилось —
+  // текстовое поле разошлось со снимком последнего сохранения, или подвинут пин.
+  function checkProfileDirty(){
+    if(!pfSavedSnapshot){ $('pfSave').disabled = true; return; }
+    var dirty = _pfPinMoved
+      || $('pfName').value.trim() !== pfSavedSnapshot.name
+      || $('pfSub').value.trim() !== pfSavedSnapshot.subtitle
+      || $('pfCity').value.trim() !== pfSavedSnapshot.city
+      || $('pfAddr').value.trim() !== pfSavedSnapshot.address
+      || $('pfPhone').value.trim() !== pfSavedSnapshot.phone;
+    $('pfSave').disabled = !dirty;
+  }
+  ['pfName','pfSub','pfCity','pfAddr','pfPhone'].forEach(function(id){
+    $(id).addEventListener('input', checkProfileDirty);
+  });
   function pfCenter(){
     return (profileDraft.lat != null && profileDraft.lon != null)
       ? [profileDraft.lat, profileDraft.lon] : [53.9006, 27.5590];  // Минск по умолчанию
@@ -733,6 +755,7 @@
     profileDraft.lat = +coords[0].toFixed(6);
     profileDraft.lon = +coords[1].toFixed(6);
     _pfPinMoved = true;
+    checkProfileDirty();
     if(!_pfMap) return;
     if(_pfPin){ _pfPin.geometry.setCoordinates(coords); }
     else {
@@ -742,6 +765,7 @@
           var c = _pfPin.geometry.getCoordinates();
           profileDraft.lat = +c[0].toFixed(6); profileDraft.lon = +c[1].toFixed(6);
           _pfPinMoved = true;
+          checkProfileDirty();
         });
         _pfMap.geoObjects.add(_pfPin);
       });
@@ -767,6 +791,7 @@
           var c = _pfPin.geometry.getCoordinates();
           profileDraft.lat = +c[0].toFixed(6); profileDraft.lon = +c[1].toFixed(6);
           _pfPinMoved = true;
+          checkProfileDirty();
         });
         _pfMap.geoObjects.add(_pfPin);
       }
@@ -857,6 +882,10 @@
           lat: Number.isFinite(u.lat) ? u.lat : null, lon: Number.isFinite(u.lon) ? u.lon : null,
         };
         _pfPinMoved = false;
+        pfSavedSnapshot = {
+          name: profileDraft.name, subtitle: profileDraft.subtitle, city: profileDraft.city,
+          address: profileDraft.address, phone: profileDraft.phone,
+        };
         $('sSub').textContent = [profileDraft.city, profileDraft.address].filter(Boolean).join(' · ');
         $('sName').textContent = profileDraft.name || STUDIO_ID;
         if(profileDraft.lat != null && _pfMap){
@@ -867,7 +896,7 @@
         flash($('pfNote'), u.geocoded ? 'Сохранено · метка по адресу' : 'Профиль сохранён', true);
       })
       .catch(function(e){ flash($('pfNote'), e.message); })
-      .then(function(){ $('pfSave').disabled = false; });
+      .then(function(){ checkProfileDirty(); });
   });
 
   function renderSettings(){
