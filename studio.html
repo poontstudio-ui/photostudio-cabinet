@@ -385,6 +385,15 @@
     });
     return _ymapsPromise;
   }
+  // «В Карты →» — необязательный промо-блок Яндекса, физически отдельный от
+  // обязательной атрибуции «© Яндекс Условия» (её не трогаем). Control
+  // рендерится асинхронно, поэтому опрашиваем немного.
+  function hideMapOpenPromo(mapEl, tries){
+    tries = tries || 0;
+    var el = mapEl.querySelector('[class*="-map-copyrights-promo"]');
+    if(el){ el.style.display = 'none'; return; }
+    if(tries < 20) setTimeout(function(){ hideMapOpenPromo(mapEl, tries + 1); }, 100);
+  }
 
   // /api/session/me is NOT tenant-scoped
   function meApi(){
@@ -749,6 +758,7 @@
         });
         _pfMap.geoObjects.add(_pfPin);
       }
+      hideMapOpenPromo($('pfMap'));
     }).catch(function(){ _pfMapInit = false; $('pfMap').hidden = true; $('pfMapHint').hidden = true; });
   }
   $('pfSave').addEventListener('click', function(){
