@@ -422,7 +422,7 @@
   var settingsDraft = { autoConfirm:false, bufferMin:10, minBookingMin:60, cancelFreeHours:24,
     lastminuteEnabled:false, lastminuteHours:24, lastminutePct:20 };
   var profileDraft = { name:'', subtitle:'', city:'', address:'', phone:'', lat:null, lon:null };
-  var _pfMap = null, _pfPin = null, _pfPinMoved = false, _pfMapInit = false, _pfSuggestWired = false;
+  var _pfMap = null, _pfPin = null, _pfPinMoved = false, _pfMapInit = false;
   var policyDraft = [
     { hoursBefore:24, refundPct:100, rescheduleFree:true },
     { hoursBefore:0,  refundPct:50,  rescheduleFree:false },
@@ -759,31 +759,13 @@
         _pfMap.geoObjects.add(_pfPin);
       }
       hideMapOpenPromo($('pfMap'));
-      wireAddressSuggest(ymaps);
     }).catch(function(){ _pfMapInit = false; $('pfMap').hidden = true; $('pfMapHint').hidden = true; });
   }
-  // Автодополнение адреса — как в Яндекс.Картах: подсказки под полем «Адрес»
-  // по мере ввода (виджет самого JS API, отдельный ключ не нужен). При выборе
-  // варианта сразу геокодим клиентом (тот же ключ, без похода на сервер) и
-  // двигаем пин — Save просто сохранит уже готовые координаты как явный пин.
-  function wireAddressSuggest(ymaps){
-    if(_pfSuggestWired) return;
-    _pfSuggestWired = true;
-    var suggest = new ymaps.SuggestView('pfAddr', {
-      results: 5,
-      boundedBy: _pfMap ? _pfMap.getBounds() : undefined,
-    });
-    suggest.events.add('select', function(e){
-      var value = e.get('item').value;
-      ymaps.geocode(value, { results: 1 }).then(function(res){
-        var obj = res.geoObjects.get(0);
-        if(!obj) return;
-        var coords = obj.geometry.getCoordinates();
-        pfPlacePin(coords);
-        if(_pfMap) _pfMap.setCenter(coords, 16);
-      }).catch(function(){ /* не критично — Save всё равно геокодит на сервере */ });
-    });
-  }
+  // Автодополнение адреса (ymaps.SuggestView) НЕ подключено: Яндекс убрал
+  // Suggest из JavaScript API 2.1 («FeatureRemovedError: Suggest is not
+  // available» в проверке на живом 2026-09-04). Нужен отдельный продукт
+  // «API Геосаджеста» (свой ключ, отдельное подключение в кабинете
+  // разработчика) — см. PROGRESS.md, бэклог.
   $('pfSave').addEventListener('click', function(){
     var name = $('pfName').value.trim(), city = $('pfCity').value.trim();
     if(name.length < 2 || name.length > 120) return flash($('pfNote'), 'Название — от 2 до 120 символов');
