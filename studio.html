@@ -102,6 +102,15 @@
   .del{background:var(--surface);border:1px solid var(--border-strong);color:var(--text-2);
        border-radius:var(--r-sm);padding:7px 10px;cursor:pointer;font-size:13px;line-height:1;}
   .del:hover{border-color:var(--red);color:var(--red);}
+  .addr-suggest{position:absolute;left:0;right:0;top:calc(100% + 2px);z-index:20;
+    background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--r-sm);
+    box-shadow:var(--shadow);max-height:220px;overflow-y:auto;}
+  .addr-suggest[hidden]{display:none;}
+  .addr-suggest-item{padding:8px 10px;cursor:pointer;font-size:13px;border-top:1px solid var(--border);}
+  .addr-suggest-item:first-child{border-top:none;}
+  .addr-suggest-item:hover,.addr-suggest-item.active{background:var(--surface-2);}
+  .addr-suggest-item b{font-weight:600;}
+  .addr-suggest-item span{display:block;font-size:11px;color:var(--text-3);margin-top:1px;}
   .pr-day{border:1px solid var(--border-strong);background:var(--surface);color:var(--text-3);
           border-radius:var(--r-sm);padding:4px 7px;font-size:11px;cursor:pointer;line-height:1;}
   .pr-day.on{background:var(--blue-bg);border-color:var(--blue);color:var(--blue-dark);font-weight:600;}
@@ -208,9 +217,12 @@
       <div class="row"><input class="name" id="pfName" placeholder="Название студии"></div>
       <div class="row"><input class="name" id="pfSub" placeholder="Подзаголовок (необязательно)"></div>
       <div class="row"><input class="name" id="pfCity" placeholder="Город"></div>
-      <div class="row"><input class="name" id="pfAddr" placeholder="Адрес — улица, дом"></div>
+      <div class="row" style="position:relative">
+        <input class="name" id="pfAddr" placeholder="Адрес — улица, дом" autocomplete="off">
+        <div id="pfAddrSuggest" class="addr-suggest" hidden></div>
+      </div>
       <div class="row"><input class="name" id="pfPhone" placeholder="Телефон"></div>
-      <div class="muted" id="pfMapHint" style="margin:2px 0 6px" hidden>Метка на карте ставится по адресу автоматически. Перетащите её, если она встала неточно, и сохраните.</div>
+      <div class="muted" id="pfMapHint" style="margin:2px 0 6px" hidden>Выберите адрес из подсказок или перетащите метку на карте — вплоть до въезда или угла здания. Правка одного текста адреса метку не сдвинет.</div>
       <div id="pfMap" style="width:100%;height:220px;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border);background:var(--surface-2)" hidden></div>
       <div class="actions" style="margin-top:10px"><button class="btn small" id="pfSave" type="button">Сохранить профиль</button></div>
       <div class="note" id="pfNote"></div>
@@ -761,11 +773,70 @@
       hideMapOpenPromo($('pfMap'));
     }).catch(function(){ _pfMapInit = false; $('pfMap').hidden = true; $('pfMapHint').hidden = true; });
   }
-  // Автодополнение адреса (ymaps.SuggestView) НЕ подключено: Яндекс убрал
-  // Suggest из JavaScript API 2.1 («FeatureRemovedError: Suggest is not
-  // available» в проверке на живом 2026-09-04). Нужен отдельный продукт
-  // «API Геосаджеста» (свой ключ, отдельное подключение в кабинете
-  // разработчика) — см. PROGRESS.md, бэклог.
+  // ---------- Автодополнение адреса ----------
+  // ymaps.SuggestView не используем — Яндекс убрал Suggest из JS API 2.1
+  // («FeatureRemovedError»). Вместо этого свой прокси на бэкенде
+  // (GET /admin/address-suggest, ключ YANDEX_SUGGEST_KEY только на сервере) +
+  // самодельная выпадашка. Выбор подсказки: заполняет поле и явно зовёт
+  // GET /admin/geocode -> двигает пин (pfPlacePin, как ручное перетаскивание) —
+  // просто печатать текст адреса пин больше не двигает («липкий» пин).
+  var addrSuggestItems = [], addrSuggestActive = -1, addrSuggestTimer = null;
+  function closeAddrSuggest(){
+    addrSuggestItems = []; addrSuggestActive = -1;
+    var box = $('pfAddrSuggest'); box.hidden = true; box.innerHTML = '';
+  }
+  function renderAddrSuggest(){
+    var box = $('pfAddrSuggest');
+    if(!addrSuggestItems.length){ box.hidden = true; box.innerHTML = ''; return; }
+    box.innerHTML = addrSuggestItems.map(function(it, i){
+      return '<div class="addr-suggest-item'+(i===addrSuggestActive?' active':'')+'" data-i="'+i+'">' +
+        '<b>'+esc(it.title||it.address)+'</b>' +
+        (it.subtitle ? '<span>'+esc(it.subtitle)+'</span>' : '') + '</div>';
+    }).join('');
+    box.hidden = false;
+    box.querySelectorAll('.addr-suggest-item').forEach(function(el){
+      // mousedown, не click — иначе blur поля закроет список раньше выбора.
+      el.addEventListener('mousedown', function(ev){ ev.preventDefault(); pickAddrSuggest(+el.dataset.i); });
+    });
+  }
+  function pickAddrSuggest(i){
+    var it = addrSuggestItems[i];
+    if(!it) return;
+    $('pfAddr').value = it.address;
+    closeAddrSuggest();
+    api('GET', '/admin/geocode?address=' + encodeURIComponent(it.address))
+      .then(function(g){
+        if(g && g.lat != null && g.lon != null){
+          pfPlacePin([g.lat, g.lon]);
+          if(_pfMap) _pfMap.setCenter([g.lat, g.lon], 16);
+        }
+      })
+      .catch(function(){ /* не критично — пин просто не подвинется сразу, можно вручную */ });
+  }
+  function fetchAddrSuggest(text){
+    if(!text || text.trim().length < 2){ closeAddrSuggest(); return; }
+    api('GET', '/admin/address-suggest?text=' + encodeURIComponent(text))
+      .then(function(rows){
+        if($('pfAddr').value.trim() !== text.trim()) return;  // ответ на устаревший запрос
+        addrSuggestItems = Array.isArray(rows) ? rows : [];
+        addrSuggestActive = -1;
+        renderAddrSuggest();
+      })
+      .catch(function(){ closeAddrSuggest(); });
+  }
+  $('pfAddr').addEventListener('input', function(){
+    clearTimeout(addrSuggestTimer);
+    var text = $('pfAddr').value;
+    addrSuggestTimer = setTimeout(function(){ fetchAddrSuggest(text); }, 300);
+  });
+  $('pfAddr').addEventListener('keydown', function(e){
+    if(!addrSuggestItems.length) return;
+    if(e.key === 'ArrowDown'){ e.preventDefault(); addrSuggestActive = Math.min(addrSuggestItems.length-1, addrSuggestActive+1); renderAddrSuggest(); }
+    else if(e.key === 'ArrowUp'){ e.preventDefault(); addrSuggestActive = Math.max(0, addrSuggestActive-1); renderAddrSuggest(); }
+    else if(e.key === 'Enter'){ if(addrSuggestActive >= 0){ e.preventDefault(); pickAddrSuggest(addrSuggestActive); } }
+    else if(e.key === 'Escape'){ closeAddrSuggest(); }
+  });
+  $('pfAddr').addEventListener('blur', function(){ setTimeout(closeAddrSuggest, 150); });
   $('pfSave').addEventListener('click', function(){
     var name = $('pfName').value.trim(), city = $('pfCity').value.trim();
     if(name.length < 2 || name.length > 120) return flash($('pfNote'), 'Название — от 2 до 120 символов');
