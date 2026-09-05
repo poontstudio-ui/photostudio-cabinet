@@ -190,6 +190,40 @@
   .empty{color:var(--text-3);font-size:13px;padding:12px 0;}
   .err{color:var(--red);font-size:13px;}
 
+  /* ---------- «+» новая бронь ---------- */
+  .fab{
+    position:fixed;right:22px;bottom:22px;z-index:55;
+    width:56px;height:56px;border-radius:50%;border:none;
+    background:var(--blue);color:#fff;font-size:28px;font-weight:400;line-height:1;
+    display:flex;align-items:center;justify-content:center;padding-bottom:2px;
+    box-shadow:0 4px 14px rgba(10,114,239,.4);cursor:pointer;
+  }
+  .fab:hover{background:var(--blue-dark);}
+  .fab:active{transform:scale(.96);}
+
+  .modal-overlay{
+    position:fixed;inset:0;z-index:60;background:rgba(20,22,28,.45);
+    display:flex;align-items:flex-start;justify-content:center;
+    padding:36px 16px;overflow-y:auto;
+  }
+  .modal-overlay[hidden]{display:none;}
+  .modal{
+    background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);
+    width:100%;max-width:420px;overflow:hidden;
+  }
+  .modal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 0;}
+  .modal-head h2{margin:0;font-size:16px;font-weight:600;}
+  .modal-close{background:none;border:none;font-size:18px;line-height:1;color:var(--text-2);
+    cursor:pointer;padding:4px 8px;border-radius:var(--r-sm);}
+  .modal-close:hover{background:var(--surface-2);color:var(--text);}
+  .modal-frame{width:100%;height:680px;border:0;display:block;margin-top:6px;}
+  @media(max-width:760px){
+    .modal-overlay{padding:0;}
+    .modal{max-width:none;min-height:100vh;border-radius:0;display:flex;flex-direction:column;}
+    .modal-frame{flex:1 1 auto;height:auto;}
+    .fab{right:16px;bottom:16px;}
+  }
+
   /* ---------- модалка дашборда ---------- */
 
   @media(max-width:760px){
@@ -400,6 +434,18 @@
 
     </div>
   </main>
+</div>
+
+<button class="fab" id="newBookingFab" type="button" title="Новая бронь" aria-label="Новая бронь">+</button>
+
+<div class="modal-overlay" id="newBookingOverlay" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Новая бронь</h2>
+      <button class="modal-close" id="newBookingClose" type="button" aria-label="Закрыть">✕</button>
+    </div>
+    <iframe id="newBookingFrame" class="modal-frame"></iframe>
+  </div>
 </div>
 
 
@@ -1226,6 +1272,52 @@
   $('dashPending').addEventListener('click', function(){
     dashPendingOnly = !dashPendingOnly;
     renderBookings(lastBookings);
+  });
+
+  // ---------- «+» новая бронь (звонок по телефону) ----------
+  // Внутри модалки — тот же мини-апп, что видит клиент (?embed=admin):
+  // карточки залов, слайдер дат, сетка времени, недельный календарь зала
+  // по клику на карточку — ничего не переизобретаем заново. Создать бронь
+  // мини-апп сам не может (внутри iframe нет ни Telegram, ни нашей сессии) —
+  // он шлёт сюда postMessage, и уже кабинет своим токеном вызывает
+  // /admin/bookings. Контракт сообщений зеркально описан в index.html
+  // (EMBED_ADMIN/postBookingViaParent).
+  var MINIAPP_ORIGIN = 'https://poontstudio-ui.github.io';
+  var newBookingOverlay = $('newBookingOverlay');
+  var newBookingFrame = $('newBookingFrame');
+
+  function openNewBooking(){
+    newBookingFrame.src = MINIAPP_ORIGIN + '/photostudio-frontend/?tenant=' +
+      encodeURIComponent(STUDIO_ID) + '&embed=admin';
+    newBookingOverlay.hidden = false;
+  }
+  function closeNewBooking(){
+    newBookingOverlay.hidden = true;
+    newBookingFrame.src = 'about:blank';   // сброс формы к следующему открытию
+  }
+  $('newBookingFab').addEventListener('click', openNewBooking);
+  $('newBookingClose').addEventListener('click', closeNewBooking);
+  newBookingOverlay.addEventListener('click', function(e){
+    if(e.target === newBookingOverlay) closeNewBooking();
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && !newBookingOverlay.hidden) closeNewBooking();
+  });
+
+  window.addEventListener('message', function(e){
+    if(e.origin !== MINIAPP_ORIGIN) return;   // не доверяем сообщениям от чужих источников
+    var msg = e.data;
+    if(!msg || msg.type !== 'poont-admin-create-booking') return;
+    api('POST', '/admin/bookings', msg.body)
+      .then(function(booking){
+        newBookingFrame.contentWindow.postMessage(
+          { type:'poont-admin-booking-result', id: msg.id, ok:true, booking: booking }, MINIAPP_ORIGIN);
+        load();   // новая бронь сразу попадает в дашборд
+      })
+      .catch(function(err){
+        newBookingFrame.contentWindow.postMessage(
+          { type:'poont-admin-booking-result', id: msg.id, ok:false, error: err.message }, MINIAPP_ORIGIN);
+      });
   });
 
   // ---------- save handlers ----------
