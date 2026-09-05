@@ -1145,6 +1145,17 @@
             minLabel(b.start), minLabel(b.end), b.people, b.price, ST_LABEL[b.status]]
       .join(' ').toLowerCase();
   }
+  function onlyDigits(v){ return String(v||'').replace(/\D+/g, ''); }
+  // Телефон в брони — как клиент его вписал (может быть с дефисами/пробелами:
+  // «+375 29 123-45-67»). Ищут обычно последними 4 цифрами без всякого
+  // форматирования — сверяем «только цифры» с обеих сторон, чтобы дефисы
+  // в записи не мешали находить её по голым цифрам.
+  function bookingMatchesQuery(b, q){
+    if(bookingSearchHay(b).indexOf(q) !== -1) return true;
+    var qDigits = onlyDigits(q);
+    if(!qDigits) return false;
+    return onlyDigits(b.phone).indexOf(qDigits) !== -1 || onlyDigits(b.date).indexOf(qDigits) !== -1;
+  }
 
   function renderBookings(list){
     lastBookings = list;
@@ -1161,7 +1172,7 @@
 
     var shown = dashPendingOnly ? pending : list;
     if(dashSearchQuery){
-      shown = shown.filter(function(b){ return bookingSearchHay(b).indexOf(dashSearchQuery) !== -1; });
+      shown = shown.filter(function(b){ return bookingMatchesQuery(b, dashSearchQuery); });
     }
     if(!shown.length){
       var msg = dashSearchQuery ? 'Совпадений не найдено.'
