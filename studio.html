@@ -1167,9 +1167,9 @@
   });
 
   $('clearHist').addEventListener('click', function(){
-    if(!confirm('Удалить все прошедшие брони этой студии? Активные и предстоящие не тронутся.')) return;
+    if(!confirm('Убрать прошедшие брони из списка? Данные не удаляются — просто не будут тут показываться. Активные и предстоящие не тронутся.')) return;
     api('POST','/admin/clear-history')
-      .then(function(r){ flash($('clearNote'),'Удалено: ' + (r.removed||0), true); load(); })
+      .then(function(r){ flash($('clearNote'),'Убрано из списка: ' + (r.archived||0), true); load(); })
       .catch(function(e){ flash($('clearNote'), e.message); });
   });
 
