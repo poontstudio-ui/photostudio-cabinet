@@ -260,6 +260,16 @@
       </div>
       <div class="muted" style="margin:2px 0 12px">Свободный слот, до которого меньше указанных часов, клиент видит дешевле на этот процент. Пакеты не затрагиваются.</div>
 
+      <label class="row" style="cursor:pointer">
+        <input type="checkbox" id="setRemEnabled" style="width:auto;flex:none">
+        <span>Напоминание клиенту перед бронью</span>
+      </label>
+      <div class="row" style="margin-top:6px">
+        <span style="flex:1 1 100%">За сколько минут до брони</span>
+        <input class="num" type="number" id="setRemMinutes" min="10" max="180" step="5">
+      </div>
+      <div class="muted" style="margin:2px 0 12px">Клиенту в Telegram — с кнопками «Как добраться» и «Вызвать такси». Только клиенту, владельцу не дублируем.</div>
+
       <div style="margin-top:6px"><span class="muted">Правила отмены и переноса</span></div>
       <div id="polEd" style="margin:6px 0"></div>
       <button class="btn ghost small" id="polAdd" type="button">+ Ступень</button>
@@ -432,7 +442,8 @@
   var blocksList = [];
   var hallsDraft = [], equipDraft = [], hoursDraft = [], ownersDraft = [], myId = '';
   var settingsDraft = { autoConfirm:false, bufferMin:10, minBookingMin:60, cancelFreeHours:24,
-    lastminuteEnabled:false, lastminuteHours:24, lastminutePct:20 };
+    lastminuteEnabled:false, lastminuteHours:24, lastminutePct:20,
+    reminderEnabled:true, reminderMinutesBefore:60 };
   var profileDraft = { name:'', subtitle:'', city:'', address:'', phone:'', lat:null, lon:null };
   var _pfMap = null, _pfPin = null, _pfPinMoved = false, _pfMapInit = false;
   var pfSavedSnapshot = null;  // последние сохранённые текстовые поля — для «Сохранить» только при реальных правках
@@ -906,6 +917,8 @@
     $('setLmEnabled').checked = !!settingsDraft.lastminuteEnabled;
     $('setLmHours').value = settingsDraft.lastminuteHours;
     $('setLmPct').value = settingsDraft.lastminutePct;
+    $('setRemEnabled').checked = !!settingsDraft.reminderEnabled;
+    $('setRemMinutes').value = settingsDraft.reminderMinutesBefore;
     renderPolicy();
   }
 
@@ -1099,22 +1112,29 @@
     var lmP = parseInt($('setLmPct').value, 10);
     if(!Number.isInteger(lmH) || lmH < 1 || lmH > 72) return flash($('setNote'), 'Горящее окно — от 1 до 72 часов');
     if(!Number.isInteger(lmP) || lmP < 1 || lmP > 90) return flash($('setNote'), 'Скидка — от 1 до 90 %');
+    var remMin = parseInt($('setRemMinutes').value, 10);
+    if(!Number.isInteger(remMin) || remMin < 10 || remMin > 180) return flash($('setNote'), 'Напоминание — от 10 до 180 минут');
     var payload = {
       autoConfirm: $('setAutoConfirm').checked,
       bufferMin: buf, minBookingMin: minDur, cancelPolicy: pol,
       lastminuteEnabled: $('setLmEnabled').checked,
       lastminuteHours: lmH, lastminutePct: lmP,
+      reminderEnabled: $('setRemEnabled').checked,
+      reminderMinutesBefore: remMin,
     };
     $('setSave').disabled = true;
     api('PUT', '/admin/settings', payload)
       .then(function(u){
         var lm = u.lastminute || {};
+        var rem = u.reminder || {};
         settingsDraft = {
           autoConfirm: !!u.autoConfirm, bufferMin: u.bufferMin,
           minBookingMin: u.minBookingMin, cancelFreeHours: u.cancelFreeHours,
           lastminuteEnabled: !!lm.enabled,
           lastminuteHours: Number.isInteger(lm.hours) ? lm.hours : 24,
           lastminutePct: Number.isInteger(lm.pct) ? lm.pct : 20,
+          reminderEnabled: !!rem.enabled,
+          reminderMinutesBefore: Number.isInteger(rem.minutesBefore) ? rem.minutesBefore : 60,
         };
         if(Array.isArray(u.cancelPolicy) && u.cancelPolicy.length) policyDraft = u.cancelPolicy;
         renderSettings();
@@ -1301,6 +1321,7 @@
         };
         renderProfile();
         var lm = cfg.lastminute || {};
+        var rem = cfg.reminder || {};
         settingsDraft = {
           autoConfirm: !!cfg.autoConfirm,
           bufferMin: Number.isInteger(cfg.bufferMin) ? cfg.bufferMin : 10,
@@ -1309,6 +1330,8 @@
           lastminuteEnabled: !!lm.enabled,
           lastminuteHours: Number.isInteger(lm.hours) ? lm.hours : 24,
           lastminutePct: Number.isInteger(lm.pct) ? lm.pct : 20,
+          reminderEnabled: rem.enabled !== undefined ? !!rem.enabled : true,
+          reminderMinutesBefore: Number.isInteger(rem.minutesBefore) ? rem.minutesBefore : 60,
         };
         if(Array.isArray(cfg.cancelPolicy) && cfg.cancelPolicy.length) policyDraft = cfg.cancelPolicy;
         renderSettings();
