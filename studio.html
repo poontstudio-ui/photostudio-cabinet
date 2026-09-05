@@ -121,6 +121,19 @@
   .hall-prules select{padding:5px 6px;font-size:12px;border:1px solid var(--border-strong);
                       border-radius:var(--r-sm);background:var(--surface);color:var(--text);}
 
+  /* ---------- залы: карточки + деталь ---------- */
+  .halls-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;}
+  .hall-card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);
+    padding:14px 16px;cursor:pointer;text-align:left;font:inherit;color:inherit;}
+  .hall-card:hover{border-color:var(--border-strong);background:var(--surface);}
+  .hall-card-name{font-weight:600;font-size:14px;margin-bottom:4px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .hall-card-meta{font-size:12px;color:var(--text-2);font-family:var(--f-mono);}
+  .hall-card-add{display:flex;align-items:center;justify-content:center;min-height:60px;
+    border:1px dashed var(--border-strong);border-radius:var(--r-sm);background:none;
+    color:var(--text-2);font:inherit;font-size:13px;font-weight:600;cursor:pointer;}
+  .hall-card-add:hover{border-color:var(--blue);color:var(--blue-dark);background:var(--blue-bg);}
+
   /* ---------- кнопки ---------- */
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;
        background:var(--blue);color:#fff;border:1px solid var(--blue);border-radius:var(--r-sm);
@@ -182,7 +195,7 @@
     <span class="badge" id="sStatus" style="margin:0 6px 8px"></span>
     <nav class="nav" id="nav">
       <button class="nav-folder" data-folder="main" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Основное</button>
-      <button class="nav-folder" data-folder="studio" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>Студии</button>
+      <button class="nav-folder" data-folder="halls" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>Залы</button>
       <button class="nav-folder" data-folder="equipment" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>Оборудование</button>
       <button class="nav-folder" data-folder="team" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Команда</button>
     </nav>
@@ -222,7 +235,27 @@
       <div class="note" id="pfNote"></div>
     </div>
 
-    <div class="card" id="sec-settings" data-folder="studio">
+    <div class="card" id="sec-halls" data-folder="halls">
+      <div id="hallsListView">
+        <h2>Залы</h2>
+        <div id="hallsGrid" class="halls-grid"></div>
+        <div class="actions" style="margin-top:14px">
+          <button class="btn small" id="hallSaveList" type="button">Сохранить залы</button>
+        </div>
+        <div class="note" id="hallNoteList"></div>
+      </div>
+      <div id="hallDetailView" hidden>
+        <button class="btn ghost small" id="hallBack" type="button">← Залы</button>
+        <div id="hallDetailBody" style="margin-top:12px"></div>
+        <div class="actions" style="margin-top:10px">
+          <button class="btn ghost small danger" id="hallDelete" type="button" hidden>Удалить зал</button>
+          <button class="btn small" id="hallSaveDetail" type="button">Сохранить</button>
+        </div>
+        <div class="note" id="hallNoteDetail"></div>
+      </div>
+    </div>
+
+    <div class="card" id="sec-settings" data-folder="halls">
       <h2>Настройки бронирования</h2>
       <label class="row" style="cursor:pointer">
         <input type="checkbox" id="setAutoConfirm" style="width:auto;flex:none">
@@ -271,7 +304,7 @@
       <div class="note" id="setNote"></div>
     </div>
 
-    <div class="card" id="sec-block" data-folder="studio">
+    <div class="card" id="sec-block" data-folder="halls">
       <h2>Заблокировать время</h2>
       <div class="muted" style="margin-bottom:8px">Ремонт, корпоратив, съёмка мимо платформы. Клиенты не смогут забронировать этот интервал.</div>
       <div class="row">
@@ -291,20 +324,10 @@
       <div id="blkList" style="margin-top:8px"></div>
     </div>
 
-    <div class="card" id="sec-calendar" data-folder="studio">
+    <div class="card" id="sec-calendar" data-folder="halls">
       <h2>Google Calendar</h2>
       <div id="calBody"><span class="muted">Загрузка…</span></div>
       <div class="note" id="calNote"></div>
-    </div>
-
-    <div class="card" id="sec-halls" data-folder="studio">
-      <h2>Залы</h2>
-      <div id="hallsEd"></div>
-      <div class="actions">
-        <button class="btn ghost small" id="hallAdd" type="button">+ Зал</button>
-        <button class="btn small" id="hallSave" type="button">Сохранить залы</button>
-      </div>
-      <div class="note" id="hallNote"></div>
     </div>
 
     <div class="card" id="sec-equip" data-folder="equipment">
@@ -317,7 +340,7 @@
       <div class="note" id="equipNote"></div>
     </div>
 
-    <div class="card" id="sec-hours" data-folder="studio">
+    <div class="card" id="sec-hours" data-folder="halls">
       <h2>Часы работы</h2>
       <div class="muted" style="margin-bottom:8px">Целые часы, по дням недели. Пустой день = закрыто нельзя, ставьте равные значения только если день рабочий.</div>
       <div id="hoursEd"></div>
@@ -674,36 +697,73 @@
       .catch(function(e){ if(n) flash(n, e.message); });
   }
 
+  // ---------- залы: список карточек + деталь одного зала ----------
+  // Раньше все залы разом рендерились одной длинной формой (имя/вместимость/
+  // ставка/тип/фото/тарифы/пакеты друг под другом на каждый зал) — при
+  // нескольких залах страница превращалась в простыню. Теперь список —
+  // компактные карточки, вся эта форма — в отдельном экране одного зала.
+  var openHallIndex = -1;
+
   function renderHalls(){
-    var c = $('hallsEd'); c.innerHTML = '';
+    var g = $('hallsGrid'); g.innerHTML = '';
     hallsDraft.forEach(function(h, i){
-      var row = document.createElement('div'); row.className = 'row';
-      var typeOpts = '<option value="">Тип зала…</option>' +
-        Object.keys(HALL_TYPES).map(function(k){
-          return '<option value="'+k+'"'+(h.hallType===k?' selected':'')+'>'+HALL_TYPES[k]+'</option>'; }).join('');
-      var propsInner =
-        (HALL_PROPS.hallType ? '<select data-i="'+i+'" data-f="hallType" style="flex:1 1 140px">'+typeOpts+'</select>' : '') +
-        (HALL_PROPS.daylight ? '<label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)"><input type="checkbox" data-i="'+i+'" data-f="daylight"'+(h.daylight?' checked':'')+' style="width:auto">дневной свет</label>' : '') +
-        (HALL_PROPS.areaM2 ? '<span class="unitwrap"><input class="num" type="number" min="1" step="1" data-i="'+i+'" data-f="areaM2" value="'+esc(h.areaM2!=null?h.areaM2:'')+'" placeholder="—"><span class="u">м²</span></span>' : '') +
-        (HALL_PROPS.ceilingCm ? '<span class="unitwrap"><input class="num" type="number" min="150" max="2000" step="5" data-i="'+i+'" data-f="ceilingCm" value="'+esc(h.ceilingCm!=null?h.ceilingCm:'')+'" placeholder="—"><span class="u">см потолок</span></span>' : '');
-      row.innerHTML =
-        '<input class="name" data-i="'+i+'" data-f="name" placeholder="Название зала" value="'+esc(h.name)+'">' +
-        '<span class="unitwrap"><input class="num" type="number" min="1" step="1" data-i="'+i+'" data-f="capacity" value="'+esc(h.capacity)+'"><span class="u">чел</span></span>' +
-        '<span class="unitwrap"><input class="num" type="number" min="0" step="1" data-i="'+i+'" data-f="rate" value="'+esc(h.rate)+'"><span class="u">BYN/ч</span></span>' +
-        (hallsDraft.length > 1 ? '<button class="del" data-i="'+i+'" type="button">✕</button>' : '') +
-        (propsInner ? '<span class="hall-props" style="flex:1 1 100%;display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:2px">' + propsInner + '</span>' : '') +
-        '<span class="hall-photos" data-i="'+i+'" style="flex:1 1 100%;margin-top:4px"></span>' +
-        '<span class="hall-prules" data-i="'+i+'" style="flex:1 1 100%;margin-top:6px"></span>' +
-        '<span class="hall-packages" data-i="'+i+'" style="flex:1 1 100%;margin-top:6px"></span>';
-      c.appendChild(row);
-      renderHallPhotos(i);
-      renderHallPriceRules(i);
-      renderHallPackages(i);
+      var card = document.createElement('button');
+      card.type = 'button'; card.className = 'hall-card';
+      card.innerHTML =
+        '<div class="hall-card-name">'+esc(h.name || 'Без названия')+'</div>' +
+        '<div class="hall-card-meta">до '+esc(h.capacity)+' чел · '+esc(h.rate)+' BYN/ч</div>';
+      card.addEventListener('click', function(){ openHallDetail(i); });
+      g.appendChild(card);
     });
-    c.querySelectorAll('[data-f]').forEach(function(inp){
+    var add = document.createElement('button');
+    add.type = 'button'; add.className = 'hall-card-add';
+    add.textContent = '+ Добавить зал';
+    add.addEventListener('click', function(){
+      hallsDraft.push({name:'',capacity:10,rate:30});
+      openHallDetail(hallsDraft.length - 1);
+    });
+    g.appendChild(add);
+  }
+
+  function openHallDetail(i){
+    openHallIndex = i;
+    $('hallsListView').hidden = true;
+    $('hallDetailView').hidden = false;
+    renderHallDetail(i);
+  }
+  function closeHallDetail(){
+    openHallIndex = -1;
+    $('hallDetailView').hidden = true;
+    $('hallsListView').hidden = false;
+    renderHalls();
+  }
+
+  function renderHallDetail(i){
+    var h = hallsDraft[i];
+    var body = $('hallDetailBody');
+    var typeOpts = '<option value="">Тип зала…</option>' +
+      Object.keys(HALL_TYPES).map(function(k){
+        return '<option value="'+k+'"'+(h.hallType===k?' selected':'')+'>'+HALL_TYPES[k]+'</option>'; }).join('');
+    var propsInner =
+      (HALL_PROPS.hallType ? '<select data-f="hallType" style="flex:1 1 140px">'+typeOpts+'</select>' : '') +
+      (HALL_PROPS.daylight ? '<label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)"><input type="checkbox" data-f="daylight"'+(h.daylight?' checked':'')+' style="width:auto">дневной свет</label>' : '') +
+      (HALL_PROPS.areaM2 ? '<span class="unitwrap"><input class="num" type="number" min="1" step="1" data-f="areaM2" value="'+esc(h.areaM2!=null?h.areaM2:'')+'" placeholder="—"><span class="u">м²</span></span>' : '') +
+      (HALL_PROPS.ceilingCm ? '<span class="unitwrap"><input class="num" type="number" min="150" max="2000" step="5" data-f="ceilingCm" value="'+esc(h.ceilingCm!=null?h.ceilingCm:'')+'" placeholder="—"><span class="u">см потолок</span></span>' : '');
+    body.innerHTML =
+      '<div class="row"><input class="name" data-f="name" placeholder="Название зала" value="'+esc(h.name)+'"></div>' +
+      '<div class="row">' +
+        '<span class="unitwrap"><input class="num" type="number" min="1" step="1" data-f="capacity" value="'+esc(h.capacity)+'"><span class="u">чел</span></span>' +
+        '<span class="unitwrap"><input class="num" type="number" min="0" step="1" data-f="rate" value="'+esc(h.rate)+'"><span class="u">BYN/ч</span></span>' +
+      '</div>' +
+      (propsInner ? '<div class="row">' + propsInner + '</div>' : '') +
+      '<div class="hall-photos" data-i="'+i+'" style="margin-top:6px"></div>' +
+      '<div class="hall-prules" data-i="'+i+'" style="margin-top:10px"></div>' +
+      '<div class="hall-packages" data-i="'+i+'" style="margin-top:10px"></div>';
+
+    body.querySelectorAll('[data-f]').forEach(function(inp){
       var evt = (inp.tagName==='SELECT' || inp.type==='checkbox') ? 'change' : 'input';
       inp.addEventListener(evt, function(){
-        var h = hallsDraft[+inp.dataset.i], f = inp.dataset.f;
+        var f = inp.dataset.f;
         if(f==='name') h.name = inp.value;
         else if(f==='hallType') h.hallType = inp.value || null;
         else if(f==='daylight') h.daylight = inp.checked;
@@ -711,7 +771,43 @@
         else { var v = parseInt(inp.value,10); h[f] = Number.isInteger(v) ? v : null; }
       });
     });
-    c.querySelectorAll('.del').forEach(function(b){ b.addEventListener('click', function(){ hallsDraft.splice(+b.dataset.i,1); renderHalls(); }); });
+
+    $('hallDelete').hidden = hallsDraft.length <= 1;
+    renderHallPhotos(i);
+    renderHallPriceRules(i);
+    renderHallPackages(i);
+  }
+
+  function hallFlash(msg, ok){
+    flash($('hallNoteList'), msg, ok);
+    flash($('hallNoteDetail'), msg, ok);
+  }
+  function saveHalls(){
+    for(var i=0;i<hallsDraft.length;i++){ var h=hallsDraft[i];
+      if(!h.name||!h.name.trim()) return hallFlash('У каждого зала должно быть название');
+      if(!Number.isInteger(h.capacity)||h.capacity<1) return hallFlash('Вместимость — целое от 1');
+      if(!(h.rate>=0)) return hallFlash('Ставка — число от 0'); }
+    api('PUT','/admin/halls', hallsDraft.map(function(h){ return {
+        id:h.id, name:h.name.trim(), capacity:h.capacity, rate:h.rate,
+        hallType:h.hallType||null, daylight:!!h.daylight,
+        areaM2:Number.isInteger(h.areaM2)?h.areaM2:null,
+        ceilingCm:Number.isInteger(h.ceilingCm)?h.ceilingCm:null }; }))
+      .then(function(u){
+        hallsDraft = u.filter(function(h){return h.active!==false;}).map(mapHall);
+        u.forEach(function(h){ HALLS_BY_ID[h.id]=h; });
+        // Остаёмся на том же зале (тот же индекс — порядок сохраняет sort_order,
+        // совпадающий с порядком отправки), если он всё ещё существует.
+        if(openHallIndex >= 0 && openHallIndex < hallsDraft.length){
+          renderHallDetail(openHallIndex);
+        } else {
+          openHallIndex = -1;
+          $('hallDetailView').hidden = true;
+          $('hallsListView').hidden = false;
+        }
+        renderHalls();
+        hallFlash('Залы обновлены', true);
+      })
+      .catch(function(e){ hallFlash(e.message); });
   }
   function renderEquip(){
     var c = $('equipEd'); c.innerHTML = '';
@@ -1042,20 +1138,15 @@
   }
 
   // ---------- save handlers ----------
-  $('hallAdd').addEventListener('click', function(){ hallsDraft.push({name:'',capacity:10,rate:30}); renderHalls(); });
-  $('hallSave').addEventListener('click', function(){
-    for(var i=0;i<hallsDraft.length;i++){ var h=hallsDraft[i];
-      if(!h.name||!h.name.trim()) return flash($('hallNote'),'У каждого зала должно быть название');
-      if(!Number.isInteger(h.capacity)||h.capacity<1) return flash($('hallNote'),'Вместимость — целое от 1');
-      if(!(h.rate>=0)) return flash($('hallNote'),'Ставка — число от 0'); }
-    api('PUT','/admin/halls', hallsDraft.map(function(h){ return {
-        id:h.id, name:h.name.trim(), capacity:h.capacity, rate:h.rate,
-        hallType:h.hallType||null, daylight:!!h.daylight,
-        areaM2:Number.isInteger(h.areaM2)?h.areaM2:null,
-        ceilingCm:Number.isInteger(h.ceilingCm)?h.ceilingCm:null }; }))
-      .then(function(u){ hallsDraft = u.filter(function(h){return h.active!==false;}).map(mapHall);
-        u.forEach(function(h){ HALLS_BY_ID[h.id]=h; }); renderHalls(); flash($('hallNote'),'Залы обновлены',true); })
-      .catch(function(e){ flash($('hallNote'), e.message); });
+  $('hallSaveList').addEventListener('click', saveHalls);
+  $('hallSaveDetail').addEventListener('click', saveHalls);
+  $('hallBack').addEventListener('click', closeHallDetail);
+  $('hallDelete').addEventListener('click', function(){
+    if(hallsDraft.length <= 1 || openHallIndex < 0) return;
+    // Локально убираем; фактически удалится на сервере при ближайшем
+    // «Сохранить залы» — как и раньше с крестиком в общем списке.
+    hallsDraft.splice(openHallIndex, 1);
+    closeHallDetail();
   });
 
   $('equipAdd').addEventListener('click', function(){ equipDraft.push({name:'',price:10,unit:'flat'}); renderEquip(); });
