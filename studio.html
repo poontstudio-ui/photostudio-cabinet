@@ -57,6 +57,7 @@
   }
   .nav-dashboard .ic{flex:none;width:16px;height:16px;color:var(--blue);}
   .nav-dashboard:hover{background:var(--surface-2);}
+  .nav-dashboard.active{background:var(--blue-bg);color:var(--blue-dark);}
   .nav-divider{height:1px;background:var(--border);margin:10px 6px;}
   .nav{display:flex;flex-direction:column;gap:2px;margin-top:0;}
   .nav-folder{
@@ -181,22 +182,6 @@
   .err{color:var(--red);font-size:13px;}
 
   /* ---------- модалка дашборда ---------- */
-  .modal-overlay{
-    position:fixed;inset:0;z-index:60;background:rgba(20,22,28,.45);
-    display:flex;align-items:flex-start;justify-content:center;
-    padding:48px 20px;overflow-y:auto;
-  }
-  .modal-overlay[hidden]{display:none;}
-  .modal{
-    background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);
-    width:100%;max-width:640px;padding:20px 22px 22px;
-  }
-  .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-  .modal-head h2{margin:0;font-size:16px;font-weight:600;}
-  .modal-close{background:none;border:none;font-size:18px;line-height:1;color:var(--text-2);
-    cursor:pointer;padding:4px 8px;border-radius:var(--r-sm);}
-  .modal-close:hover{background:var(--surface-2);color:var(--text);}
-  @media(max-width:760px){ .modal-overlay{padding:0;} .modal{max-width:none;min-height:100vh;border-radius:0;} }
 
   @media(max-width:760px){
     .sidebar{position:fixed;left:0;top:0;z-index:40;transform:translateX(-100%);
@@ -219,7 +204,7 @@
     <div class="brand-studio" id="sName">Студия</div>
     <div class="brand-sub" id="sSub"></div>
     <span class="badge" id="sStatus" style="margin:0 6px 8px"></span>
-    <button class="nav-dashboard" id="dashboardBtn" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Дашборд</button>
+    <button class="nav-dashboard" id="dashboardBtn" data-folder="dashboard" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Дашборд</button>
     <div class="nav-divider"></div>
     <nav class="nav" id="nav">
       <button class="nav-folder" data-folder="main" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Основное</button>
@@ -239,6 +224,15 @@
     <div id="denied" class="card" hidden><span class="err" id="deniedMsg"></span></div>
 
     <div id="app" hidden>
+    <div class="card" id="sec-dashboard" data-folder="dashboard">
+      <h2>Дашборд</h2>
+      <div id="bookings"><div class="empty">—</div></div>
+      <div class="actions" style="margin-top:10px">
+        <button class="btn ghost small danger" id="clearHist" type="button">Очистить прошедшие</button>
+      </div>
+      <div class="note" id="clearNote"></div>
+    </div>
+
     <div class="card" id="sec-summary" data-folder="main">
       <h2>Сводка</h2>
       <div class="stats">
@@ -393,19 +387,6 @@
   </main>
 </div>
 
-<div class="modal-overlay" id="dashboardOverlay" hidden>
-  <div class="modal">
-    <div class="modal-head">
-      <h2>Дашборд</h2>
-      <button class="modal-close" id="dashboardClose" type="button" aria-label="Закрыть">✕</button>
-    </div>
-    <div id="bookings"><div class="empty">—</div></div>
-    <div class="actions" style="margin-top:10px">
-      <button class="btn ghost small danger" id="clearHist" type="button">Очистить прошедшие</button>
-    </div>
-    <div class="note" id="clearNote"></div>
-  </div>
-</div>
 
 <script>
 (function(){
@@ -415,33 +396,22 @@
     shell.dataset.nav = shell.dataset.nav === 'open' ? '' : 'open';
   });
 
-  // Дашборд — модалка поверх всего, не папка: брони проверяют/подтверждают
-  // чаще, чем меняют настройки, отдельное окно даёт доступ в один клик
-  // из любой папки, без переключения контекста.
-  var dashboardBtn = document.getElementById('dashboardBtn');
-  var dashboardOverlay = document.getElementById('dashboardOverlay');
-  var dashboardClose = document.getElementById('dashboardClose');
-  function openDashboard(){ dashboardOverlay.hidden = false; shell.dataset.nav = ''; }
-  function closeDashboard(){ dashboardOverlay.hidden = true; }
-  if(dashboardBtn) dashboardBtn.addEventListener('click', openDashboard);
-  if(dashboardClose) dashboardClose.addEventListener('click', closeDashboard);
-  if(dashboardOverlay) dashboardOverlay.addEventListener('click', function(e){
-    if(e.target === dashboardOverlay) closeDashboard();
-  });
-  document.addEventListener('keydown', function(e){
-    if(e.key === 'Escape' && !dashboardOverlay.hidden) closeDashboard();
-  });
-
   // Левое меню — «папки», не якоря: клик переключает видимую группу карточек,
   // а не скроллит длинную страницу. Раньше каждая ссылка вела на свой якорь
   // и была всегда на виду вся простыня разделов сразу.
-  var folderBtns = [].slice.call(document.querySelectorAll('.nav-folder'));
+  // «Дашборд» над разделителем — та же механика: обычная папка, просто
+  // вынесена наверх и стилем выделена среди остальных (было модальным
+  // окном — переделано по просьбе, ведёт себя как все остальные разделы).
+  var folderBtns = [].slice.call(document.querySelectorAll('.nav-folder, .nav-dashboard'));
   var cards = [].slice.call(document.querySelectorAll('#app > .card[data-folder]'));
   var FOLDER_KEY = 'ps_cabinet_folder';
   var FOLDERS = folderBtns.map(function(b){ return b.dataset.folder; });
+  // «Дашборд» стоит первым в DOM (над разделителем), но при заходе в кабинет
+  // должно открываться «Основное» — дефолт задаём явно, а не FOLDERS[0].
+  var DEFAULT_FOLDER = 'main';
 
   function selectFolder(folder){
-    if(FOLDERS.indexOf(folder) < 0) folder = FOLDERS[0];
+    if(FOLDERS.indexOf(folder) < 0) folder = DEFAULT_FOLDER;
     folderBtns.forEach(function(b){ b.classList.toggle('active', b.dataset.folder === folder); });
     cards.forEach(function(c){ c.hidden = c.dataset.folder !== folder; });
     try{ localStorage.setItem(FOLDER_KEY, folder); }catch(e){}
@@ -454,7 +424,7 @@
 
   var saved = null;
   try{ saved = localStorage.getItem(FOLDER_KEY); }catch(e){}
-  selectFolder(saved || FOLDERS[0]);
+  selectFolder(saved || DEFAULT_FOLDER);
 })();
 </script>
 <script>
