@@ -164,6 +164,15 @@
   .note{font-size:12px;min-height:16px;margin-top:8px;color:var(--text-2);}
 
   /* ---------- брони ---------- */
+  .dash-pending{
+    display:flex;align-items:baseline;gap:6px;width:100%;text-align:left;
+    background:var(--amber-bg);border:1px solid #f0dfa8;color:var(--amber);
+    border-radius:var(--r-sm);padding:10px 14px;margin-bottom:14px;
+    font:inherit;font-size:13px;font-weight:600;cursor:pointer;
+  }
+  .dash-pending b{font-size:16px;font-weight:700;}
+  .dash-pending[hidden]{display:none;}
+  .dash-pending.active{background:var(--amber);color:#fff;border-color:var(--amber);}
   .bk{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);
       padding:12px 14px;margin-bottom:8px;}
   .bk-top{display:flex;justify-content:space-between;gap:10px;font-size:13px;font-weight:500;}
@@ -226,6 +235,9 @@
     <div id="app" hidden>
     <div class="card" id="sec-dashboard" data-folder="dashboard">
       <h2>Дашборд</h2>
+      <button type="button" class="dash-pending" id="dashPending" hidden>
+        <b id="dashPendingCount">0</b> ожидают подтверждения
+      </button>
       <div id="bookings"><div class="empty">—</div></div>
       <div class="actions" style="margin-top:10px">
         <button class="btn ghost small danger" id="clearHist" type="button">Очистить прошедшие</button>
@@ -406,9 +418,8 @@
   var cards = [].slice.call(document.querySelectorAll('#app > .card[data-folder]'));
   var FOLDER_KEY = 'ps_cabinet_folder';
   var FOLDERS = folderBtns.map(function(b){ return b.dataset.folder; });
-  // «Дашборд» стоит первым в DOM (над разделителем), но при заходе в кабинет
-  // должно открываться «Основное» — дефолт задаём явно, а не FOLDERS[0].
-  var DEFAULT_FOLDER = 'main';
+  // «Дашборд» — то, что видно первым при заходе в кабинет.
+  var DEFAULT_FOLDER = 'dashboard';
 
   function selectFolder(folder){
     if(FOLDERS.indexOf(folder) < 0) folder = DEFAULT_FOLDER;
@@ -1118,16 +1129,35 @@
     return [];
   }
 
+  var lastBookings = [];
+  var dashPendingOnly = false;
+
   function renderBookings(list){
+    lastBookings = list;
     var c = $('bookings');
-    if(!list.length){ c.innerHTML = '<div class="empty">Броней нет.</div>'; return; }
-    // ожидающие — вверх
-    list = list.slice().sort(function(a,b){
-      var ap = a.status === 'pending' ? 0 : 1, bp = b.status === 'pending' ? 0 : 1;
-      return ap - bp;
+
+    var pending = list.filter(function(b){ return b.status === 'pending'; });
+    var pbox = $('dashPending');
+    if(pbox){
+      pbox.hidden = pending.length === 0;
+      $('dashPendingCount').textContent = pending.length;
+      pbox.classList.toggle('active', dashPendingOnly);
+      if(!pending.length) dashPendingOnly = false;
+    }
+
+    var shown = dashPendingOnly ? pending : list;
+    if(!shown.length){
+      c.innerHTML = '<div class="empty">' +
+        (dashPendingOnly ? 'Нет заявок, ожидающих подтверждения.' : 'Броней нет.') + '</div>';
+      return;
+    }
+    // по дате и времени начала — ближайшие сверху
+    shown = shown.slice().sort(function(a,b){
+      if(a.date !== b.date) return a.date < b.date ? -1 : 1;
+      return a.start - b.start;
     });
     c.innerHTML = '';
-    list.forEach(function(b){
+    shown.forEach(function(b){
       var d = document.createElement('div'); d.className = 'bk'; d.dataset.st = b.status;
       var hall = (HALLS_BY_ID[b.hallId] || {}).name || b.hallId || '';
       d.innerHTML =
@@ -1158,6 +1188,11 @@
       c.appendChild(d);
     });
   }
+
+  $('dashPending').addEventListener('click', function(){
+    dashPendingOnly = !dashPendingOnly;
+    renderBookings(lastBookings);
+  });
 
   // ---------- save handlers ----------
   $('hallSaveList').addEventListener('click', saveHalls);
