@@ -50,13 +50,16 @@
   .brand-studio{font-weight:600;font-size:13px;color:var(--text);padding:0 6px;
                 overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .brand-sub{font-size:11px;color:var(--text-3);padding:2px 6px 12px;line-height:1.4;}
-  .nav{display:flex;flex-direction:column;gap:1px;margin-top:4px;}
-  .nav-group{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;
-             color:var(--text-3);padding:14px 6px 5px;}
-  .nav a{display:block;padding:7px 8px;border-radius:var(--r-sm);color:var(--text-2);
-         font-size:13px;font-weight:500;}
-  .nav a:hover{background:var(--surface-2);color:var(--text);text-decoration:none;}
-  .nav a.active{background:var(--blue-bg);color:var(--blue-dark);}
+  .nav{display:flex;flex-direction:column;gap:2px;margin-top:4px;}
+  .nav-folder{
+    display:flex;align-items:center;gap:9px;width:100%;text-align:left;
+    padding:9px 10px;border-radius:var(--r-sm);border:none;background:none;
+    color:var(--text-2);font:inherit;font-size:13.5px;font-weight:500;cursor:pointer;
+  }
+  .nav-folder .ic{flex:none;width:16px;height:16px;opacity:.7;}
+  .nav-folder:hover{background:var(--surface-2);color:var(--text);}
+  .nav-folder.active{background:var(--blue-bg);color:var(--blue-dark);font-weight:600;}
+  .nav-folder.active .ic{opacity:1;}
   .nav-back{margin-top:auto;padding:10px 8px 4px;font-size:12px;color:var(--text-3);}
   .nav-back:hover{color:var(--text-2);text-decoration:none;}
 
@@ -178,19 +181,9 @@
     <div class="brand-sub" id="sSub"></div>
     <span class="badge" id="sStatus" style="margin:0 6px 8px"></span>
     <nav class="nav" id="nav">
-      <div class="nav-group">Обзор</div>
-      <a href="#sec-summary">Сводка</a>
-      <a href="#sec-profile">Профиль</a>
-      <a href="#sec-bookings">Брони</a>
-      <div class="nav-group">Бронирование</div>
-      <a href="#sec-settings">Настройки</a>
-      <a href="#sec-block">Заблокировать время</a>
-      <a href="#sec-calendar">Google Calendar</a>
-      <div class="nav-group">Студия</div>
-      <a href="#sec-halls">Залы</a>
-      <a href="#sec-equip">Оборудование</a>
-      <a href="#sec-hours">Часы работы</a>
-      <a href="#sec-team">Команда</a>
+      <button class="nav-folder" data-folder="main" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Основное</button>
+      <button class="nav-folder" data-folder="studio" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>Студии</button>
+      <button class="nav-folder" data-folder="equipment" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>Оборудование</button>
     </nav>
     <a class="nav-back" href="./cabinet.html">← Все студии</a>
   </aside>
@@ -203,7 +196,7 @@
     <div id="denied" class="card" hidden><span class="err" id="deniedMsg"></span></div>
 
     <div id="app" hidden>
-    <div class="card" id="sec-summary">
+    <div class="card" id="sec-summary" data-folder="main">
       <h2>Сводка</h2>
       <div class="stats">
         <div class="stat"><div class="v" id="stCount">—</div><div class="l">Активных броней</div></div>
@@ -212,7 +205,7 @@
       </div>
     </div>
 
-    <div class="card" id="sec-profile">
+    <div class="card" id="sec-profile" data-folder="main">
       <h2>Профиль студии</h2>
       <div class="row"><input class="name" id="pfName" placeholder="Название студии"></div>
       <div class="row"><input class="name" id="pfSub" placeholder="Подзаголовок (необязательно)"></div>
@@ -228,7 +221,7 @@
       <div class="note" id="pfNote"></div>
     </div>
 
-    <div class="card" id="sec-settings">
+    <div class="card" id="sec-settings" data-folder="studio">
       <h2>Настройки бронирования</h2>
       <label class="row" style="cursor:pointer">
         <input type="checkbox" id="setAutoConfirm" style="width:auto;flex:none">
@@ -277,7 +270,7 @@
       <div class="note" id="setNote"></div>
     </div>
 
-    <div class="card" id="sec-block">
+    <div class="card" id="sec-block" data-folder="studio">
       <h2>Заблокировать время</h2>
       <div class="muted" style="margin-bottom:8px">Ремонт, корпоратив, съёмка мимо платформы. Клиенты не смогут забронировать этот интервал.</div>
       <div class="row">
@@ -297,13 +290,13 @@
       <div id="blkList" style="margin-top:8px"></div>
     </div>
 
-    <div class="card" id="sec-calendar">
+    <div class="card" id="sec-calendar" data-folder="studio">
       <h2>Google Calendar</h2>
       <div id="calBody"><span class="muted">Загрузка…</span></div>
       <div class="note" id="calNote"></div>
     </div>
 
-    <div class="card" id="sec-halls">
+    <div class="card" id="sec-halls" data-folder="studio">
       <h2>Залы</h2>
       <div id="hallsEd"></div>
       <div class="actions">
@@ -313,7 +306,7 @@
       <div class="note" id="hallNote"></div>
     </div>
 
-    <div class="card" id="sec-equip">
+    <div class="card" id="sec-equip" data-folder="equipment">
       <h2>Оборудование</h2>
       <div id="equipEd"></div>
       <div class="actions">
@@ -323,7 +316,7 @@
       <div class="note" id="equipNote"></div>
     </div>
 
-    <div class="card" id="sec-hours">
+    <div class="card" id="sec-hours" data-folder="studio">
       <h2>Часы работы</h2>
       <div class="muted" style="margin-bottom:8px">Целые часы, по дням недели. Пустой день = закрыто нельзя, ставьте равные значения только если день рабочий.</div>
       <div id="hoursEd"></div>
@@ -331,7 +324,7 @@
       <div class="note" id="hoursNote"></div>
     </div>
 
-    <div class="card" id="sec-team">
+    <div class="card" id="sec-team" data-folder="studio">
       <h2>Команда</h2>
       <div class="muted" style="margin-bottom:8px">Telegram ID владельцев. Себя убрать нельзя. ID узнать: @userinfobot.</div>
       <div id="ownersEd"></div>
@@ -343,7 +336,7 @@
       <div class="note" id="ownerNote"></div>
     </div>
 
-    <div class="card" id="sec-bookings">
+    <div class="card" id="sec-bookings" data-folder="main">
       <h2>Брони</h2>
       <div id="bookings"><div class="empty">—</div></div>
       <div class="actions" style="margin-top:10px">
@@ -362,19 +355,30 @@
   if(tgl) tgl.addEventListener('click', function(){
     shell.dataset.nav = shell.dataset.nav === 'open' ? '' : 'open';
   });
-  var links = [].slice.call(document.querySelectorAll('#nav a'));
-  links.forEach(function(a){ a.addEventListener('click', function(){ shell.dataset.nav=''; }); });
-  var secs = links.map(function(a){ return document.querySelector(a.getAttribute('href')); }).filter(Boolean)
-    .sort(function(a,b){ return a.offsetTop - b.offsetTop; });
-  function onScroll(){
-    var y = window.scrollY + 100, cur = null;
-    secs.forEach(function(sec){ if(sec.offsetHeight && sec.offsetTop <= y) cur = sec.id; });
-    if(!cur && secs[0] && secs[0].offsetHeight) cur = secs[0].id;
-    links.forEach(function(a){ a.classList.toggle('active', a.getAttribute('href') === '#'+cur); });
+
+  // Левое меню — «папки», не якоря: клик переключает видимую группу карточек,
+  // а не скроллит длинную страницу. Раньше каждая ссылка вела на свой якорь
+  // и была всегда на виду вся простыня разделов сразу.
+  var folderBtns = [].slice.call(document.querySelectorAll('.nav-folder'));
+  var cards = [].slice.call(document.querySelectorAll('#app > .card[data-folder]'));
+  var FOLDER_KEY = 'ps_cabinet_folder';
+  var FOLDERS = folderBtns.map(function(b){ return b.dataset.folder; });
+
+  function selectFolder(folder){
+    if(FOLDERS.indexOf(folder) < 0) folder = FOLDERS[0];
+    folderBtns.forEach(function(b){ b.classList.toggle('active', b.dataset.folder === folder); });
+    cards.forEach(function(c){ c.hidden = c.dataset.folder !== folder; });
+    try{ localStorage.setItem(FOLDER_KEY, folder); }catch(e){}
+    shell.dataset.nav = '';               // на мобильном — свернуть меню после выбора
+    window.scrollTo(0, 0);
   }
-  window.addEventListener('scroll', onScroll, {passive:true});
-  window.addEventListener('load', onScroll);
-  setTimeout(onScroll, 1200); setTimeout(onScroll, 2500);
+  folderBtns.forEach(function(b){
+    b.addEventListener('click', function(){ selectFolder(b.dataset.folder); });
+  });
+
+  var saved = null;
+  try{ saved = localStorage.getItem(FOLDER_KEY); }catch(e){}
+  selectFolder(saved || FOLDERS[0]);
 })();
 </script>
 <script>
