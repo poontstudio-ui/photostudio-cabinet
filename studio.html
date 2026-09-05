@@ -235,6 +235,9 @@
     <div id="app" hidden>
     <div class="card" id="sec-dashboard" data-folder="dashboard">
       <h2>Дашборд</h2>
+      <div class="row">
+        <input class="name" type="text" id="dashSearch" placeholder="Поиск: имя, телефон, дата, зал…" autocomplete="off">
+      </div>
       <button type="button" class="dash-pending" id="dashPending" hidden>
         <b id="dashPendingCount">0</b> ожидают подтверждения
       </button>
@@ -1131,6 +1134,17 @@
 
   var lastBookings = [];
   var dashPendingOnly = false;
+  var dashSearchQuery = '';
+
+  // Быстрый поиск: администратор на звонке набирает пару символов имени,
+  // телефона или даты — ищем подстрокой сразу по всем полям брони, без
+  // разбора, в каком именно поле она встретилась.
+  function bookingSearchHay(b){
+    var hall = (HALLS_BY_ID[b.hallId] || {}).name || b.hallId || '';
+    return [b.name, b.phone, b.date, dateLabel(b.date), hall,
+            minLabel(b.start), minLabel(b.end), b.people, b.price, ST_LABEL[b.status]]
+      .join(' ').toLowerCase();
+  }
 
   function renderBookings(list){
     lastBookings = list;
@@ -1146,9 +1160,13 @@
     }
 
     var shown = dashPendingOnly ? pending : list;
+    if(dashSearchQuery){
+      shown = shown.filter(function(b){ return bookingSearchHay(b).indexOf(dashSearchQuery) !== -1; });
+    }
     if(!shown.length){
-      c.innerHTML = '<div class="empty">' +
-        (dashPendingOnly ? 'Нет заявок, ожидающих подтверждения.' : 'Броней нет.') + '</div>';
+      var msg = dashSearchQuery ? 'Совпадений не найдено.'
+        : (dashPendingOnly ? 'Нет заявок, ожидающих подтверждения.' : 'Броней нет.');
+      c.innerHTML = '<div class="empty">' + msg + '</div>';
       return;
     }
     // по дате и времени начала — ближайшие сверху
@@ -1188,6 +1206,11 @@
       c.appendChild(d);
     });
   }
+
+  $('dashSearch').addEventListener('input', function(){
+    dashSearchQuery = $('dashSearch').value.trim().toLowerCase();
+    renderBookings(lastBookings);
+  });
 
   $('dashPending').addEventListener('click', function(){
     dashPendingOnly = !dashPendingOnly;
