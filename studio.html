@@ -77,6 +77,12 @@
     font-size:12px;color:var(--text-3);cursor:pointer;border-radius:var(--r-sm);
   }
   .nav-logout:hover{background:var(--red-bg);color:var(--red);}
+  .nav-revoke{
+    text-align:left;padding:4px 8px 8px;border:none;background:none;font:inherit;
+    font-size:11px;color:var(--text-3);opacity:.75;cursor:pointer;border-radius:var(--r-sm);
+  }
+  .nav-revoke:hover{opacity:1;color:var(--red);}
+  .nav-revoke:disabled{opacity:.5;cursor:default;}
 
   .content{flex:1 1 auto;min-width:0;padding:26px 30px 90px;max-width:900px;}
   .sidebar-toggle{display:none;}
@@ -275,6 +281,7 @@
     <div class="nav-foot">
       <a class="nav-back" href="./cabinet.html">← Все студии</a>
       <button class="nav-logout" id="logoutBtn" type="button">Выйти</button>
+      <button class="nav-revoke" id="revokeBtn" type="button">Выйти на всех устройствах</button>
     </div>
   </aside>
   <main class="content">
@@ -1321,6 +1328,8 @@
   var lastBookings = [];
   var dashPendingOnly = false;
   var dashSearchQuery = '';
+  var dashTotal = 0;          // всего неархивных броней у студии (из overview)
+  var dashPendingTotal = 0;   // точное число «ждут подтверждения» (из overview)
 
   // Быстрый поиск: администратор на звонке набирает пару символов имени,
   // телефона или даты — ищем подстрокой сразу по всем полям брони, без
@@ -1348,12 +1357,13 @@
     var c = $('bookings');
 
     var pending = list.filter(function(b){ return b.status === 'pending'; });
+    var pendCount = dashPendingTotal || pending.length;   // точное число — из overview
     var pbox = $('dashPending');
     if(pbox){
-      pbox.hidden = pending.length === 0;
-      $('dashPendingCount').textContent = pending.length;
+      pbox.hidden = pendCount === 0;
+      $('dashPendingCount').textContent = pendCount;
       pbox.classList.toggle('active', dashPendingOnly);
-      if(!pending.length) dashPendingOnly = false;
+      if(!pendCount) dashPendingOnly = false;
     }
 
     var shown = dashPendingOnly ? pending : list;
@@ -1402,6 +1412,14 @@
       }
       c.appendChild(d);
     });
+    // Список усечён на сервере — подсказываем почистить прошедшие.
+    if(!dashSearchQuery && !dashPendingOnly && dashTotal > list.length){
+      var note = document.createElement('div');
+      note.className = 'empty';
+      note.style.marginTop = '10px';
+      note.textContent = 'Показаны последние ' + list.length + ' из ' + dashTotal + '. Нажмите «Очистить прошедшие», чтобы убрать старые.';
+      c.appendChild(note);
+    }
   }
 
   $('dashSearch').addEventListener('input', function(){
@@ -1461,10 +1479,22 @@
   });
 
   // Выход: токен самоподписан, серверу отзывать нечего — просто забываем его.
-  // (Отзыв на всех устройствах — отдельная ручка /api/session/revoke-all.)
   $('logoutBtn').addEventListener('click', function(){
     try{ localStorage.removeItem(TOKEN_KEY); }catch(e){}
     location.href = './cabinet.html';
+  });
+
+  // Выход на всех устройствах: сервер поднимает token_version — все ранее
+  // выданные токены этого пользователя перестают работать (в т.ч. текущий).
+  $('revokeBtn').addEventListener('click', function(){
+    if(!confirm('Выйти на всех устройствах? Придётся войти заново везде, где открыт кабинет.')) return;
+    var b = $('revokeBtn'); b.disabled = true; b.textContent = 'выходим…';
+    fetch(API_BASE + '/api/session/revoke-all', { method:'POST', headers:{ 'Authorization':'Bearer ' + token } })
+      .catch(function(){})
+      .then(function(){
+        try{ localStorage.removeItem(TOKEN_KEY); }catch(e){}
+        location.href = './cabinet.html';
+      });
   });
 
   // ---------- save handlers ----------
@@ -1618,6 +1648,8 @@
       $('stCount').textContent = ov.stats.count;
       $('stRev').textContent = ov.stats.revenue;
       $('stAvg').textContent = ov.stats.avgCheck;
+      dashTotal = Number.isFinite(ov.bookingsTotal) ? ov.bookingsTotal : (ov.bookings || []).length;
+      dashPendingTotal = Number.isFinite(ov.pendingCount) ? ov.pendingCount : 0;
       renderHalls(); renderEquip(); renderOwners();
       renderBookings(ov.bookings || []);
       renderBlockHallOptions();
