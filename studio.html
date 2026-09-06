@@ -120,6 +120,12 @@
   .amenities{display:flex;flex-wrap:wrap;gap:7px 16px;margin:2px 0 12px;}
   .amenity{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-2);cursor:pointer;}
   .amenity input{width:15px;height:15px;flex:none;accent-color:var(--blue);cursor:pointer;}
+  .amenity-group{margin:8px 0 4px;}
+  .amenity-group-t{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3);margin-bottom:5px;}
+  .chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+  .chip-tog{font:inherit;font-size:12.5px;padding:5px 11px;border-radius:999px;cursor:pointer;
+    border:1px solid var(--border-strong);background:var(--surface);color:var(--text-2);}
+  .chip-tog.on{background:var(--blue-bg);border-color:var(--blue);color:var(--blue-dark);font-weight:600;}
   .del{background:var(--surface);border:1px solid var(--border-strong);color:var(--text-2);
        border-radius:var(--r-sm);padding:7px 10px;cursor:pointer;font-size:13px;line-height:1;}
   .del:hover{border-color:var(--red);color:var(--red);}
@@ -320,6 +326,18 @@
       <div class="note" id="pfNote"></div>
     </div>
 
+    <div class="card" id="sec-amenities" data-folder="main">
+      <h2>Удобства и правила студии</h2>
+      <div class="muted" style="margin-bottom:10px">Показывается клиенту в карточке студии и в результатах поиска.</div>
+      <div class="row" style="margin-bottom:12px">
+        <span style="flex:1 1 100%">Парковка</span>
+        <select id="amParking"></select>
+      </div>
+      <div id="amEd"></div>
+      <div class="actions" style="margin-top:10px"><button class="btn small" id="amSave" type="button">Сохранить</button></div>
+      <div class="note" id="amNote"></div>
+    </div>
+
     <div class="card" id="sec-halls" data-folder="halls">
       <div id="hallsListView">
         <h2>Залы</h2>
@@ -511,16 +529,60 @@
   var DAYS = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];   // index = JS getDay
   var HALL_TYPES = {cyclorama:'Циклорама',interior:'Интерьер',hardlight:'Тёмный/жёсткий свет',daylight:'Дневной свет',other:'Другое'};
   // Какие свойства зала показывать — зависит от вертикали студии (П4-1), из /config.
-  var HALL_PROPS = {hallType:true,daylight:true,artificialLight:true,blackout:true,
-    airConditioning:true,bluetoothSpeaker:true,floor:true,areaM2:true,ceilingCm:true};
-  // Удобства-чекбоксы зала. daylight — тот же флаг, что «дневной свет» в поиске.
-  var HALL_AMENITIES = [
-    {f:'daylight',        label:'Естественный свет'},
-    {f:'artificialLight', label:'Искусственный свет'},
-    {f:'blackout',        label:'Блэкаут'},
-    {f:'airConditioning', label:'Кондиционер'},
-    {f:'bluetoothSpeaker',label:'Bluetooth-колонка'},
+  var HALL_PROPS = {hallType:true,areaM2:true,ceilingCm:true,floor:true,styles:true,
+    daylight:true,constantLight:true,strobeLight:true,lightModifiers:true,ceilingRail:true,blackout:true,
+    paperBackdrops:true,chromakey:true,fabricBackdrops:true,
+    panoramicWindows:true,texturedWall:true,fireplace:true,mezzanine:true,balcony:true,soundproofing:true,
+    airConditioning:true,bluetoothSpeaker:true};
+  // Удобства-чекбоксы зала, по группам. daylight = «дневной свет» в поиске.
+  var HALL_AMENITY_GROUPS = [
+    {title:'Свет', items:[
+      {f:'daylight',label:'Естественный свет'},
+      {f:'constantLight',label:'Постоянный свет'},
+      {f:'strobeLight',label:'Импульсный свет'},
+      {f:'lightModifiers',label:'Модификаторы (софтбоксы и пр.)'},
+      {f:'ceilingRail',label:'Потолочная система'},
+      {f:'blackout',label:'Блэкаут'},
+    ]},
+    {title:'Фоны', items:[
+      {f:'paperBackdrops',label:'Бумажные фоны'},
+      {f:'chromakey',label:'Хромакей'},
+      {f:'fabricBackdrops',label:'Тканевые фоны'},
+    ]},
+    {title:'Пространство и комфорт', items:[
+      {f:'panoramicWindows',label:'Большие окна'},
+      {f:'texturedWall',label:'Фактурная стена'},
+      {f:'fireplace',label:'Камин'},
+      {f:'mezzanine',label:'Второй свет / антресоль'},
+      {f:'balcony',label:'Балкон / терраса'},
+      {f:'soundproofing',label:'Звукоизоляция'},
+      {f:'airConditioning',label:'Кондиционер'},
+      {f:'bluetoothSpeaker',label:'Bluetooth-колонка'},
+    ]},
   ];
+  var HALL_STYLES = [
+    {v:'loft',label:'Лофт'},{v:'scandi',label:'Скандинавский'},{v:'classic',label:'Классический'},
+    {v:'minimal',label:'Минимализм'},{v:'dark',label:'Тёмный'},{v:'industrial',label:'Индустриальный'},
+    {v:'vintage',label:'Винтаж'},{v:'provence',label:'Прованс'},
+  ];
+  // Удобства и правила студии.
+  var STUDIO_AMENITY_GROUPS = [
+    {title:'Удобства', items:[
+      {f:'wifi',label:'Wi-Fi'},{f:'makeupRoom',label:'Гримёрная комната'},
+      {f:'makeupMirror',label:'Гримёрное зеркало с подсветкой'},{f:'restroom',label:'Санузел'},
+      {f:'shower',label:'Душ'},{f:'kitchen',label:'Кухня / чай-кофе'},
+      {f:'loungeArea',label:'Зона отдыха'},{f:'separateEntrance',label:'Отдельный вход'},
+      {f:'elevator',label:'Лифт'},{f:'heating',label:'Отопление'},
+      {f:'onSiteManager',label:'Администратор на площадке'},{f:'garmentSteamer',label:'Отпариватель / вешалки'},
+    ]},
+    {title:'Правила — что можно', items:[
+      {f:'allowPets',label:'С животными'},{f:'allowKids',label:'С детьми'},
+      {f:'allowNsfw',label:'Ню / 18+'},{f:'allowVideo',label:'Видеосъёмка'},
+      {f:'allowSmokeMachine',label:'Дым-машина'},{f:'allowCatering',label:'Кейтеринг / еда'},
+    ]},
+  ];
+  var PARKING_OPTS = [['','—'],['none','Нет'],['yard','Во дворе'],['free','Бесплатная'],['paid','Платная рядом']];
+  var amenitiesDraft = {};
   var STUDIO_ID = new URLSearchParams(location.search).get('id') || '';
 
   // Yandex Maps JS API — ленивая загрузка, ключ из /config.
@@ -585,15 +647,22 @@
   ];
 
   // ---------- editors ----------
-  function mapHall(h){ return {id:h.id,name:h.name,capacity:h.capacity,rate:h.rate,
-    hallType:h.hallType||null,daylight:!!h.daylight,
-    artificialLight:!!h.artificialLight,blackout:!!h.blackout,
-    airConditioning:!!h.airConditioning,bluetoothSpeaker:!!h.bluetoothSpeaker,
-    floor:h.floor!=null?h.floor:null,
-    areaM2:h.areaM2!=null?h.areaM2:null,ceilingCm:h.ceilingCm!=null?h.ceilingCm:null,
-    photos:Array.isArray(h.photos)?h.photos.slice():[],
-    priceRules:Array.isArray(h.priceRules)?h.priceRules.map(function(r){return {dow:Array.isArray(r.dow)?r.dow.slice():null,from:r.from,to:r.to,rate:r.rate,minMin:r.minMin!=null?r.minMin:null};}):[],
-    packages:Array.isArray(h.packages)?h.packages.map(function(p){return {hours:p.hours,price:p.price};}):[]}; }
+  var HALL_BOOLS = ['daylight','blackout','airConditioning','bluetoothSpeaker',
+    'constantLight','strobeLight','lightModifiers','ceilingRail',
+    'paperBackdrops','chromakey','fabricBackdrops',
+    'panoramicWindows','texturedWall','fireplace','mezzanine','balcony','soundproofing'];
+  function mapHall(h){
+    var o = {id:h.id,name:h.name,capacity:h.capacity,rate:h.rate,
+      hallType:h.hallType||null,
+      floor:h.floor!=null?h.floor:null,
+      areaM2:h.areaM2!=null?h.areaM2:null,ceilingCm:h.ceilingCm!=null?h.ceilingCm:null,
+      styles:Array.isArray(h.styles)?h.styles.slice():[],
+      photos:Array.isArray(h.photos)?h.photos.slice():[]};
+    HALL_BOOLS.forEach(function(f){ o[f] = !!h[f]; });
+    o.priceRules = Array.isArray(h.priceRules)?h.priceRules.map(function(r){return {dow:Array.isArray(r.dow)?r.dow.slice():null,from:r.from,to:r.to,rate:r.rate,minMin:r.minMin!=null?r.minMin:null};}):[];
+    o.packages = Array.isArray(h.packages)?h.packages.map(function(p){return {hours:p.hours,price:p.price};}):[];
+    return o;
+  }
 
   // ---------- тарифы по времени (динамическое ценообразование) ----------
   var DOW_ORDER = [1,2,3,4,5,6,0];
@@ -857,9 +926,19 @@
       (HALL_PROPS.areaM2 ? '<span class="unitwrap"><input class="num" type="number" min="1" step="1" data-f="areaM2" value="'+esc(h.areaM2!=null?h.areaM2:'')+'" placeholder="—"><span class="u">м²</span></span>' : '') +
       (HALL_PROPS.ceilingCm ? '<span class="unitwrap"><input class="num" type="number" min="150" max="2000" step="5" data-f="ceilingCm" value="'+esc(h.ceilingCm!=null?h.ceilingCm:'')+'" placeholder="—"><span class="u">см потолок</span></span>' : '') +
       (HALL_PROPS.floor ? '<span class="unitwrap"><input class="num" type="number" min="-10" max="300" step="1" data-f="floor" value="'+esc(h.floor!=null?h.floor:'')+'" placeholder="—"><span class="u">этаж</span></span>' : '');
-    var amenities = HALL_AMENITIES.filter(function(a){ return HALL_PROPS[a.f]; }).map(function(a){
-      return '<label class="amenity"><input type="checkbox" data-f="'+a.f+'"'+(h[a.f]?' checked':'')+'>'+a.label+'</label>';
+    var amenityGroups = HALL_AMENITY_GROUPS.map(function(g){
+      var items = g.items.filter(function(a){ return HALL_PROPS[a.f]; });
+      if(!items.length) return '';
+      return '<div class="amenity-group"><div class="amenity-group-t">'+esc(g.title)+'</div>' +
+        '<div class="amenities">' + items.map(function(a){
+          return '<label class="amenity"><input type="checkbox" data-f="'+a.f+'"'+(h[a.f]?' checked':'')+'>'+a.label+'</label>';
+        }).join('') + '</div></div>';
     }).join('');
+    var styleChips = HALL_PROPS.styles ? ('<div class="amenity-group"><div class="amenity-group-t">Стиль интерьера</div>' +
+      '<div class="chip-row">' + HALL_STYLES.map(function(s){
+        var on = (h.styles||[]).indexOf(s.v) !== -1;
+        return '<button type="button" class="chip-tog'+(on?' on':'')+'" data-style="'+s.v+'">'+esc(s.label)+'</button>';
+      }).join('') + '</div></div>') : '';
     body.innerHTML =
       '<div class="row"><input class="name" data-f="name" placeholder="Название зала" value="'+esc(h.name)+'"></div>' +
       '<div class="row">' +
@@ -867,7 +946,7 @@
         '<span class="unitwrap"><input class="num" type="number" min="0" step="1" data-f="rate" value="'+esc(h.rate)+'"><span class="u">BYN/ч</span></span>' +
       '</div>' +
       (numProps ? '<div class="row">' + numProps + '</div>' : '') +
-      (amenities ? '<div class="amenities">' + amenities + '</div>' : '') +
+      styleChips + amenityGroups +
       '<div class="hall-photos" data-i="'+i+'" style="margin-top:6px"></div>' +
       '<div class="hall-prules" data-i="'+i+'" style="margin-top:10px"></div>' +
       '<div class="hall-packages" data-i="'+i+'" style="margin-top:10px"></div>';
@@ -881,6 +960,14 @@
         else if(f==='hallType') h.hallType = inp.value || null;
         else if(f==='rate') h.rate = parseFloat(inp.value);
         else { var v = parseInt(inp.value,10); h[f] = Number.isInteger(v) ? v : null; }
+      });
+    });
+    body.querySelectorAll('.chip-tog[data-style]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        h.styles = h.styles || [];
+        var v = btn.dataset.style, k = h.styles.indexOf(v);
+        if(k === -1) h.styles.push(v); else h.styles.splice(k, 1);
+        btn.classList.toggle('on');
       });
     });
 
@@ -899,14 +986,17 @@
       if(!h.name||!h.name.trim()) return hallFlash('У каждого зала должно быть название');
       if(!Number.isInteger(h.capacity)||h.capacity<1) return hallFlash('Вместимость — целое от 1');
       if(!(h.rate>=0)) return hallFlash('Ставка — число от 0'); }
-    api('PUT','/admin/halls', hallsDraft.map(function(h){ return {
-        id:h.id, name:h.name.trim(), capacity:h.capacity, rate:h.rate,
-        hallType:h.hallType||null, daylight:!!h.daylight,
-        artificialLight:!!h.artificialLight, blackout:!!h.blackout,
-        airConditioning:!!h.airConditioning, bluetoothSpeaker:!!h.bluetoothSpeaker,
-        floor:Number.isInteger(h.floor)?h.floor:null,
-        areaM2:Number.isInteger(h.areaM2)?h.areaM2:null,
-        ceilingCm:Number.isInteger(h.ceilingCm)?h.ceilingCm:null }; }))
+    api('PUT','/admin/halls', hallsDraft.map(function(h){
+        var out = {
+          id:h.id, name:h.name.trim(), capacity:h.capacity, rate:h.rate,
+          hallType:h.hallType||null,
+          floor:Number.isInteger(h.floor)?h.floor:null,
+          areaM2:Number.isInteger(h.areaM2)?h.areaM2:null,
+          ceilingCm:Number.isInteger(h.ceilingCm)?h.ceilingCm:null,
+          styles:Array.isArray(h.styles)?h.styles.slice():[] };
+        HALL_BOOLS.forEach(function(f){ out[f] = !!h[f]; });
+        return out;
+      }))
       .then(function(u){
         hallsDraft = u.filter(function(h){return h.active!==false;}).map(mapHall);
         u.forEach(function(h){ HALLS_BY_ID[h.id]=h; });
@@ -1125,6 +1215,23 @@
       .catch(function(e){ flash($('pfNote'), e.message); })
       .then(function(){ checkProfileDirty(); });
   });
+
+  function renderAmenities(){
+    var sel = $('amParking');
+    sel.innerHTML = PARKING_OPTS.map(function(o){
+      return '<option value="'+o[0]+'"'+((amenitiesDraft.parking||'')===o[0]?' selected':'')+'>'+o[1]+'</option>';
+    }).join('');
+    sel.onchange = function(){ amenitiesDraft.parking = sel.value || null; };
+    $('amEd').innerHTML = STUDIO_AMENITY_GROUPS.map(function(g){
+      return '<div class="amenity-group"><div class="amenity-group-t">'+esc(g.title)+'</div>' +
+        '<div class="amenities">' + g.items.map(function(a){
+          return '<label class="amenity"><input type="checkbox" data-am="'+a.f+'"'+(amenitiesDraft[a.f]?' checked':'')+'>'+a.label+'</label>';
+        }).join('') + '</div></div>';
+    }).join('');
+    $('amEd').querySelectorAll('input[data-am]').forEach(function(inp){
+      inp.addEventListener('change', function(){ amenitiesDraft[inp.dataset.am] = inp.checked; });
+    });
+  }
 
   function renderSettings(){
     $('setAutoConfirm').checked = !!settingsDraft.autoConfirm;
@@ -1414,6 +1521,14 @@
     renderPolicy();
   });
 
+  $('amSave').addEventListener('click', function(){
+    $('amSave').disabled = true;
+    api('PUT', '/admin/amenities', amenitiesDraft)
+      .then(function(a){ amenitiesDraft = Object.assign({}, a); renderAmenities(); flash($('amNote'), 'Сохранено', true); })
+      .catch(function(e){ flash($('amNote'), e.message); })
+      .then(function(){ $('amSave').disabled = false; });
+  });
+
   $('setSave').addEventListener('click', function(){
     var buf = parseInt($('setBuffer').value, 10);
     var minDur = parseInt($('setMinDur').value, 10);
@@ -1654,6 +1769,8 @@
         };
         if(Array.isArray(cfg.cancelPolicy) && cfg.cancelPolicy.length) policyDraft = cfg.cancelPolicy;
         renderSettings();
+        amenitiesDraft = Object.assign({}, cfg.amenities || {});
+        renderAmenities();
         return load();
       })
       .then(function(){ $('loading').hidden = true; $('app').hidden = false; })
