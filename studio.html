@@ -123,15 +123,14 @@
   .row input[type=checkbox]{width:16px;height:16px;accent-color:var(--blue);}
   .unitwrap{display:flex;align-items:center;gap:5px;}
   .unitwrap .u{font-size:11px;color:var(--text-3);}
-  .amenities{display:flex;flex-wrap:wrap;gap:7px 16px;margin:2px 0 12px;}
-  .amenity{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-2);cursor:pointer;}
-  .amenity input{width:15px;height:15px;flex:none;accent-color:var(--blue);cursor:pointer;}
-  .amenity-group{margin:8px 0 4px;}
-  .amenity-group-t{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3);margin-bottom:5px;}
+  .amenity-group{margin:10px 0 4px;}
+  .amenity-group-t{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3);margin-bottom:6px;}
   .chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
-  .chip-tog{font:inherit;font-size:12.5px;padding:5px 11px;border-radius:999px;cursor:pointer;
-    border:1px solid var(--border-strong);background:var(--surface);color:var(--text-2);}
+  .chip-tog{font:inherit;font-size:12.5px;padding:6px 12px;border-radius:999px;cursor:pointer;
+    border:1px solid var(--border-strong);background:var(--surface);color:var(--text-2);transition:background .12s,border-color .12s,color .12s;}
+  .chip-tog:hover{border-color:var(--text-3);color:var(--text);}
   .chip-tog.on{background:var(--blue-bg);border-color:var(--blue);color:var(--blue-dark);font-weight:600;}
+  .chip-tog.on:hover{border-color:var(--blue);}
   .del{background:var(--surface);border:1px solid var(--border-strong);color:var(--text-2);
        border-radius:var(--r-sm);padding:7px 10px;cursor:pointer;font-size:13px;line-height:1;}
   .del:hover{border-color:var(--red);color:var(--red);}
@@ -335,10 +334,10 @@
 
     <div class="card" id="sec-amenities" data-folder="main">
       <h2>Удобства и правила студии</h2>
-      <div class="muted" style="margin-bottom:10px">Показывается клиенту в карточке студии и в результатах поиска.</div>
-      <div class="row" style="margin-bottom:12px">
-        <span style="flex:1 1 100%">Парковка</span>
-        <select id="amParking"></select>
+      <div class="muted" style="margin-bottom:10px">Показывается клиенту в карточке студии и в результатах поиска. Нажмите, чтобы включить.</div>
+      <div class="amenity-group">
+        <div class="amenity-group-t">Парковка</div>
+        <div class="chip-row" id="amParking"></div>
       </div>
       <div id="amEd"></div>
       <div class="actions" style="margin-top:10px"><button class="btn small" id="amSave" type="button">Сохранить</button></div>
@@ -937,8 +936,8 @@
       var items = g.items.filter(function(a){ return HALL_PROPS[a.f]; });
       if(!items.length) return '';
       return '<div class="amenity-group"><div class="amenity-group-t">'+esc(g.title)+'</div>' +
-        '<div class="amenities">' + items.map(function(a){
-          return '<label class="amenity"><input type="checkbox" data-f="'+a.f+'"'+(h[a.f]?' checked':'')+'>'+a.label+'</label>';
+        '<div class="chip-row">' + items.map(function(a){
+          return '<button type="button" class="chip-tog'+(h[a.f]?' on':'')+'" data-bool="'+a.f+'">'+esc(a.label)+'</button>';
         }).join('') + '</div></div>';
     }).join('');
     var styleChips = HALL_PROPS.styles ? ('<div class="amenity-group"><div class="amenity-group-t">Стиль интерьера</div>' +
@@ -974,6 +973,13 @@
         h.styles = h.styles || [];
         var v = btn.dataset.style, k = h.styles.indexOf(v);
         if(k === -1) h.styles.push(v); else h.styles.splice(k, 1);
+        btn.classList.toggle('on');
+      });
+    });
+    body.querySelectorAll('.chip-tog[data-bool]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var f = btn.dataset.bool;
+        h[f] = !h[f];
         btn.classList.toggle('on');
       });
     });
@@ -1224,19 +1230,32 @@
   });
 
   function renderAmenities(){
-    var sel = $('amParking');
-    sel.innerHTML = PARKING_OPTS.map(function(o){
-      return '<option value="'+o[0]+'"'+((amenitiesDraft.parking||'')===o[0]?' selected':'')+'>'+o[1]+'</option>';
+    // Парковка — один выбор из нескольких (чипы-тоглы, повторный клик снимает).
+    var pk = $('amParking');
+    pk.innerHTML = PARKING_OPTS.filter(function(o){ return o[0]; }).map(function(o){
+      return '<button type="button" class="chip-tog'+((amenitiesDraft.parking||'')===o[0]?' on':'')+'" data-park="'+o[0]+'">'+esc(o[1])+'</button>';
     }).join('');
-    sel.onchange = function(){ amenitiesDraft.parking = sel.value || null; };
+    pk.querySelectorAll('.chip-tog[data-park]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var v = btn.dataset.park;
+        amenitiesDraft.parking = (amenitiesDraft.parking === v) ? null : v;
+        pk.querySelectorAll('.chip-tog').forEach(function(x){
+          x.classList.toggle('on', x.dataset.park === amenitiesDraft.parking);
+        });
+      });
+    });
+    // Удобства и правила — чипы-тоглы (как «Стиль интерьера» у зала).
     $('amEd').innerHTML = STUDIO_AMENITY_GROUPS.map(function(g){
       return '<div class="amenity-group"><div class="amenity-group-t">'+esc(g.title)+'</div>' +
-        '<div class="amenities">' + g.items.map(function(a){
-          return '<label class="amenity"><input type="checkbox" data-am="'+a.f+'"'+(amenitiesDraft[a.f]?' checked':'')+'>'+a.label+'</label>';
+        '<div class="chip-row">' + g.items.map(function(a){
+          return '<button type="button" class="chip-tog'+(amenitiesDraft[a.f]?' on':'')+'" data-am="'+a.f+'">'+esc(a.label)+'</button>';
         }).join('') + '</div></div>';
     }).join('');
-    $('amEd').querySelectorAll('input[data-am]').forEach(function(inp){
-      inp.addEventListener('change', function(){ amenitiesDraft[inp.dataset.am] = inp.checked; });
+    $('amEd').querySelectorAll('.chip-tog[data-am]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        amenitiesDraft[btn.dataset.am] = !amenitiesDraft[btn.dataset.am];
+        btn.classList.toggle('on');
+      });
     });
   }
 
