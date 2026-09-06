@@ -69,8 +69,14 @@
   .nav-folder:hover{background:var(--surface-2);color:var(--text);}
   .nav-folder.active{background:var(--blue-bg);color:var(--blue-dark);font-weight:600;}
   .nav-folder.active .ic{opacity:1;}
-  .nav-back{margin-top:auto;padding:10px 8px 4px;font-size:12px;color:var(--text-3);}
+  .nav-foot{margin-top:auto;display:flex;flex-direction:column;gap:2px;}
+  .nav-back{padding:10px 8px 4px;font-size:12px;color:var(--text-3);}
   .nav-back:hover{color:var(--text-2);text-decoration:none;}
+  .nav-logout{
+    text-align:left;padding:8px;border:none;background:none;font:inherit;
+    font-size:12px;color:var(--text-3);cursor:pointer;border-radius:var(--r-sm);
+  }
+  .nav-logout:hover{background:var(--red-bg);color:var(--red);}
 
   .content{flex:1 1 auto;min-width:0;padding:26px 30px 90px;max-width:900px;}
   .sidebar-toggle{display:none;}
@@ -111,6 +117,9 @@
   .row input[type=checkbox]{width:16px;height:16px;accent-color:var(--blue);}
   .unitwrap{display:flex;align-items:center;gap:5px;}
   .unitwrap .u{font-size:11px;color:var(--text-3);}
+  .amenities{display:flex;flex-wrap:wrap;gap:7px 16px;margin:2px 0 12px;}
+  .amenity{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-2);cursor:pointer;}
+  .amenity input{width:15px;height:15px;flex:none;accent-color:var(--blue);cursor:pointer;}
   .del{background:var(--surface);border:1px solid var(--border-strong);color:var(--text-2);
        border-radius:var(--r-sm);padding:7px 10px;cursor:pointer;font-size:13px;line-height:1;}
   .del:hover{border-color:var(--red);color:var(--red);}
@@ -252,11 +261,15 @@
     <nav class="nav" id="nav">
       <button class="nav-folder" data-folder="main" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Основное</button>
       <button class="nav-folder" data-folder="halls" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>Залы</button>
+      <button class="nav-folder" data-folder="booking" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Бронирование</button>
       <button class="nav-folder" data-folder="equipment" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>Оборудование</button>
       <button class="nav-folder" data-folder="team" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Команда</button>
       <button class="nav-folder" data-folder="integrations" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Интеграции</button>
     </nav>
-    <a class="nav-back" href="./cabinet.html">← Все студии</a>
+    <div class="nav-foot">
+      <a class="nav-back" href="./cabinet.html">← Все студии</a>
+      <button class="nav-logout" id="logoutBtn" type="button">Выйти</button>
+    </div>
   </aside>
   <main class="content">
     <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Меню">☰</button>
@@ -327,7 +340,7 @@
       </div>
     </div>
 
-    <div class="card" id="sec-settings" data-folder="halls">
+    <div class="card" id="sec-settings" data-folder="booking">
       <h2>Настройки бронирования</h2>
       <label class="row" style="cursor:pointer">
         <input type="checkbox" id="setAutoConfirm" style="width:auto;flex:none">
@@ -376,7 +389,15 @@
       <div class="note" id="setNote"></div>
     </div>
 
-    <div class="card" id="sec-block" data-folder="halls">
+    <div class="card" id="sec-hours" data-folder="booking">
+      <h2>Часы работы</h2>
+      <div class="muted" style="margin-bottom:8px">Целые часы, по дням недели. Пустой день = закрыто нельзя, ставьте равные значения только если день рабочий.</div>
+      <div id="hoursEd"></div>
+      <div class="actions"><button class="btn small" id="hoursSave" type="button">Сохранить часы</button></div>
+      <div class="note" id="hoursNote"></div>
+    </div>
+
+    <div class="card" id="sec-block" data-folder="booking">
       <h2>Заблокировать время</h2>
       <div class="muted" style="margin-bottom:8px">Ремонт, корпоратив, съёмка мимо платформы. Клиенты не смогут забронировать этот интервал.</div>
       <div class="row">
@@ -410,14 +431,6 @@
         <button class="btn small" id="equipSave" type="button">Сохранить оборудование</button>
       </div>
       <div class="note" id="equipNote"></div>
-    </div>
-
-    <div class="card" id="sec-hours" data-folder="halls">
-      <h2>Часы работы</h2>
-      <div class="muted" style="margin-bottom:8px">Целые часы, по дням недели. Пустой день = закрыто нельзя, ставьте равные значения только если день рабочий.</div>
-      <div id="hoursEd"></div>
-      <div class="actions"><button class="btn small" id="hoursSave" type="button">Сохранить часы</button></div>
-      <div class="note" id="hoursNote"></div>
     </div>
 
     <div class="card" id="sec-team" data-folder="team">
@@ -498,7 +511,16 @@
   var DAYS = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];   // index = JS getDay
   var HALL_TYPES = {cyclorama:'Циклорама',interior:'Интерьер',hardlight:'Тёмный/жёсткий свет',daylight:'Дневной свет',other:'Другое'};
   // Какие свойства зала показывать — зависит от вертикали студии (П4-1), из /config.
-  var HALL_PROPS = {hallType:true,daylight:true,areaM2:true,ceilingCm:true};
+  var HALL_PROPS = {hallType:true,daylight:true,artificialLight:true,blackout:true,
+    airConditioning:true,bluetoothSpeaker:true,floor:true,areaM2:true,ceilingCm:true};
+  // Удобства-чекбоксы зала. daylight — тот же флаг, что «дневной свет» в поиске.
+  var HALL_AMENITIES = [
+    {f:'daylight',        label:'Естественный свет'},
+    {f:'artificialLight', label:'Искусственный свет'},
+    {f:'blackout',        label:'Блэкаут'},
+    {f:'airConditioning', label:'Кондиционер'},
+    {f:'bluetoothSpeaker',label:'Bluetooth-колонка'},
+  ];
   var STUDIO_ID = new URLSearchParams(location.search).get('id') || '';
 
   // Yandex Maps JS API — ленивая загрузка, ключ из /config.
@@ -564,7 +586,11 @@
 
   // ---------- editors ----------
   function mapHall(h){ return {id:h.id,name:h.name,capacity:h.capacity,rate:h.rate,
-    hallType:h.hallType||null,daylight:!!h.daylight,areaM2:h.areaM2!=null?h.areaM2:null,ceilingCm:h.ceilingCm!=null?h.ceilingCm:null,
+    hallType:h.hallType||null,daylight:!!h.daylight,
+    artificialLight:!!h.artificialLight,blackout:!!h.blackout,
+    airConditioning:!!h.airConditioning,bluetoothSpeaker:!!h.bluetoothSpeaker,
+    floor:h.floor!=null?h.floor:null,
+    areaM2:h.areaM2!=null?h.areaM2:null,ceilingCm:h.ceilingCm!=null?h.ceilingCm:null,
     photos:Array.isArray(h.photos)?h.photos.slice():[],
     priceRules:Array.isArray(h.priceRules)?h.priceRules.map(function(r){return {dow:Array.isArray(r.dow)?r.dow.slice():null,from:r.from,to:r.to,rate:r.rate,minMin:r.minMin!=null?r.minMin:null};}):[],
     packages:Array.isArray(h.packages)?h.packages.map(function(p){return {hours:p.hours,price:p.price};}):[]}; }
@@ -826,18 +852,22 @@
     var typeOpts = '<option value="">Тип зала…</option>' +
       Object.keys(HALL_TYPES).map(function(k){
         return '<option value="'+k+'"'+(h.hallType===k?' selected':'')+'>'+HALL_TYPES[k]+'</option>'; }).join('');
-    var propsInner =
+    var numProps =
       (HALL_PROPS.hallType ? '<select data-f="hallType" style="flex:1 1 140px">'+typeOpts+'</select>' : '') +
-      (HALL_PROPS.daylight ? '<label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)"><input type="checkbox" data-f="daylight"'+(h.daylight?' checked':'')+' style="width:auto">дневной свет</label>' : '') +
       (HALL_PROPS.areaM2 ? '<span class="unitwrap"><input class="num" type="number" min="1" step="1" data-f="areaM2" value="'+esc(h.areaM2!=null?h.areaM2:'')+'" placeholder="—"><span class="u">м²</span></span>' : '') +
-      (HALL_PROPS.ceilingCm ? '<span class="unitwrap"><input class="num" type="number" min="150" max="2000" step="5" data-f="ceilingCm" value="'+esc(h.ceilingCm!=null?h.ceilingCm:'')+'" placeholder="—"><span class="u">см потолок</span></span>' : '');
+      (HALL_PROPS.ceilingCm ? '<span class="unitwrap"><input class="num" type="number" min="150" max="2000" step="5" data-f="ceilingCm" value="'+esc(h.ceilingCm!=null?h.ceilingCm:'')+'" placeholder="—"><span class="u">см потолок</span></span>' : '') +
+      (HALL_PROPS.floor ? '<span class="unitwrap"><input class="num" type="number" min="-10" max="300" step="1" data-f="floor" value="'+esc(h.floor!=null?h.floor:'')+'" placeholder="—"><span class="u">этаж</span></span>' : '');
+    var amenities = HALL_AMENITIES.filter(function(a){ return HALL_PROPS[a.f]; }).map(function(a){
+      return '<label class="amenity"><input type="checkbox" data-f="'+a.f+'"'+(h[a.f]?' checked':'')+'>'+a.label+'</label>';
+    }).join('');
     body.innerHTML =
       '<div class="row"><input class="name" data-f="name" placeholder="Название зала" value="'+esc(h.name)+'"></div>' +
       '<div class="row">' +
         '<span class="unitwrap"><input class="num" type="number" min="1" step="1" data-f="capacity" value="'+esc(h.capacity)+'"><span class="u">чел</span></span>' +
         '<span class="unitwrap"><input class="num" type="number" min="0" step="1" data-f="rate" value="'+esc(h.rate)+'"><span class="u">BYN/ч</span></span>' +
       '</div>' +
-      (propsInner ? '<div class="row">' + propsInner + '</div>' : '') +
+      (numProps ? '<div class="row">' + numProps + '</div>' : '') +
+      (amenities ? '<div class="amenities">' + amenities + '</div>' : '') +
       '<div class="hall-photos" data-i="'+i+'" style="margin-top:6px"></div>' +
       '<div class="hall-prules" data-i="'+i+'" style="margin-top:10px"></div>' +
       '<div class="hall-packages" data-i="'+i+'" style="margin-top:10px"></div>';
@@ -846,9 +876,9 @@
       var evt = (inp.tagName==='SELECT' || inp.type==='checkbox') ? 'change' : 'input';
       inp.addEventListener(evt, function(){
         var f = inp.dataset.f;
-        if(f==='name') h.name = inp.value;
+        if(inp.type==='checkbox') h[f] = inp.checked;
+        else if(f==='name') h.name = inp.value;
         else if(f==='hallType') h.hallType = inp.value || null;
-        else if(f==='daylight') h.daylight = inp.checked;
         else if(f==='rate') h.rate = parseFloat(inp.value);
         else { var v = parseInt(inp.value,10); h[f] = Number.isInteger(v) ? v : null; }
       });
@@ -872,6 +902,9 @@
     api('PUT','/admin/halls', hallsDraft.map(function(h){ return {
         id:h.id, name:h.name.trim(), capacity:h.capacity, rate:h.rate,
         hallType:h.hallType||null, daylight:!!h.daylight,
+        artificialLight:!!h.artificialLight, blackout:!!h.blackout,
+        airConditioning:!!h.airConditioning, bluetoothSpeaker:!!h.bluetoothSpeaker,
+        floor:Number.isInteger(h.floor)?h.floor:null,
         areaM2:Number.isInteger(h.areaM2)?h.areaM2:null,
         ceilingCm:Number.isInteger(h.ceilingCm)?h.ceilingCm:null }; }))
       .then(function(u){
@@ -1318,6 +1351,13 @@
         newBookingFrame.contentWindow.postMessage(
           { type:'poont-admin-booking-result', id: msg.id, ok:false, error: err.message }, MINIAPP_ORIGIN);
       });
+  });
+
+  // Выход: токен самоподписан, серверу отзывать нечего — просто забываем его.
+  // (Отзыв на всех устройствах — отдельная ручка /api/session/revoke-all.)
+  $('logoutBtn').addEventListener('click', function(){
+    try{ localStorage.removeItem(TOKEN_KEY); }catch(e){}
+    location.href = './cabinet.html';
   });
 
   // ---------- save handlers ----------
