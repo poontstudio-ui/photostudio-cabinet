@@ -220,14 +220,14 @@
      (часы + ячейки) РАЗНЕСЕНЫ на два отдельных грида: .qb-grid-head живёт
      вне горизонтально скроллящегося контейнера и липнет к верху ВЬЮПОРТА
      страницы (.qb-grid-head-wrap), тело — в .qb-grid-scroll (overflow-x:auto,
-     без overflow по Y вообще). Так и только так нельзя иначе: если положить
-     sticky-шапку ВНУТРЬ контейнера с overflow-x:auto, он по спецификации CSS
-     становится scroll-контейнером СРАЗУ по обеим осям (overflow-y молча
-     становится auto, даже если явно не задан) — и тогда sticky держится не
-     за вьюпорт страницы, а за этот контейнер, что при отсутствии реального
-     вертикального overflow не работает вовсе (и путает колёсико мыши над
-     сеткой). JS ниже синхронизирует горизontal scrollLeft между шапкой и
-     телом (qbSyncGridScroll) — теми же приёмом, что client index.html.
+     без overflow по Y). Иначе никак: если положить sticky-шапку ВНУТРЬ
+     контейнера с overflow-x:auto, он по спецификации CSS становится
+     scroll-контейнером СРАЗУ по обеим осям (overflow-y молча становится auto,
+     даже если явно задать visible) — и тогда sticky держится не за вьюпорт
+     страницы, а за этот контейнер, где вертикально скроллить нечего: шапка
+     не липнет вовсе, а колёсико мыши над сеткой не прокручивает страницу.
+     Горизонтальный scrollLeft шапки и тела синхронизирует обработчик scroll
+     ниже — тем же приёмом, что client index.html.
 
      Забронированные слоты сливаются в один прямоугольник (.qb-booked) поверх
      сетки, цвет — по статусу; безопасно, что все ячейки сетки и сам
@@ -256,9 +256,16 @@
     font-weight:600;font-size:13px;color:var(--text);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
+  /* z-index выше .qb-booked (1): при горизонтальной прокрутке прямоугольники
+     броней уезжают ПОД липкую колонку часов, а не поверх неё (иначе они
+     закрывают собой подписи времени — проверено, было именно так). */
   .qb-time{
-    position:sticky;left:0;z-index:1;padding:0 8px 0 2px;display:flex;align-items:center;justify-content:flex-end;
+    position:sticky;left:0;z-index:3;padding:0 8px 0 2px;display:flex;align-items:center;justify-content:flex-end;
     font-family:var(--f-mono);font-size:10.5px;color:var(--text-3);
+    /* фон растянут в зазоры сетки (gap:4px): вправо на всю ширину зазора и на
+       половину — вверх/вниз (вторую половину закроет соседняя строка). Иначе
+       уехавший под колонку прямоугольник брони просвечивает в этих щелях. */
+    box-shadow:4px 0 0 var(--surface), 0 -2px 0 var(--surface), 0 2px 0 var(--surface);
   }
   .qb-cell{
     position:relative;height:34px;border-radius:6px;
@@ -278,7 +285,9 @@
      z-index:1 держит его над обычными qb-cell (z:auto), но под шапкой/часами. */
   .qb-booked{
     position:relative;z-index:1;margin:1px;border-radius:6px;
-    border:1px solid transparent;cursor:pointer;
+    /* фон по умолчанию — чтобы неизвестный статус не оказался невидимым
+       прямоугольником (цвета ниже перекрывают его для известных). */
+    background:var(--surface-2);border:1px solid var(--border-strong);cursor:pointer;
   }
   .qb-booked[data-status="confirmed"],
   .qb-booked[data-status="completed"]{background:var(--green-bg);border-color:#bfe3cd;}
@@ -318,7 +327,9 @@
   .qb-date-day{font-size:9.5px;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
   .qb-date-num{font-family:var(--f-mono);font-size:14px;font-weight:600;color:var(--text);}
   .qb-date-chip[data-active="true"] .qb-date-num{color:var(--blue-dark);}
-  .qb-legend{display:flex;gap:16px;margin-top:8px;font-size:11px;color:var(--text-3);}
+  /* wrap — иначе на узком экране четыре подписи не помещаются в строку и
+     вылезают за карточку (проверено на 375px). */
+  .qb-legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;font-size:11px;color:var(--text-3);}
   .qb-legend-dot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;}
 
   /* ---------- модалка деталей брони ---------- */
@@ -1565,7 +1576,10 @@
               ? '/bookings/' + b.id + '/cancel'
               : '/admin/bookings/' + b.id + '/' + a.p;
             bar.querySelectorAll('button').forEach(function(x){ x.disabled = true; });
-            api('POST', url).then(load).catch(function(e){
+            // qbSyncGrid — статус брони красит её прямоугольник в сетке
+            // (зелёный/жёлтый), а отмена вовсе убирает занятость: без этого
+            // сетка показывала бы прежний цвет до переключения даты.
+            api('POST', url).then(load).then(qbSyncGrid).catch(function(e){
               bar.querySelectorAll('button').forEach(function(x){ x.disabled = false; });
               flash($('clearNote'), e.message);
             });
@@ -1669,15 +1683,28 @@
     for(var i=0;i<n;i++) out.push(new Date(today.getFullYear(), today.getMonth()+i, 1));
     return out;
   }
+  // Лента прокручивается к выбранному дню, а не остаётся там, где её оставил
+  // прошлый месяц: при переключении месяца выбирается 1-е число, а лента, если
+  // её не трогать, остаётся прокрученной к концу прошлого окна — активный чип
+  // оказывался за экраном, и казалось, что не выбрано ничего.
+  // scrollIntoView здесь не годится: он утащил бы за собой и вертикальную
+  // прокрутку страницы, поэтому считаем scrollLeft вручную.
+  function qbScrollChipIntoView(row, chip){
+    if(!row || !chip) return;
+    var target = chip.offsetLeft - (row.clientWidth - chip.offsetWidth) / 2;
+    row.scrollLeft = Math.max(0, Math.min(target, row.scrollWidth - row.clientWidth));
+  }
   function qbRenderDates(){
     var row = $('qbDateRow');
     if(!row) return;
     row.innerHTML = '';
+    var activeChip = null;
     QB.dates.forEach(function(d){
       var key = qbDateKey(d);
       var chip = document.createElement('div');
       chip.className = 'qb-date-chip';
       chip.dataset.active = (key === QB.date).toString();
+      if(key === QB.date) activeChip = chip;
       chip.innerHTML = '<div class="qb-date-day">'+QB_DAY_NAMES[d.getDay()]+'</div><div class="qb-date-num">'+d.getDate()+'</div>';
       chip.addEventListener('click', function(){
         if(key === QB.date) return;
@@ -1687,6 +1714,7 @@
       });
       row.appendChild(chip);
     });
+    qbScrollChipIntoView(row, activeChip);
   }
   function qbRenderMonths(){
     var row = $('qbMonthRow');
@@ -1921,6 +1949,14 @@
     } else if(info.kind === 'block'){
       rows.push(['Тип', 'Блокировка администратора']);
       rows.push(['Причина', info.data.note ? esc(info.data.note) : '—']);
+    } else if(dashTotal > lastBookings.length){
+      // Дашборд грузит не все брони, а последние 500 (OVERVIEW_BOOKINGS_CAP на
+      // сервере, сортировка по created_at DESC). Если список обрезан, занятость
+      // без совпадения — скорее всего как раз не подгруженная бронь, а не
+      // внешний календарь: честнее так и написать, чем утверждать неверное.
+      rows.push(['Тип', 'Занято — детали не загружены']);
+      rows.push(['Почему', 'Дашборд держит последние ' + lastBookings.length +
+        ' броней из ' + dashTotal + '. Эта бронь старше — найдите её поиском по дашборду.']);
     } else {
       rows.push(['Тип', 'Занято (внешний календарь)']);
     }
@@ -1973,6 +2009,14 @@
     qbClearSel();
     return qbLoadBusy().then(qbRenderGrid);
   }
+  // Перерисовать сетку после того, как изменились данные, от которых она
+  // зависит (статус брони, блокировка, новая бронь) — БЕЗ сброса выделения,
+  // в отличие от qbRefresh. Без этого прямоугольник оставался прежнего цвета
+  // (или серым «внешний календарь» у только что созданной брони) до тех пор,
+  // пока владелец не переключит дату.
+  function qbSyncGrid(){
+    return qbLoadBusy().then(qbRenderGrid);
+  }
   $('qbSubmit').addEventListener('click', function(){
     if(!qbSelectionValid()) return;
     var name = $('qbName').value.trim();
@@ -1993,7 +2037,10 @@
       flash($('qbNote'), 'Бронь создана', true);
       $('qbName').value=''; $('qbPhone').value=''; $('qbPeople').value='1'; $('qbComment').value='';
       qbClearSel();
-      return qbLoadBusy().then(function(){ qbRenderGrid(); load(); });
+      // Сначала load() (обновит lastBookings), и только потом рисуем сетку —
+      // иначе только что созданная бронь не находится в lastBookings и
+      // отрисовывается серым «Занято (внешний календарь)».
+      return load().then(qbSyncGrid);
     }).catch(function(e){
       flash($('qbNote'), e.message);
       $('qbSubmit').disabled = !qbSelectionValid();
@@ -2060,7 +2107,7 @@
     };
     $('blkAdd').disabled = true;
     api('POST', '/admin/blocks', payload)
-      .then(function(){ $('blkNote').value = ''; flash($('blkNoteMsg'), 'Время заблокировано', true); return loadBlocks(); })
+      .then(function(){ $('blkNote').value = ''; flash($('blkNoteMsg'), 'Время заблокировано', true); return loadBlocks().then(qbSyncGrid); })
       .catch(function(e){ flash($('blkNoteMsg'), e.message); })
       .then(function(){ $('blkAdd').disabled = false; });
   });
@@ -2275,7 +2322,7 @@
       row.querySelector('button').addEventListener('click', function(ev){
         var btn = ev.currentTarget; btn.disabled = true;
         api('DELETE', '/admin/blocks/' + encodeURIComponent(bid))
-          .then(loadBlocks)
+          .then(loadBlocks).then(qbSyncGrid)
           .catch(function(e){ btn.disabled = false; flash($('blkNoteMsg'), e.message); });
       });
       c.appendChild(row);
