@@ -212,40 +212,59 @@
 
   /* ---------- Новая бронь по звонку — сетка «залы × время» ----------
      Пересобрано по образцу клиентской сетки (photostudio-frontend/index.html,
-     режим 'halls') — не только внешне, но и по устройству: занятость красит
-     саму ячейку (data-state="busy"), а не отдельный элемент поверх сетки;
-     лента дат с чипами + слайдер месяцев вместо date-picker; скруглённые
-     ячейки с зазором вместо общих линий таблицы; легенда снизу. Цвета —
-     свои, из палитры кабинета (--blue вместо клиентского --amber). */
-  .qb-grid-wrap{
+     режим 'halls'): лента дат с чипами + слайдер месяцев вместо date-picker,
+     скруглённые ячейки с зазором вместо общих линий таблицы, легенда снизу.
+     Цвета — свои, из палитры кабинета (--blue вместо клиентского --amber).
+
+     Скролл только горизонтальный — как у клиента, шапка (залы) и тело сетки
+     (часы + ячейки) РАЗНЕСЕНЫ на два отдельных грида: .qb-grid-head живёт
+     вне горизонтально скроллящегося контейнера и липнет к верху ВЬЮПОРТА
+     страницы (.qb-grid-head-wrap), тело — в .qb-grid-scroll (overflow-x:auto,
+     без overflow по Y вообще). Так и только так нельзя иначе: если положить
+     sticky-шапку ВНУТРЬ контейнера с overflow-x:auto, он по спецификации CSS
+     становится scroll-контейнером СРАЗУ по обеим осям (overflow-y молча
+     становится auto, даже если явно не задан) — и тогда sticky держится не
+     за вьюпорт страницы, а за этот контейнер, что при отсутствии реального
+     вертикального overflow не работает вовсе (и путает колёсико мыши над
+     сеткой). JS ниже синхронизирует горизontal scrollLeft между шапкой и
+     телом (qbSyncGridScroll) — теми же приёмом, что client index.html.
+
+     Забронированные слоты сливаются в один прямоугольник (.qb-booked) поверх
+     сетки, цвет — по статусу; безопасно, что все ячейки сетки и сам
+     .qb-booked позиционируются явно (grid-column/grid-row) внутри ОДНОГО
+     .qb-grid — без единого авто-расставленного элемента конфликт, что ломал
+     сетку раньше (авто-элемент съезжал, если его ячейка уже занята explicit-
+     элементом), структурно невозможен. */
+  .qb-grid-outer{
     border:1px solid var(--border);border-radius:var(--r-sm);
-    max-height:460px;overflow:auto;background:var(--surface);
-    padding:6px;
+    background:var(--surface);padding:6px;
   }
-  .qb-grid{display:grid;gap:4px;font-size:12px;}
-  .qb-corner, .qb-head, .qb-time{
-    position:sticky;background:var(--surface);color:var(--text-3);
+  .qb-grid-head-wrap{
+    position:sticky;top:0;z-index:5;overflow:hidden;
+    background:var(--surface);padding-bottom:4px;
   }
-  .qb-corner{top:0;left:0;z-index:3;}
+  .qb-grid-head{display:grid;gap:4px;font-size:12px;width:max-content;min-width:100%;}
+  .qb-grid-scroll{
+    overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+  }
+  .qb-grid-scroll::-webkit-scrollbar{display:none;}
+  .qb-grid{display:grid;gap:4px;font-size:12px;width:max-content;min-width:100%;}
+  .qb-corner, .qb-head, .qb-time{background:var(--surface);color:var(--text-3);}
+  .qb-corner{position:sticky;left:0;z-index:2;}
   .qb-head{
-    top:0;z-index:2;padding:2px 4px 8px;text-align:center;
+    padding:2px 4px 8px;text-align:center;
     font-weight:600;font-size:13px;color:var(--text);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
   .qb-time{
-    left:0;z-index:1;padding:0 8px 0 2px;display:flex;align-items:center;justify-content:flex-end;
+    position:sticky;left:0;z-index:1;padding:0 8px 0 2px;display:flex;align-items:center;justify-content:flex-end;
     font-family:var(--f-mono);font-size:10.5px;color:var(--text-3);
   }
   .qb-cell{
     position:relative;height:34px;border-radius:6px;
     background:var(--surface-2);border:1px solid var(--border);cursor:pointer;
   }
-  /* Занятость красит саму ячейку (как у клиента, data-state="busy" в
-     grid-cell) — кликабельна, открывает детали брони. Никакого отдельного
-     элемента поверх сетки: раньше он же, явно спозиционированный рядом с
-     авто-расставленными ячейками, ломал сетку на брони не в последнем зале. */
-  .qb-cell[data-state="busy"]{background:var(--red-bg);border-color:#f0c9c9;}
-  .qb-cell[data-state="busy"]:hover{background:#f7dede;}
+  .qb-cell[data-state="busy"]{cursor:default;}
   .qb-cell[data-state="past"],
   .qb-cell[data-state="closed"]{
     cursor:not-allowed;
@@ -255,6 +274,18 @@
   }
   .qb-cell[data-sel="true"]{background:var(--blue-bg);border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue);}
   .qb-empty{padding:14px 4px;color:var(--text-3);font-size:13px;}
+  /* Один прямоугольник на бронь/блокировку, поверх сетки, цвет по статусу.
+     z-index:1 держит его над обычными qb-cell (z:auto), но под шапкой/часами. */
+  .qb-booked{
+    position:relative;z-index:1;margin:1px;border-radius:6px;
+    border:1px solid transparent;cursor:pointer;
+  }
+  .qb-booked[data-status="confirmed"],
+  .qb-booked[data-status="completed"]{background:var(--green-bg);border-color:#bfe3cd;}
+  .qb-booked[data-status="pending"]{background:var(--amber-bg);border-color:#f0dca3;}
+  .qb-booked[data-status="block"],
+  .qb-booked[data-status="external"]{background:var(--surface-2);border-color:var(--border-strong);}
+  .qb-booked:hover{filter:brightness(.97);}
 
   /* Лента дат + слайдер месяцев — тот же приём, что у клиента: месяц-чипы
      пересобирают qb-date-row 14+-дневным окном до конца месяца, дата-чипы
@@ -364,12 +395,19 @@
       <div class="qb-month-row" id="qbMonthRow"></div>
       <div class="qb-date-row" id="qbDateRow"></div>
 
-      <div id="qbGridWrap" class="qb-grid-wrap">
-        <div id="qbGrid" class="qb-grid"></div>
+      <div class="qb-grid-outer">
+        <div class="qb-grid-head-wrap" id="qbGridHeadWrap">
+          <div id="qbGridHead" class="qb-grid-head"></div>
+        </div>
+        <div class="qb-grid-scroll" id="qbGridScroll">
+          <div id="qbGrid" class="qb-grid"></div>
+        </div>
       </div>
       <div class="qb-legend">
-        <span><span class="qb-legend-dot" style="background:var(--red-bg);border-color:#f0c9c9"></span>занято</span>
-        <span><span class="qb-legend-dot" style="background:var(--blue-bg);border-color:var(--blue)"></span>ваш выбор</span>
+        <span><span class="qb-legend-dot" style="background:var(--green-bg);border:1px solid #bfe3cd"></span>подтверждена</span>
+        <span><span class="qb-legend-dot" style="background:var(--amber-bg);border:1px solid #f0dca3"></span>ожидает подтверждения</span>
+        <span><span class="qb-legend-dot" style="background:var(--surface-2);border:1px solid var(--border-strong)"></span>занято (блокировка/календарь)</span>
+        <span><span class="qb-legend-dot" style="background:var(--blue-bg);border:1px solid var(--blue)"></span>ваш выбор</span>
       </div>
       <div class="muted" id="qbHint" style="margin:8px 0"></div>
 
@@ -1776,24 +1814,32 @@
   }
 
   function qbRenderGrid(){
+    var headEl = $('qbGridHead');
     var wrap = $('qbGrid');
-    if(!QB.halls.length){ wrap.innerHTML = '<div class="qb-empty">Нет активных залов.</div>'; qbRenderHint(); return; }
-    if(!QB.date){ wrap.innerHTML = ''; qbRenderHint(); return; }
+    if(!QB.halls.length){ headEl.innerHTML=''; wrap.innerHTML = '<div class="qb-empty">Нет активных залов.</div>'; qbRenderHint(); return; }
+    if(!QB.date){ headEl.innerHTML=''; wrap.innerHTML = ''; qbRenderHint(); return; }
     var w = qbDayWindow(QB.date);
     var start = Math.floor(w.start*60/QB.slotMin), end = Math.ceil(w.end*60/QB.slotMin);
-    if(end <= start){ wrap.innerHTML = '<div class="qb-empty">В этот день студия не работает.</div>'; qbRenderHint(); return; }
-    wrap.style.gridTemplateColumns = '52px repeat('+QB.halls.length+', minmax(88px,1fr))';
-    // Явные grid-column/grid-row на каждой ячейке (а не авто-расстановка) —
-    // проще и надёжнее теперь, когда занятость красит саму ячейку (как у
-    // клиента: data-state="busy"), а не отдельный элемент поверх сетки —
-    // раньше именно смешение авто- и явно позиционированных элементов
-    // ломало сетку на брони не в последнем зале.
-    var html = '<div class="qb-corner" style="grid-column:1;grid-row:1"></div>';
+    if(end <= start){ headEl.innerHTML=''; wrap.innerHTML = '<div class="qb-empty">В этот день студия не работает.</div>'; qbRenderHint(); return; }
+    var tpl = '52px repeat('+QB.halls.length+', minmax(88px,1fr))';
+    headEl.style.gridTemplateColumns = tpl;
+    wrap.style.gridTemplateColumns = tpl;
+    // Шапка (залы) — отдельный грид вне горизонтального скролла, см. CSS-
+    // комментарий у .qb-grid-outer. Явная grid-column не нужна (одна строка,
+    // авто-расстановка безопасна — конфликтует только с .qb-booked ниже,
+    // а он в ДРУГОМ гриде), но выставляем для единообразия с телом.
+    var headHtml = '<div class="qb-corner" style="grid-column:1;grid-row:1"></div>';
     QB.halls.forEach(function(h, idx){
-      html += '<div class="qb-head" style="grid-column:'+(idx+2)+';grid-row:1">'+esc(h.name)+'</div>';
+      headHtml += '<div class="qb-head" style="grid-column:'+(idx+2)+';grid-row:1">'+esc(h.name)+'</div>';
     });
+    headEl.innerHTML = headHtml;
+    // Явные grid-column/grid-row на КАЖДОМ элементе тела, включая .qb-booked
+    // ниже, — без единого авто-расставленного элемента конфликт, что ломал
+    // сетку раньше (авто-элемент съезжал, если его ячейка уже занята
+    // explicit-элементом), структурно невозможен.
+    var html = '';
     for(var i=start;i<end;i++){
-      var row = i-start+2;
+      var row = i-start+1;
       html += '<div class="qb-time" style="grid-column:1;grid-row:'+row+'">'+minLabel(i*QB.slotMin)+'</div>';
       QB.halls.forEach(function(h, idx){
         var st = qbCellState(h.id, i);
@@ -1802,15 +1848,37 @@
           + (on ? ' data-sel="true"' : '') + '></div>';
       });
     }
+    // Занятость сливается в один прямоугольник на бронь/блокировку (а не
+    // заливка отдельных ячеек) — цвет по статусу: подтверждена/завершена —
+    // зелёный, ожидает подтверждения — жёлтый, блокировка/внешний календарь —
+    // нейтральный серый. Явная позиция поверх той же сетки — безопасно
+    // (см. комментарий выше), клик открывает «Детали брони».
+    QB.halls.forEach(function(h, idx){
+      (QB.busy[h.id] || []).forEach(function(iv){
+        var s0 = Math.max(start, Math.floor(iv.start / QB.slotMin));
+        var e0 = Math.min(end, Math.ceil(iv.end / QB.slotMin));
+        if(e0 <= s0) return;
+        var info = qbFindDetail(h.id, iv.start, iv.end);
+        var statusKey = info.kind === 'booking' ? info.data.status : info.kind;
+        html += '<div class="qb-booked" data-status="'+esc(statusKey)+'" data-hall="'+esc(h.id)+'"'
+          + ' data-start="'+iv.start+'" data-end="'+iv.end+'"'
+          + ' style="grid-column:'+(idx+2)+';grid-row:'+(s0-start+1)+' / '+(e0-start+1)+'"></div>';
+      });
+    });
     wrap.innerHTML = html;
+    // Ширину шапки подгоняем под фактическую ширину тела (у тела есть
+    // реальный контент в ячейках, у шапки в minmax(88px,1fr)-колонках может
+    // разойтись на пиксель) — тот же приём, что в клиентском renderGrid().
+    headEl.style.width = wrap.getBoundingClientRect().width + 'px';
     qbRenderHint();
   }
-  // Сопоставляем занятый слот (клик мог прийтись на любую из ячеек, которые
-  // покрывает бронь/блокировка) с уже загруженными данными кабинета: сперва
-  // брони (lastBookings — из /admin/overview), потом блокировки владельца
-  // (blocksList) — ищем интервал, который ЦЕЛИКОМ содержит кликнутый слот, а
-  // не совпадает с ним один-в-один. Не нашли ни там, ни там — это внешний
-  // календарь (Google Calendar busy), деталей по нему у нас нет.
+  // Сопоставляем занятый интервал (из QB.busy — /availability, минуты от
+  // полуночи) с уже загруженными данными кабинета: сперва брони (lastBookings
+  // — из /admin/overview), потом блокировки владельца (blocksList). Ищем
+  // интервал, который ЦЕЛИКОМ содержит переданный (обычно совпадает
+  // один-в-один — busy строится из тех же самых записей), containment на
+  // случай расхождений. Не нашли ни там, ни там — это внешний календарь
+  // (Google Calendar busy), деталей по нему у нас нет.
   var DETAIL_STATUSES = { pending:1, confirmed:1, completed:1 };
   function qbFindDetail(hallId, slotStart, slotEnd){
     var b = lastBookings.find(function(x){
@@ -1883,16 +1951,18 @@
     }
   }
   $('qbGrid').addEventListener('click', function(e){
+    var blk = e.target && e.target.closest ? e.target.closest('.qb-booked') : null;
+    if(blk){ qbShowDetail(blk.dataset.hall, Number(blk.dataset.start), Number(blk.dataset.end)); return; }
     var el = e.target && e.target.closest ? e.target.closest('.qb-cell') : null;
-    if(!el) return;
-    var slot = Number(el.dataset.slot);
-    if(el.dataset.state === 'busy'){
-      qbShowDetail(el.dataset.hall, slot*QB.slotMin, slot*QB.slotMin + QB.slotMin);
-      return;
-    }
-    if(el.dataset.state !== 'free') return;
-    if(qbTapCell(el.dataset.hall, slot)) qbRenderGrid();
+    if(!el || el.dataset.state !== 'free') return;
+    if(qbTapCell(el.dataset.hall, Number(el.dataset.slot))) qbRenderGrid();
   });
+  // Шапка (залы) живёт вне горизонтального скроллера — синхронизируем её
+  // положение вручную при скролле тела (тот же приём, что в клиентском
+  // index.html: gridScrollEl.addEventListener('scroll', ...)).
+  $('qbGridScroll').addEventListener('scroll', function(){
+    $('qbGridHeadWrap').scrollLeft = $('qbGridScroll').scrollLeft;
+  }, { passive:true });
 
   function qbLoadBusy(){
     return api('GET', '/availability?date=' + encodeURIComponent(QB.date))
