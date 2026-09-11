@@ -227,14 +227,45 @@
     border-bottom:1px solid var(--border-strong,var(--border));font-family:inherit;}
   .qb-cell{
     border-left:1px solid var(--border);border-bottom:1px solid var(--border);
-    min-height:26px;cursor:pointer;
+    min-height:26px;cursor:pointer;position:relative;
   }
-  .qb-cell[data-state="busy"]{background:repeating-linear-gradient(135deg,var(--surface-2),var(--surface-2) 4px,var(--border) 4px,var(--border) 8px);cursor:not-allowed;}
+  .qb-cell[data-state="busy"]{background:var(--surface-2);cursor:not-allowed;}
   .qb-cell[data-state="past"]{background:var(--surface-2);opacity:.5;cursor:not-allowed;}
   .qb-cell[data-sel="true"]{background:var(--blue-bg);box-shadow:inset 0 0 0 1px var(--blue);}
   .qb-empty{padding:14px 4px;color:var(--text-3);font-size:13px;}
+  /* Занятое время — единый сплошной прямоугольник поверх сетки (как у
+     клиента: цвет и оттенок границы позаимствованы у его grid-cell[busy]),
+     а не отдельная штриховка на каждую клетку. Кликабелен — открывает
+     детали брони. margin создаёт отступ от линий сетки, чтобы блок читался
+     как одна карточка, а не заливка клеток. */
+  .qb-block{
+    margin:2px;padding:4px 7px;border-radius:6px;
+    background:var(--red-bg);border:1px solid #f0c9c9;color:var(--red);
+    font-size:11.5px;font-weight:600;line-height:1.3;cursor:pointer;
+    overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+  }
+  .qb-block:hover{background:#f7dede;}
 
-  /* ---------- модалка дашборда ---------- */
+  /* ---------- модалка деталей брони ---------- */
+  .modal-backdrop{
+    position:fixed;inset:0;z-index:50;background:rgba(20,22,28,.35);
+    display:flex;align-items:center;justify-content:center;padding:16px;
+  }
+  .modal-backdrop[hidden]{display:none;}
+  .modal-box{
+    background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);
+    max-width:380px;width:100%;padding:18px 20px;
+  }
+  .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .modal-head h3{margin:0;font-size:15px;font-weight:600;letter-spacing:-.005em;}
+  .modal-close{border:none;background:none;color:var(--text-3);font-size:15px;
+    line-height:1;cursor:pointer;padding:4px;border-radius:var(--r-sm);}
+  .modal-close:hover{color:var(--text);background:var(--surface-2);}
+  .qbd-row{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;
+    padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
+  .qbd-row:last-child{border-bottom:none;}
+  .qbd-l{color:var(--text-3);flex:none;}
+  .qbd-v{color:var(--text);text-align:right;font-weight:500;overflow-wrap:anywhere;}
 
   @media(max-width:760px){
     .sidebar{position:fixed;left:0;top:0;z-index:40;transform:translateX(-100%);
@@ -301,6 +332,9 @@
       </div>
       <div class="row">
         <span class="unitwrap"><input class="num" type="number" min="1" id="qbPeople" value="1"><span class="u">чел</span></span>
+      </div>
+      <div class="row">
+        <textarea class="name" id="qbComment" rows="2" maxlength="300" placeholder="Комментарий (необязательно) — например, своя аппаратура" style="resize:vertical"></textarea>
       </div>
       <div class="actions" style="margin-top:6px">
         <button class="btn small" id="qbSubmit" type="button" disabled>Забронировать</button>
@@ -489,6 +523,15 @@
   </main>
 </div>
 
+<div class="modal-backdrop" id="qbDetailModal" hidden>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Детали брони</h3>
+      <button class="modal-close" id="qbDetailClose" type="button" aria-label="Закрыть">✕</button>
+    </div>
+    <div id="qbDetailBody"></div>
+  </div>
+</div>
 
 <script>
 (function(){
@@ -1619,9 +1662,81 @@
           + (on ? ' data-sel="true"' : '') + '></div>';
       });
     }
+    // Занятость — не заливка клеток, а один сплошной прямоугольник на каждую
+    // бронь/блокировку (как событие в календаре у клиента), через явное
+    // grid-row/-column поверх той же сетки. Кликабелен — детали брони.
+    QB.halls.forEach(function(h, idx){
+      (QB.busy[h.id] || []).forEach(function(e){
+        var s0 = Math.max(start, Math.floor(e.start / QB.slotMin));
+        var e0 = Math.min(end, Math.ceil(e.end / QB.slotMin));
+        if(e0 <= s0) return;
+        html += '<div class="qb-block" style="grid-column:'+(idx+2)+';grid-row:'+(s0-start+2)+' / '+(e0-start+2)+'"'
+          + ' data-hall="'+esc(h.id)+'" data-start="'+e.start+'" data-end="'+e.end+'">'
+          + esc(qbBusyLabel(h.id, e.start, e.end)) + '</div>';
+      });
+    });
     wrap.innerHTML = html;
     qbRenderHint();
   }
+  // Подпись на блоке занятости — имя клиента, если это найденная бронь;
+  // иначе тип занятости (блокировка администратора / внешний календарь).
+  function qbBusyLabel(hallId, s, e){
+    var info = qbFindDetail(hallId, s, e);
+    if(info.kind === 'booking') return info.data.name || 'Бронь';
+    if(info.kind === 'block') return 'Блокировка';
+    return 'Занято';
+  }
+  // Сопоставляем занятый интервал сетки с уже загруженными данными кабинета:
+  // сперва брони (lastBookings — из /admin/overview), потом блокировки
+  // владельца (blocksList). Не нашли ни там, ни там — это внешний календарь
+  // (Google Calendar busy), деталей по нему у нас нет.
+  var DETAIL_STATUSES = { pending:1, confirmed:1, completed:1 };
+  function qbFindDetail(hallId, s, e){
+    var b = lastBookings.find(function(x){
+      return x.hallId === hallId && x.date === QB.date && x.start === s && x.end === e
+        && DETAIL_STATUSES[x.status];
+    });
+    if(b) return { kind:'booking', data:b };
+    var blk = blocksList.find(function(x){
+      return x.hallId === hallId && x.date === QB.date && x.start === s && x.end === e;
+    });
+    if(blk) return { kind:'block', data:blk };
+    return { kind:'external' };
+  }
+  function qbShowDetail(hallId, s, e){
+    var hall = QB.halls.find(function(h){ return h.id === hallId; }) || { name: hallId };
+    var info = qbFindDetail(hallId, s, e);
+    var durMin = e - s;
+    var durLabel = durMin % 60 === 0 ? (durMin/60) + ' ч' : Math.floor(durMin/60) + ' ч ' + (durMin%60) + ' мин';
+    var rows = [
+      ['Зал', esc(hall.name)],
+      ['Время', minLabel(s) + '–' + minLabel(e) + ' · ' + durLabel],
+    ];
+    if(info.kind === 'booking'){
+      var b = info.data;
+      rows.push(['Клиент', esc(b.name || '—')]);
+      rows.push(['Телефон', esc(b.phone || '—')]);
+      rows.push(['Гостей', esc(b.people != null ? b.people : '—')]);
+      rows.push(['Комментарий', b.comment ? esc(b.comment) : '—']);
+      rows.push(['Сумма', esc(b.price) + ' BYN']);
+      rows.push(['Статус', esc(ST_LABEL[b.status] || b.status)]);
+    } else if(info.kind === 'block'){
+      rows.push(['Тип', 'Блокировка администратора']);
+      rows.push(['Причина', info.data.note ? esc(info.data.note) : '—']);
+    } else {
+      rows.push(['Тип', 'Занято (внешний календарь)']);
+    }
+    $('qbDetailBody').innerHTML = rows.map(function(r){
+      return '<div class="qbd-row"><span class="qbd-l">'+r[0]+'</span><span class="qbd-v">'+r[1]+'</span></div>';
+    }).join('');
+    $('qbDetailModal').hidden = false;
+  }
+  function qbCloseDetail(){ $('qbDetailModal').hidden = true; }
+  $('qbDetailClose').addEventListener('click', qbCloseDetail);
+  $('qbDetailModal').addEventListener('click', function(e){ if(e.target === e.currentTarget) qbCloseDetail(); });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && !$('qbDetailModal').hidden) qbCloseDetail();
+  });
   function qbRenderHint(){
     var hint = $('qbHint');
     var submit = $('qbSubmit');
@@ -1638,6 +1753,8 @@
     }
   }
   $('qbGrid').addEventListener('click', function(e){
+    var blk = e.target && e.target.closest ? e.target.closest('.qb-block') : null;
+    if(blk){ qbShowDetail(blk.dataset.hall, Number(blk.dataset.start), Number(blk.dataset.end)); return; }
     var el = e.target && e.target.closest ? e.target.closest('.qb-cell') : null;
     if(!el || el.dataset.state !== 'free') return;
     if(qbTapCell(el.dataset.hall, Number(el.dataset.slot))) qbRenderGrid();
@@ -1666,14 +1783,16 @@
     var hall = qbHall();
     var people = parseInt($('qbPeople').value, 10);
     if(!Number.isInteger(people) || people < 1) people = 1;
+    var comment = $('qbComment').value.trim();
     var btn = $('qbSubmit'); btn.disabled = true;
     api('POST', '/admin/bookings', {
       hallId: hall.id, date: QB.date,
       start: QB.sel.start*QB.slotMin, end: QB.sel.end*QB.slotMin,
       people: people, name: name, phone: phone,
+      comment: comment || undefined,
     }).then(function(){
       flash($('qbNote'), 'Бронь создана', true);
-      $('qbName').value=''; $('qbPhone').value=''; $('qbPeople').value='1';
+      $('qbName').value=''; $('qbPhone').value=''; $('qbPeople').value='1'; $('qbComment').value='';
       qbClearSel();
       return qbLoadBusy().then(function(){ qbRenderGrid(); load(); });
     }).catch(function(e){
