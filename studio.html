@@ -794,6 +794,7 @@
     date: '',              // выбранная дата, YYYY-MM-DD
     dates: [],              // Date[] — все дни текущего окна (см. qbBuildDatesForMonthWindow), для ленты дат
     busy: {},              // {hallId: [{start,end}]}, минуты от полуночи
+    dayBookings: null,     // брони QB.date с деталями (/admin/bookings?date); null — не загрузились
     sel: { hallId:null, start:null, end:null },   // индексы слотов; end не включается
   };
   var hallsDraft = [], equipDraft = [], hoursDraft = [], ownersDraft = [], myId = '';
@@ -1901,15 +1902,17 @@
     qbRenderHint();
   }
   // Сопоставляем занятый интервал (из QB.busy — /availability, минуты от
-  // полуночи) с уже загруженными данными кабинета: сперва брони (lastBookings
-  // — из /admin/overview), потом блокировки владельца (blocksList). Ищем
-  // интервал, который ЦЕЛИКОМ содержит переданный (обычно совпадает
-  // один-в-один — busy строится из тех же самых записей), containment на
-  // случай расхождений. Не нашли ни там, ни там — это внешний календарь
-  // (Google Calendar busy), деталей по нему у нас нет.
+  // полуночи) с данными кабинета: сперва брони выбранного дня (QB.dayBookings
+  // — /admin/bookings?date, полный список дня), потом блокировки владельца
+  // (blocksList). Если брони дня не загрузились (сеть/старый сервер) —
+  // запасной источник lastBookings из /admin/overview, но он обрезан до 500
+  // последних по созданию. Ищем интервал, который ЦЕЛИКОМ содержит переданный
+  // (обычно совпадает один-в-один — busy строится из тех же записей). Не
+  // нашли нигде — это внешний календарь (Google Calendar busy).
   var DETAIL_STATUSES = { pending:1, confirmed:1, completed:1 };
   function qbFindDetail(hallId, slotStart, slotEnd){
-    var b = lastBookings.find(function(x){
+    var source = Array.isArray(QB.dayBookings) ? QB.dayBookings : lastBookings;
+    var b = source.find(function(x){
       return x.hallId === hallId && x.date === QB.date && x.start <= slotStart && x.end >= slotEnd
         && DETAIL_STATUSES[x.status];
     });
@@ -1949,14 +1952,13 @@
     } else if(info.kind === 'block'){
       rows.push(['Тип', 'Блокировка администратора']);
       rows.push(['Причина', info.data.note ? esc(info.data.note) : '—']);
-    } else if(dashTotal > lastBookings.length){
-      // Дашборд грузит не все брони, а последние 500 (OVERVIEW_BOOKINGS_CAP на
-      // сервере, сортировка по created_at DESC). Если список обрезан, занятость
-      // без совпадения — скорее всего как раз не подгруженная бронь, а не
-      // внешний календарь: честнее так и написать, чем утверждать неверное.
+    } else if(!Array.isArray(QB.dayBookings) && dashTotal > lastBookings.length){
+      // Только запасной путь: брони дня не загрузились, а lastBookings обрезан
+      // до 500 последних (OVERVIEW_BOOKINGS_CAP). Занятость без совпадения тогда
+      // скорее всего и есть не подгруженная бронь — не утверждаем, что это
+      // внешний календарь.
       rows.push(['Тип', 'Занято — детали не загружены']);
-      rows.push(['Почему', 'Дашборд держит последние ' + lastBookings.length +
-        ' броней из ' + dashTotal + '. Эта бронь старше — найдите её поиском по дашборду.']);
+      rows.push(['Почему', 'Не удалось загрузить брони этого дня. Обновите страницу или найдите бронь поиском по дашборду.']);
     } else {
       rows.push(['Тип', 'Занято (внешний календарь)']);
     }
@@ -2000,10 +2002,22 @@
     $('qbGridHeadWrap').scrollLeft = $('qbGridScroll').scrollLeft;
   }, { passive:true });
 
+  // Занятость (публичный /availability, только интервалы) и брони этого же
+  // дня с деталями (/admin/bookings?date) — параллельно. Если брони дня не
+  // пришли, QB.dayBookings = null и qbFindDetail откатывается на lastBookings.
+  // Ответ на уже неактуальную дату (быстро перещёлкали чипы) отбрасываем —
+  // иначе поздний ответ за прошлый день перезаписал бы сетку текущего.
   function qbLoadBusy(){
-    return api('GET', '/availability?date=' + encodeURIComponent(QB.date))
-      .then(function(byHall){ QB.busy = byHall || {}; })
-      .catch(function(){ QB.busy = {}; });
+    var date = QB.date;
+    var q = '?date=' + encodeURIComponent(date);
+    return Promise.all([
+      api('GET', '/availability' + q).catch(function(){ return {}; }),
+      api('GET', '/admin/bookings' + q).catch(function(){ return null; }),
+    ]).then(function(r){
+      if(date !== QB.date) return;
+      QB.busy = r[0] || {};
+      QB.dayBookings = Array.isArray(r[1]) ? r[1] : null;
+    });
   }
   function qbRefresh(){
     qbClearSel();
