@@ -210,14 +210,29 @@
   .empty{color:var(--text-3);font-size:13px;padding:12px 0;}
   .err{color:var(--red);font-size:13px;}
 
-  /* ---------- Новая бронь по звонку — инлайн на дашборде ---------- */
-  .quickbook-frame{
-    width:100%;height:640px;border:1px solid var(--border);border-radius:var(--r-sm);
-    display:block;background:var(--surface-2);
+  /* ---------- Новая бронь по звонку — сетка «залы × время» ---------- */
+  .qb-grid-wrap{
+    border:1px solid var(--border);border-radius:var(--r-sm);
+    max-height:420px;overflow:auto;background:var(--surface);
   }
-  @media(max-width:760px){
-    .quickbook-frame{height:560px;}
+  .qb-grid{display:grid;font-size:12px;}
+  .qb-corner, .qb-head, .qb-time{
+    position:sticky;background:var(--surface-2);color:var(--text-3);
+    font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;
   }
+  .qb-corner{top:0;left:0;z-index:3;}
+  .qb-head{top:0;z-index:2;padding:7px 6px;text-align:center;border-bottom:1px solid var(--border);
+    border-left:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .qb-time{left:0;z-index:1;padding:0 6px;display:flex;align-items:center;justify-content:flex-end;
+    border-bottom:1px solid var(--border-strong,var(--border));font-family:inherit;}
+  .qb-cell{
+    border-left:1px solid var(--border);border-bottom:1px solid var(--border);
+    min-height:26px;cursor:pointer;
+  }
+  .qb-cell[data-state="busy"]{background:repeating-linear-gradient(135deg,var(--surface-2),var(--surface-2) 4px,var(--border) 4px,var(--border) 8px);cursor:not-allowed;}
+  .qb-cell[data-state="past"]{background:var(--surface-2);opacity:.5;cursor:not-allowed;}
+  .qb-cell[data-sel="true"]{background:var(--blue-bg);box-shadow:inset 0 0 0 1px var(--blue);}
+  .qb-empty{padding:14px 4px;color:var(--text-3);font-size:13px;}
 
   /* ---------- модалка дашборда ---------- */
 
@@ -269,8 +284,28 @@
     <div id="app" hidden>
     <div class="card" id="sec-quickbook" data-folder="dashboard">
       <h2>Новая бронь по звонку</h2>
-      <div class="muted" style="margin-bottom:10px">Выберите зал и время — бронь создаётся сразу, подтверждения не требует.</div>
-      <iframe id="newBookingFrame" class="quickbook-frame" title="Новая бронь"></iframe>
+      <div class="muted" style="margin-bottom:10px">Отметьте начало и конец на сетке — как клиент выбирает время в приложении, только сразу для всех залов. Бронь создаётся без подтверждения.</div>
+
+      <div class="row">
+        <input type="date" id="qbDate">
+      </div>
+
+      <div id="qbGridWrap" class="qb-grid-wrap">
+        <div id="qbGrid" class="qb-grid"></div>
+      </div>
+      <div class="muted" id="qbHint" style="margin:8px 0"></div>
+
+      <div class="row">
+        <input class="name" id="qbName" placeholder="Имя клиента" autocomplete="off">
+        <input class="name" id="qbPhone" placeholder="Телефон" inputmode="tel" autocomplete="off">
+      </div>
+      <div class="row">
+        <span class="unitwrap"><input class="num" type="number" min="1" id="qbPeople" value="1"><span class="u">чел</span></span>
+      </div>
+      <div class="actions" style="margin-top:6px">
+        <button class="btn small" id="qbSubmit" type="button" disabled>Забронировать</button>
+      </div>
+      <div class="note" id="qbNote"></div>
     </div>
 
     <div class="card" id="sec-dashboard" data-folder="dashboard">
@@ -609,6 +644,18 @@
 
   var HALLS_BY_ID = {};
   var blocksList = [];
+  // ---------- Новая бронь по звонку: сетка «залы × время» ----------
+  var QB = {
+    tz: 'Europe/Minsk',
+    hours: null,          // 7×{start,end} в часах (0..24), индекс — JS getDay()
+    slotMin: 60,
+    minBookingMin: 60,
+    lastMinute: { enabled:false, hours:24, pct:20 },
+    halls: [],             // активные залы студии — «сырые», rate/priceRules как из API
+    date: '',              // выбранная дата, YYYY-MM-DD
+    busy: {},              // {hallId: [{start,end}]}, минуты от полуночи
+    sel: { hallId:null, start:null, end:null },   // индексы слотов; end не включается
+  };
   var hallsDraft = [], equipDraft = [], hoursDraft = [], ownersDraft = [], myId = '';
   var settingsDraft = { autoConfirm:false, bufferMin:10, minBookingMin:60, cancelFreeHours:24,
     lastminuteEnabled:false, lastminuteHours:24, lastminutePct:20,
@@ -1420,34 +1467,219 @@
     renderBookings(lastBookings);
   });
 
-  // ---------- «+» новая бронь (звонок по телефону) ----------
-  // На дашборде сразу, инлайном — тот же мини-апп, что видит клиент
-  // (?embed=admin): карточки залов, слайдер дат, сетка времени, недельный
-  // календарь зала по клику на карточку — ничего не переизобретаем заново.
-  // Создать бронь мини-апп сам не может (внутри iframe нет ни Telegram, ни
-  // нашей сессии) — он шлёт сюда postMessage, и уже кабинет своим токеном
-  // вызывает /admin/bookings. Контракт сообщений зеркально описан в
-  // index.html (EMBED_ADMIN/postBookingViaParent). После успешной брони
-  // мини-апп сам показывает экран «Бронь подтверждена» с кнопкой «Назад» —
-  // это и есть сброс к следующему звонку, перезагружать iframe не нужно.
-  // src выставляется в boot() — только когда точно подтверждён владелец/админ.
-  var MINIAPP_ORIGIN = 'https://poontstudio-ui.github.io';
-  var newBookingFrame = $('newBookingFrame');
+  // ---------- Новая бронь по звонку ----------
+  // Свой виджет, не копия клиентского мини-аппа: тот же принцип (две точки на
+  // сетке — начало и конец промежутка, повторный тап внутри — сброс), но
+  // нативная сетка в стиле кабинета и сразу по ВСЕМ активным залам на одну
+  // дату (админу так быстрее увидеть, какой зал свободен). Никакого iframe —
+  // /admin/bookings зовём напрямую через api(), тем же токеном кабинета.
 
-  window.addEventListener('message', function(e){
-    if(e.origin !== MINIAPP_ORIGIN) return;   // не доверяем сообщениям от чужих источников
-    var msg = e.data;
-    if(!msg || msg.type !== 'poont-admin-create-booking') return;
-    api('POST', '/admin/bookings', msg.body)
-      .then(function(booking){
-        newBookingFrame.contentWindow.postMessage(
-          { type:'poont-admin-booking-result', id: msg.id, ok:true, booking: booking }, MINIAPP_ORIGIN);
-        load();   // новая бронь сразу попадает в дашборд
-      })
-      .catch(function(err){
-        newBookingFrame.contentWindow.postMessage(
-          { type:'poont-admin-booking-result', id: msg.id, ok:false, error: err.message }, MINIAPP_ORIGIN);
+  // Тянем нужные поля из /config (зовётся из boot()).
+  function qbInitConfig(cfg){
+    QB.tz = cfg.timezone || 'Europe/Minsk';
+    var h = cfg.hours;
+    QB.hours = (Array.isArray(h) && h.length === 7)
+      ? h.map(function(d){ return {start:d.start, end:d.end}; })
+      : Array.from({length:7}, function(){ return {start:cfg.hoursStart, end:cfg.hoursEnd}; });
+    QB.slotMin = cfg.slotStep === 30 ? 30 : 60;
+    QB.minBookingMin = Number.isInteger(cfg.minBookingMin) ? cfg.minBookingMin : 60;
+    var lm = cfg.lastminute || {};
+    QB.lastMinute = {
+      enabled: !!lm.enabled,
+      hours: Number.isInteger(lm.hours) ? lm.hours : 24,
+      pct: Number.isInteger(lm.pct) ? lm.pct : 20,
+    };
+  }
+
+  // «Сейчас» в таймзоне студии — как studioWallClock() в мини-аппе.
+  function qbWallClock(){
+    var parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: QB.tz, hourCycle:'h23',
+      year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit',
+    }).formatToParts(new Date());
+    var g = function(t){ return parts.find(function(p){ return p.type===t; }).value; };
+    return { date: g('year')+'-'+g('month')+'-'+g('day'), minutes: Number(g('hour'))*60 + Number(g('minute')) };
+  }
+  function qbWeekday(dateStr){ return new Date(dateStr+'T00:00:00').getDay(); }
+  function qbDayWindow(dateStr){ return QB.hours[qbWeekday(dateStr)] || {start:0,end:0}; }
+  function qbMaxSlots(){ return Math.round(8*60 / QB.slotMin); }
+
+  // Минимум брони для старта в этом слоте: правило цены зала (minMin) или
+  // студийный минимум. Зеркало lib/rules.js minDurationFor / index.html minSlotsAt.
+  function qbMinSlots(hall, slot){
+    var minMin = QB.minBookingMin;
+    var rules = Array.isArray(hall.priceRules) ? hall.priceRules : [];
+    if(rules.length){
+      var dow = qbWeekday(QB.date), sm = slot * QB.slotMin;
+      for(var i=0;i<rules.length;i++){
+        var r = rules[i];
+        if(Array.isArray(r.dow) && r.dow.length && r.dow.indexOf(dow)===-1) continue;
+        if(sm >= r.from && sm < r.to){ if(r.minMin != null) minMin = r.minMin; break; }
+      }
+    }
+    return Math.max(1, Math.ceil(minMin / QB.slotMin));
+  }
+  function qbCellState(hallId, slot){
+    var w = qbDayWindow(QB.date);
+    var s0 = slot * QB.slotMin, e0 = s0 + QB.slotMin;
+    if(s0 < w.start*60 || e0 > w.end*60) return 'closed';
+    var now = qbWallClock();
+    if(QB.date < now.date || (QB.date === now.date && s0 < now.minutes)) return 'past';
+    var busy = QB.busy[hallId] || [];
+    for(var i=0;i<busy.length;i++){ if(s0 < busy[i].end && e0 > busy[i].start) return 'busy'; }
+    return 'free';
+  }
+  function qbSpanFree(hallId, a, b){
+    if(b-a < 1 || b-a > qbMaxSlots()) return false;
+    for(var i=a;i<b;i++) if(qbCellState(hallId, i) !== 'free') return false;
+    return true;
+  }
+  function qbHasSel(){ return QB.sel.hallId !== null; }
+  function qbClearSel(){ QB.sel = {hallId:null,start:null,end:null}; }
+  function qbSetSel(hallId, a, b){
+    if(!qbSpanFree(hallId, a, b)) return false;
+    QB.sel = {hallId:hallId, start:a, end:b};
+    return true;
+  }
+  // Тап — та же логика, что в мини-аппе (index.html tapCell): нет выделения
+  // (или тап в другом зале) — отмечаем только эту клетку; тап вне текущего
+  // выделения, в том же зале — весь промежуток до новой точки; тап ВНУТРИ
+  // выделения — сброс, остаётся только эта клетка.
+  function qbTapCell(hallId, slot){
+    if(QB.sel.hallId === hallId && qbHasSel()){
+      if(slot >= QB.sel.start && slot < QB.sel.end) return qbSetSel(hallId, slot, slot+1);
+      var a = Math.min(QB.sel.start, slot);
+      var b = Math.max(QB.sel.end - 1, slot) + 1;
+      return qbSetSel(hallId, a, b);
+    }
+    return qbSetSel(hallId, slot, slot+1);
+  }
+  function qbHall(){ return QB.halls.find(function(h){ return h.id === QB.sel.hallId; }) || null; }
+  function qbSelectionValid(){
+    if(!qbHasSel()) return false;
+    var hall = qbHall();
+    if(!hall || !qbSpanFree(hall.id, QB.sel.start, QB.sel.end)) return false;
+    return (QB.sel.end - QB.sel.start) >= qbMinSlots(hall, QB.sel.start);
+  }
+  function qbSelectionPending(){
+    if(!qbHasSel()) return false;
+    var hall = qbHall();
+    return !!hall && qbSpanFree(hall.id, QB.sel.start, QB.sel.end)
+      && (QB.sel.end - QB.sel.start) < qbMinSlots(hall, QB.sel.start);
+  }
+
+  // Оценка цены — зеркало server lib/rules.js priceFor/applyLastMinute (и
+  // index.html baseRoomPrice/computePrice). Финальную цену всё равно считает
+  // сервер в /admin/bookings — это только чтобы озвучить клиенту по телефону.
+  function qbMinuteRate(hall, rules, dow, minute){
+    for(var i=0;i<rules.length;i++){
+      var r = rules[i];
+      if(Array.isArray(r.dow) && r.dow.length && r.dow.indexOf(dow)===-1) continue;
+      if(minute >= r.from && minute < r.to) return r.rate;
+    }
+    return hall.rate;
+  }
+  function qbPrice(){
+    var hall = qbHall();
+    if(!hall) return 0;
+    var start = QB.sel.start*QB.slotMin, end = QB.sel.end*QB.slotMin;
+    var rules = Array.isArray(hall.priceRules) ? hall.priceRules : [];
+    var base;
+    if(!rules.length){ base = hall.rate * (end-start)/60; }
+    else {
+      var dow = qbWeekday(QB.date), perMin = 0;
+      for(var m=start; m<end; m++) perMin += qbMinuteRate(hall, rules, dow, m);
+      base = perMin/60;
+    }
+    if(QB.lastMinute.enabled && QB.lastMinute.pct>=1 && QB.lastMinute.pct<=90 && QB.lastMinute.hours>=1){
+      var now = qbWallClock();
+      var dayDiff = Math.round((new Date(QB.date+'T00:00:00') - new Date(now.date+'T00:00:00')) / 86400000);
+      var hoursUntil = dayDiff*24 + (start - now.minutes)/60;
+      if(hoursUntil >= 0 && hoursUntil <= QB.lastMinute.hours) base = base*(100-QB.lastMinute.pct)/100;
+    }
+    return +base.toFixed(2);
+  }
+
+  function qbRenderGrid(){
+    var wrap = $('qbGrid');
+    if(!QB.halls.length){ wrap.innerHTML = '<div class="qb-empty">Нет активных залов.</div>'; qbRenderHint(); return; }
+    if(!QB.date){ wrap.innerHTML = ''; qbRenderHint(); return; }
+    var w = qbDayWindow(QB.date);
+    var start = Math.floor(w.start*60/QB.slotMin), end = Math.ceil(w.end*60/QB.slotMin);
+    if(end <= start){ wrap.innerHTML = '<div class="qb-empty">В этот день студия не работает.</div>'; qbRenderHint(); return; }
+    wrap.style.gridTemplateColumns = '52px repeat('+QB.halls.length+', minmax(88px,1fr))';
+    var html = '<div class="qb-corner"></div>';
+    QB.halls.forEach(function(h){ html += '<div class="qb-head">'+esc(h.name)+'</div>'; });
+    for(var i=start;i<end;i++){
+      html += '<div class="qb-time">'+minLabel(i*QB.slotMin)+'</div>';
+      QB.halls.forEach(function(h){
+        var st = qbCellState(h.id, i);
+        var on = qbHasSel() && QB.sel.hallId===h.id && i>=QB.sel.start && i<QB.sel.end;
+        html += '<div class="qb-cell" data-hall="'+esc(h.id)+'" data-slot="'+i+'" data-state="'+st+'"'
+          + (on ? ' data-sel="true"' : '') + '></div>';
       });
+    }
+    wrap.innerHTML = html;
+    qbRenderHint();
+  }
+  function qbRenderHint(){
+    var hint = $('qbHint');
+    var submit = $('qbSubmit');
+    if(qbSelectionValid()){
+      var hall = qbHall();
+      hint.textContent = hall.name + ' · ' + minLabel(QB.sel.start*QB.slotMin) + '–' + minLabel(QB.sel.end*QB.slotMin)
+        + ' · ' + qbPrice() + ' BYN';
+      $('qbPeople').max = hall.capacity;
+      if(parseInt($('qbPeople').value,10) > hall.capacity) $('qbPeople').value = hall.capacity;
+      submit.disabled = false;
+    } else {
+      hint.textContent = qbSelectionPending() ? 'Отметьте вторую точку промежутка' : 'Отметьте начало брони на сетке';
+      submit.disabled = true;
+    }
+  }
+  $('qbGrid').addEventListener('click', function(e){
+    var el = e.target && e.target.closest ? e.target.closest('.qb-cell') : null;
+    if(!el || el.dataset.state !== 'free') return;
+    if(qbTapCell(el.dataset.hall, Number(el.dataset.slot))) qbRenderGrid();
+  });
+
+  function qbLoadBusy(){
+    return api('GET', '/availability?date=' + encodeURIComponent(QB.date))
+      .then(function(byHall){ QB.busy = byHall || {}; })
+      .catch(function(){ QB.busy = {}; });
+  }
+  function qbRefresh(){
+    qbClearSel();
+    return qbLoadBusy().then(qbRenderGrid);
+  }
+  $('qbDate').addEventListener('change', function(){
+    if($('qbDate').value) QB.date = $('qbDate').value;
+    qbRefresh();
+  });
+
+  $('qbSubmit').addEventListener('click', function(){
+    if(!qbSelectionValid()) return;
+    var name = $('qbName').value.trim();
+    var phone = $('qbPhone').value.trim();
+    if(name.length < 2) return flash($('qbNote'), 'Укажите имя клиента');
+    if(phone.length < 5) return flash($('qbNote'), 'Укажите телефон клиента');
+    var hall = qbHall();
+    var people = parseInt($('qbPeople').value, 10);
+    if(!Number.isInteger(people) || people < 1) people = 1;
+    var btn = $('qbSubmit'); btn.disabled = true;
+    api('POST', '/admin/bookings', {
+      hallId: hall.id, date: QB.date,
+      start: QB.sel.start*QB.slotMin, end: QB.sel.end*QB.slotMin,
+      people: people, name: name, phone: phone,
+    }).then(function(){
+      flash($('qbNote'), 'Бронь создана', true);
+      $('qbName').value=''; $('qbPhone').value=''; $('qbPeople').value='1';
+      qbClearSel();
+      return qbLoadBusy().then(function(){ qbRenderGrid(); load(); });
+    }).catch(function(e){
+      flash($('qbNote'), e.message);
+      $('qbSubmit').disabled = !qbSelectionValid();
+    });
   });
 
   // Выход: токен самоподписан, серверу отзывать нечего — просто забываем его.
@@ -1615,6 +1847,9 @@
       myId = String(ov.me || '');
       (ov.halls||[]).forEach(function(h){ HALLS_BY_ID[h.id] = h; });
       hallsDraft = (ov.halls||[]).filter(function(h){return h.active!==false;}).map(mapHall);
+      // Свежие «сырые» залы (rate/priceRules) для быстрой брони — отдельно от
+      // hallsDraft: тот мутирует, пока владелец правит зал в другой папке.
+      QB.halls = (ov.halls||[]).filter(function(h){return h.active!==false;});
       equipDraft = (ov.equipment||[]).filter(function(e){return e.active!==false;}).map(function(e){return {id:e.id,name:e.name,price:e.price,unit:e.unit};});
       ownersDraft = (ov.owners||[]).slice();
       $('stCount').textContent = ov.stats.count;
@@ -1775,14 +2010,19 @@
         renderSettings();
         amenitiesDraft = Object.assign({}, cfg.amenities || {});
         renderAmenities();
+        qbInitConfig(cfg);
         return load();
       })
       .then(function(){
         $('loading').hidden = true; $('app').hidden = false;
-        // Иframe с мини-аппом грузим только теперь, когда точно владелец/админ —
-        // до этого момента студия могла быть чужой (403 ушёл бы в .catch ниже).
-        newBookingFrame.src = MINIAPP_ORIGIN + '/photostudio-frontend/?tenant=' +
-          encodeURIComponent(STUDIO_ID) + '&embed=admin';
+        // Сетку быстрой брони показываем только теперь, когда точно
+        // подтверждён владелец/админ — до этого студия могла быть чужой
+        // (403 ушёл бы в .catch ниже).
+        var now = qbWallClock();
+        QB.date = now.date;
+        $('qbDate').value = now.date;
+        $('qbDate').min = now.date;
+        qbRefresh();
       })
       .catch(function(e){
         $('loading').hidden = true; $('denied').hidden = false;
