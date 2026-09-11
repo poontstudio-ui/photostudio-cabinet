@@ -68,6 +68,21 @@
   .err{color:var(--red);font-size:13px;margin-top:10px;}
   .empty{color:var(--text-3);font-size:13px;padding:8px 0;}
   #tgLogin{margin-top:6px;min-height:44px;}
+
+  /* Вход по номеру телефона (план «Телефон вместо Telegram», рядом с уже
+     существующим Login Widget — добавляется, не заменяет). */
+  .or-divider{display:flex;align-items:center;gap:10px;margin:18px 0 14px;
+    color:var(--text-3);font-size:11px;text-transform:uppercase;letter-spacing:.05em;}
+  .or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+  .field{margin-bottom:10px;}
+  .field label{display:block;font-size:12px;color:var(--text-2);margin-bottom:5px;}
+  .field input{width:100%;background:var(--surface);border:1px solid var(--border-strong);
+    border-radius:var(--r-sm);color:var(--text);font:inherit;font-size:13px;padding:9px 11px;}
+  .field input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-bg);}
+  .btn:disabled{opacity:.55;cursor:default;}
+  .btn.full{width:100%;}
+  .rowbtns{display:flex;gap:8px;margin-top:8px;}
+  .rowbtns .btn{flex:1;}
 </style>
 </head>
 <body>
@@ -83,6 +98,29 @@
     <p>Войдите через Telegram — тем же аккаунтом, что указан владельцем студии.</p>
     <div id="tgLogin"></div>
     <div id="loginErr" class="err" hidden></div>
+
+    <div class="or-divider">или</div>
+
+    <div id="phoneStep1">
+      <div class="field">
+        <label for="loginPhone">Номер телефона</label>
+        <input id="loginPhone" type="tel" inputmode="numeric" placeholder="+375 (29) 123-45-67" value="+375 ">
+      </div>
+      <button class="btn full" id="phoneSendBtn" type="button" disabled>Получить код</button>
+    </div>
+    <div id="phoneStep2" hidden>
+      <p class="muted" id="phoneHint" style="margin:0 0 10px"></p>
+      <div class="field">
+        <label for="loginCode">Код из Telegram или SMS</label>
+        <input id="loginCode" type="tel" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code">
+      </div>
+      <button class="btn full" id="phoneVerifyBtn" type="button" disabled>Подтвердить</button>
+      <div class="rowbtns">
+        <button class="btn ghost" id="phoneResendBtn" type="button">Отправить код ещё раз</button>
+        <button class="btn ghost" id="phoneBackBtn" type="button">Назад</button>
+      </div>
+    </div>
+    <div id="phoneErr" class="err" hidden></div>
   </div>
 
   <!-- КАБИНЕТ -->
@@ -198,6 +236,151 @@
     api('POST', '/api/session/logout', null, true).catch(function(){});
     setToken('');
     location.reload();
+  });
+
+  // ---------- Вход по номеру телефона — рядом с Login Widget, не вместо
+  // него (тот же /api/verify/start|check, что уже обслуживает клиентский
+  // мини-апп; сессия — тот же signSession, что и у Telegram-входа выше). ----------
+  function digitsAfterPrefix(raw){
+    var d = raw.replace(/\D/g,'');
+    if(d.indexOf('375')===0) d = d.slice(3);
+    return d.slice(0,9);
+  }
+  function formatByPhone(raw){
+    var d = digitsAfterPrefix(raw);
+    var out = '+375';
+    if(d.length>0) out += ' ('+d.slice(0,2);
+    if(d.length>=2) out += ')';
+    if(d.length>2) out += ' '+d.slice(2,5);
+    if(d.length>5) out += '-'+d.slice(5,7);
+    if(d.length>7) out += '-'+d.slice(7,9);
+    return out;
+  }
+  function dDigitsBeforeCaret(rawValue, caretPos){
+    var raw = rawValue.slice(0, caretPos).replace(/\D/g,'');
+    if(raw.indexOf('375')===0) raw = raw.slice(3);
+    else if('375'.indexOf(raw)===0) raw = '';
+    return raw.length;
+  }
+  function caretPosForDDigitCount(formatted, target){
+    if(target<=0) return 5;
+    var seenPrefix=0, seenD=0;
+    for(var i=0;i<formatted.length;i++){
+      if(/\d/.test(formatted[i])){
+        if(seenPrefix<3){ seenPrefix++; continue; }
+        seenD++;
+        if(seenD===target) return i+1;
+      }
+    }
+    return formatted.length;
+  }
+  function toE164Phone(){ return '+375' + digitsAfterPrefix($('loginPhone').value); }
+
+  $('loginPhone').addEventListener('focus', function(){
+    if(!$('loginPhone').value) $('loginPhone').value = '+375 ';
+  });
+  $('loginPhone').addEventListener('input', function(){
+    var el = $('loginPhone');
+    var caret = el.selectionStart;
+    var target = dDigitsBeforeCaret(el.value, caret);
+    el.value = formatByPhone(el.value);
+    var newPos = caretPosForDDigitCount(el.value, target);
+    el.setSelectionRange(newPos, newPos);
+    $('phoneSendBtn').disabled = digitsAfterPrefix(el.value).length !== 9;
+  });
+
+  var resendAt = 0, resendTimer = null;
+  function tickResend(){
+    clearTimeout(resendTimer);
+    var left = Math.ceil((resendAt - Date.now())/1000);
+    var btn = $('phoneResendBtn');
+    if(left > 0){
+      btn.disabled = true;
+      btn.textContent = 'Отправить код ещё раз (' + left + ')';
+      resendTimer = setTimeout(tickResend, 1000);
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Отправить код ещё раз';
+    }
+  }
+  function startResendCooldown(sec){ resendAt = Date.now() + sec*1000; tickResend(); }
+  function resetResendBtn(){
+    clearTimeout(resendTimer); resendAt = 0;
+    $('phoneResendBtn').disabled = false;
+    $('phoneResendBtn').textContent = 'Отправить код ещё раз';
+  }
+
+  function requestCode(){
+    return fetch(API_BASE + '/api/verify/start', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ phone: toE164Phone() }),
+    }).then(function(r){
+      return r.json().catch(function(){ return null; }).then(function(data){
+        if(!r.ok){
+          var e = new Error((data && data.error) || 'Не удалось отправить код');
+          if(data && typeof data.retryAfterSec === 'number') e.retryAfterSec = data.retryAfterSec;
+          throw e;
+        }
+        return data;
+      });
+    });
+  }
+  function handleCodeSendError(e){
+    var err = $('phoneErr'); err.textContent = e.message; show(err);
+    if(typeof e.retryAfterSec === 'number' && e.retryAfterSec > 0) startResendCooldown(e.retryAfterSec);
+    else resetResendBtn();
+  }
+
+  $('phoneSendBtn').addEventListener('click', function(){
+    if($('phoneSendBtn').disabled) return;
+    hide($('phoneErr'));
+    $('phoneHint').textContent = 'Код придёт в Telegram или SMS на ' + formatByPhone(toE164Phone());
+    $('loginCode').value = '';
+    $('phoneVerifyBtn').disabled = true;
+    hide($('phoneStep1')); show($('phoneStep2'));
+    resetResendBtn();
+    requestCode().then(function(){ startResendCooldown(60); }).catch(handleCodeSendError);
+  });
+
+  $('phoneResendBtn').addEventListener('click', function(){
+    if($('phoneResendBtn').disabled) return;
+    hide($('phoneErr'));
+    requestCode().then(function(){ startResendCooldown(60); }).catch(handleCodeSendError);
+  });
+
+  $('phoneBackBtn').addEventListener('click', function(){
+    hide($('phoneStep2')); show($('phoneStep1')); hide($('phoneErr'));
+    resetResendBtn();
+  });
+
+  $('loginCode').addEventListener('input', function(){
+    var el = $('loginCode');
+    el.value = el.value.replace(/\D/g,'').slice(0,6);
+    $('phoneVerifyBtn').disabled = el.value.length !== 6;
+  });
+
+  $('phoneVerifyBtn').addEventListener('click', function(){
+    if($('phoneVerifyBtn').disabled) return;
+    hide($('phoneErr'));
+    $('phoneVerifyBtn').disabled = true;
+    $('phoneVerifyBtn').textContent = 'Проверяем…';
+    fetch(API_BASE + '/api/verify/check', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ phone: toE164Phone(), code: $('loginCode').value.trim() }),
+    }).then(function(r){
+      return r.json().catch(function(){ return null; }).then(function(data){
+        if(!r.ok) throw new Error((data && data.error) || 'Неверный код');
+        return data;
+      });
+    }).then(function(res){
+      setToken(res.token);
+      return loadMe(null);
+    }).catch(function(e){
+      var err = $('phoneErr'); err.textContent = e.message; show(err);
+    }).finally(function(){
+      $('phoneVerifyBtn').disabled = $('loginCode').value.length !== 6;
+      $('phoneVerifyBtn').textContent = 'Подтвердить';
+    });
   });
 
   // старт
