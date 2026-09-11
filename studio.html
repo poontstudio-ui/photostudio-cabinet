@@ -210,38 +210,13 @@
   .empty{color:var(--text-3);font-size:13px;padding:12px 0;}
   .err{color:var(--red);font-size:13px;}
 
-  /* ---------- «+» новая бронь ---------- */
-  .fab{
-    position:fixed;right:22px;bottom:22px;z-index:55;
-    width:56px;height:56px;border-radius:50%;border:none;
-    background:var(--blue);color:#fff;font-size:28px;font-weight:400;line-height:1;
-    display:flex;align-items:center;justify-content:center;padding-bottom:2px;
-    box-shadow:0 4px 14px rgba(10,114,239,.4);cursor:pointer;
+  /* ---------- Новая бронь по звонку — инлайн на дашборде ---------- */
+  .quickbook-frame{
+    width:100%;height:640px;border:1px solid var(--border);border-radius:var(--r-sm);
+    display:block;background:var(--surface-2);
   }
-  .fab:hover{background:var(--blue-dark);}
-  .fab:active{transform:scale(.96);}
-
-  .modal-overlay{
-    position:fixed;inset:0;z-index:60;background:rgba(20,22,28,.45);
-    display:flex;align-items:flex-start;justify-content:center;
-    padding:36px 16px;overflow-y:auto;
-  }
-  .modal-overlay[hidden]{display:none;}
-  .modal{
-    background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);
-    width:100%;max-width:420px;overflow:hidden;
-  }
-  .modal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 0;}
-  .modal-head h2{margin:0;font-size:16px;font-weight:600;}
-  .modal-close{background:none;border:none;font-size:18px;line-height:1;color:var(--text-2);
-    cursor:pointer;padding:4px 8px;border-radius:var(--r-sm);}
-  .modal-close:hover{background:var(--surface-2);color:var(--text);}
-  .modal-frame{width:100%;height:680px;border:0;display:block;margin-top:6px;}
   @media(max-width:760px){
-    .modal-overlay{padding:0;}
-    .modal{max-width:none;min-height:100vh;border-radius:0;display:flex;flex-direction:column;}
-    .modal-frame{flex:1 1 auto;height:auto;}
-    .fab{right:16px;bottom:16px;}
+    .quickbook-frame{height:560px;}
   }
 
   /* ---------- модалка дашборда ---------- */
@@ -292,6 +267,12 @@
     <div id="denied" class="card" hidden><span class="err" id="deniedMsg"></span></div>
 
     <div id="app" hidden>
+    <div class="card" id="sec-quickbook" data-folder="dashboard">
+      <h2>Новая бронь по звонку</h2>
+      <div class="muted" style="margin-bottom:10px">Выберите зал и время — бронь создаётся сразу, подтверждения не требует.</div>
+      <iframe id="newBookingFrame" class="quickbook-frame" title="Новая бронь"></iframe>
+    </div>
+
     <div class="card" id="sec-dashboard" data-folder="dashboard">
       <h2>Дашборд</h2>
       <div class="row">
@@ -471,18 +452,6 @@
 
     </div>
   </main>
-</div>
-
-<button class="fab" id="newBookingFab" type="button" title="Новая бронь" aria-label="Новая бронь">+</button>
-
-<div class="modal-overlay" id="newBookingOverlay" hidden>
-  <div class="modal">
-    <div class="modal-head">
-      <h2>Новая бронь</h2>
-      <button class="modal-close" id="newBookingClose" type="button" aria-label="Закрыть">✕</button>
-    </div>
-    <iframe id="newBookingFrame" class="modal-frame"></iframe>
-  </div>
 </div>
 
 
@@ -1452,34 +1421,18 @@
   });
 
   // ---------- «+» новая бронь (звонок по телефону) ----------
-  // Внутри модалки — тот же мини-апп, что видит клиент (?embed=admin):
-  // карточки залов, слайдер дат, сетка времени, недельный календарь зала
-  // по клику на карточку — ничего не переизобретаем заново. Создать бронь
-  // мини-апп сам не может (внутри iframe нет ни Telegram, ни нашей сессии) —
-  // он шлёт сюда postMessage, и уже кабинет своим токеном вызывает
-  // /admin/bookings. Контракт сообщений зеркально описан в index.html
-  // (EMBED_ADMIN/postBookingViaParent).
+  // На дашборде сразу, инлайном — тот же мини-апп, что видит клиент
+  // (?embed=admin): карточки залов, слайдер дат, сетка времени, недельный
+  // календарь зала по клику на карточку — ничего не переизобретаем заново.
+  // Создать бронь мини-апп сам не может (внутри iframe нет ни Telegram, ни
+  // нашей сессии) — он шлёт сюда postMessage, и уже кабинет своим токеном
+  // вызывает /admin/bookings. Контракт сообщений зеркально описан в
+  // index.html (EMBED_ADMIN/postBookingViaParent). После успешной брони
+  // мини-апп сам показывает экран «Бронь подтверждена» с кнопкой «Назад» —
+  // это и есть сброс к следующему звонку, перезагружать iframe не нужно.
+  // src выставляется в boot() — только когда точно подтверждён владелец/админ.
   var MINIAPP_ORIGIN = 'https://poontstudio-ui.github.io';
-  var newBookingOverlay = $('newBookingOverlay');
   var newBookingFrame = $('newBookingFrame');
-
-  function openNewBooking(){
-    newBookingFrame.src = MINIAPP_ORIGIN + '/photostudio-frontend/?tenant=' +
-      encodeURIComponent(STUDIO_ID) + '&embed=admin';
-    newBookingOverlay.hidden = false;
-  }
-  function closeNewBooking(){
-    newBookingOverlay.hidden = true;
-    newBookingFrame.src = 'about:blank';   // сброс формы к следующему открытию
-  }
-  $('newBookingFab').addEventListener('click', openNewBooking);
-  $('newBookingClose').addEventListener('click', closeNewBooking);
-  newBookingOverlay.addEventListener('click', function(e){
-    if(e.target === newBookingOverlay) closeNewBooking();
-  });
-  document.addEventListener('keydown', function(e){
-    if(e.key === 'Escape' && !newBookingOverlay.hidden) closeNewBooking();
-  });
 
   window.addEventListener('message', function(e){
     if(e.origin !== MINIAPP_ORIGIN) return;   // не доверяем сообщениям от чужих источников
@@ -1824,7 +1777,13 @@
         renderAmenities();
         return load();
       })
-      .then(function(){ $('loading').hidden = true; $('app').hidden = false; })
+      .then(function(){
+        $('loading').hidden = true; $('app').hidden = false;
+        // Иframe с мини-аппом грузим только теперь, когда точно владелец/админ —
+        // до этого момента студия могла быть чужой (403 ушёл бы в .catch ниже).
+        newBookingFrame.src = MINIAPP_ORIGIN + '/photostudio-frontend/?tenant=' +
+          encodeURIComponent(STUDIO_ID) + '&embed=admin';
+      })
       .catch(function(e){
         $('loading').hidden = true; $('denied').hidden = false;
         $('deniedMsg').textContent = e.status === 403
