@@ -297,9 +297,9 @@
        уехавший под колонку прямоугольник брони просвечивает в этих щелях. */
     box-shadow:4px 0 0 var(--surface), 0 -2px 0 var(--surface), 0 2px 0 var(--surface);
   }
-  /* Минимализм: свободная ячейка — светлая плитка без рамки, прошедшее и
-     нерабочее время — просто пусто (без штриховки): отличие «можно / нельзя»
-     читается и так, а полосы по всей сетке рябили. */
+  /* Минимализм: ячейки без рамок. Свободная — светлая плитка; прошедшее и
+     нерабочее время — штриховка: пробовали «просто пусто», но так хуже
+     видно, куда бронировать нельзя (вернули по просьбе владельца). */
   .qb-cell{
     position:relative;height:34px;border-radius:6px;
     background:var(--bg);cursor:pointer;transition:background .1s;
@@ -307,7 +307,12 @@
   .qb-cell[data-state="free"]:hover{background:#e7e9ed;}
   .qb-cell[data-state="busy"]{cursor:default;}
   .qb-cell[data-state="past"],
-  .qb-cell[data-state="closed"]{cursor:default;background:none;}
+  .qb-cell[data-state="closed"]{
+    cursor:not-allowed;
+    background:repeating-linear-gradient(-45deg,
+      rgba(20,22,28,.05), rgba(20,22,28,.05) 5px,
+      rgba(20,22,28,.015) 5px, rgba(20,22,28,.015) 10px);
+  }
   .qb-cell[data-sel="true"],.qb-cell[data-sel="true"]:hover{background:#d4e5fd;}
   .qb-empty{padding:14px 4px;color:var(--text-3);font-size:13px;}
   /* Один прямоугольник на бронь/блокировку, поверх сетки, цвет по статусу.
