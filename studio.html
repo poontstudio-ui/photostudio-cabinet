@@ -3505,7 +3505,18 @@
         flash($('clDetailNote'), kind === 'paid' ? 'Отмечено оплаченным' : 'Долг прощён', true);
         loadClients();
       })
-      .catch(function(e){ flash($('clDetailNote'), e.message); });
+      .catch(function(e){
+        flash($('clDetailNote'), e.message);
+        // Вернуть кнопки в рабочее состояние. Без этого после неудачного
+        // «Простить»/«Оплачено» они оставались выключенными навсегда — до
+        // ухода с карточки и обратно. Перечитываем карточку: она же вернёт
+        // и актуальный список начислений, если что-то всё-таки применилось.
+        if(CL.open === id){
+          api('GET', '/admin/clients/' + encodeURIComponent(id))
+            .then(function(full){ if(CL.open === id) clRenderDebts(full.debts); })
+            .catch(function(){});
+        }
+      });
   }
   function clClose(){ clShowDetail(false); CL.open = null; }
   function clBody(){
