@@ -275,6 +275,12 @@
   .dash-pending b{font-size:16px;font-weight:700;}
   .dash-pending[hidden]{display:none;}
   .dash-pending.active{background:var(--amber);color:#fff;border-color:var(--amber);}
+  /* «Состоялась?» — строка с вопросом и двумя кнопками. Фон янтарный, как у
+     блока ожидающих заявок: это тоже «требует вашего ответа». */
+  #dashVerdict{background:var(--amber-bg);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:12px;}
+  #dashVerdict[hidden]{display:none;}
+  .verdict-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:4px 0;}
+  .vd-what{flex:1 1 200px;min-width:0;font-size:13px;}
   /* Бронь в списке — только текст и воздух: дата+время крупно, статус
      цветным словом, зал, клиент с кликабельным телефоном. Без рамок и полос. */
   .bk{margin-bottom:30px;}
@@ -478,8 +484,12 @@
   .cl-fld{flex:1 1 100%;}
   .cl-fld input{flex:1 1 auto;min-width:0;}
   .cl-fld .u{flex:none;}
+  /* нарушения — красной пометкой: в строке списка и в карточке */
+  .cl-warn{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--red-bg);
+    color:var(--red);white-space:nowrap;}
   .cl-stats{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:12px;font-size:12.5px;color:var(--text-2);}
   .cl-stats b{font-size:15px;font-weight:700;color:var(--text);display:block;letter-spacing:-.01em;}
+  .cl-stats .bad,.cl-stats .bad b{color:var(--red);}
   .cl-hist{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:5px 0;}
   .cl-hist .d{font-family:var(--f-mono);font-size:11.5px;color:var(--text-3);white-space:nowrap;}
   .cl-hist[data-cancelled="true"]{color:var(--text-3);text-decoration:line-through;}
@@ -626,6 +636,10 @@
       <button type="button" class="dash-pending" id="dashPending" hidden>
         <b id="dashPendingCount">0</b> ожидают подтверждения
       </button>
+      <!-- Прошедшие брони, по которым не сказано, состоялись они или нет.
+           Отсюда берётся статистика прогулов, поэтому спрашиваем сразу, пока
+           бронь свежая; через сутки бронь автозавершится сама. -->
+      <div id="dashVerdict" hidden></div>
       <div id="bookings"><div class="empty">—</div></div>
       <div class="actions" style="margin-top:10px">
         <button class="btn ghost small danger" id="clearHist" type="button">Очистить прошедшие</button>
@@ -2015,6 +2029,37 @@
     return [];
   }
 
+  // Отмена из кабинета спрашивает, ЧЬЁ это решение: от ответа зависит, попадёт
+  // ли отмена в статистику надёжности клиента (роут отмены принимает
+  // by:'client'|'studio'). Раньше любая отмена из кабинета записывалась как
+  // отмена студии — и телефонные отказы «не смогу прийти», которых
+  // большинство, в статистику не попадали вообще.
+  // bar — тот же контейнер кнопок: подменяем его содержимое вопросом, чтобы не
+  // плодить ещё одну модалку. «Не отменять» просит вызвавшего перерисовать
+  // кнопки заново (вернуть innerHTML нельзя — с ним не вернутся обработчики).
+  function bkAskWhoCancels(bar, run, rerender){
+    bar.innerHTML = '';
+    var q = document.createElement('span');
+    q.className = 'muted'; q.style.fontSize = '12px'; q.style.marginRight = '2px';
+    q.textContent = 'Кто отменяет?';
+    bar.appendChild(q);
+    [['client', 'Отказался клиент', 'stop'], ['studio', 'Отменяем сами', '']].forEach(function(o){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn small' + (o[2] ? ' ' + o[2] : '');
+      b.textContent = o[1];
+      b.addEventListener('click', function(){
+        bar.querySelectorAll('button').forEach(function(x){ x.disabled = true; });
+        run(o[0]);
+      });
+      bar.appendChild(b);
+    });
+    var back = document.createElement('button');
+    back.type = 'button'; back.className = 'btn ghost small'; back.textContent = 'Не отменять';
+    back.addEventListener('click', rerender);
+    bar.appendChild(back);
+  }
+
   var lastBookings = [];
   var dashPendingOnly = false;
   var dashSearchQuery = '';
@@ -2042,6 +2087,57 @@
     return onlyDigits(b.phone).indexOf(qDigits) !== -1 || onlyDigits(b.date).indexOf(qDigits) !== -1;
   }
 
+  // «Состоялась?» по прошедшим подтверждённым броням. Без этого вопроса
+  // статистика прогулов не наберётся: не пришедший клиент в базе выглядит так
+  // же, как пришедший, пока владелец не нажмёт «Не пришёл». Через сутки после
+  // окончания бронь автозавершается воркером и из списка уходит сама — то
+  // есть спрашиваем только пока ответ ещё актуален и ничего не накапливается.
+  // Прогул при этом можно отметить и позже, из деталей брони.
+  function renderVerdictAsks(list){
+    var box = $('dashVerdict');
+    if(!box) return;
+    var now = qbWallClock();
+    var due = list.filter(function(b){
+      if(b.status !== 'confirmed') return false;
+      return b.date < now.date || (b.date === now.date && b.end <= now.minutes);
+    }).slice(0, 8);
+    box.hidden = !due.length;
+    box.innerHTML = '';
+    if(!due.length) return;
+    var head = document.createElement('div');
+    head.className = 'muted';
+    head.style.cssText = 'font-size:12px;margin-bottom:6px';
+    head.textContent = due.length === 1 ? 'Эта бронь состоялась?' : 'Эти брони состоялись?';
+    box.appendChild(head);
+    due.forEach(function(b){
+      var hall = (HALLS_BY_ID[b.hallId] || {}).name || '';
+      var row = document.createElement('div');
+      row.className = 'verdict-row';
+      var who = document.createElement('span');
+      who.className = 'vd-what';
+      who.textContent = dateLabel(b.date) + ' ' + minLabel(b.start) + '–' + minLabel(b.end)
+        + ' · ' + (b.name || '—') + (hall ? ' · ' + hall : '');
+      row.appendChild(who);
+      [['complete', 'Состоялась', 'go'], ['no-show', 'Не пришёл', 'stop']].forEach(function(o){
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn small ' + o[2];
+        btn.textContent = o[1];
+        btn.addEventListener('click', function(){
+          row.querySelectorAll('button').forEach(function(x){ x.disabled = true; });
+          api('POST', '/admin/bookings/' + b.id + '/' + o[0])
+            .then(load).then(qbSyncGrid)
+            .catch(function(e){
+              row.querySelectorAll('button').forEach(function(x){ x.disabled = false; });
+              flash($('clearNote'), e.message);
+            });
+        });
+        row.appendChild(btn);
+      });
+      box.appendChild(row);
+    });
+  }
+
   function renderBookings(list){
     lastBookings = list;
     var c = $('bookings');
@@ -2055,6 +2151,8 @@
       pbox.classList.toggle('active', dashPendingOnly);
       if(!pendCount) dashPendingOnly = false;
     }
+
+    renderVerdictAsks(list);
 
     var shown = dashPendingOnly ? pending : list;
     if(dashSearchQuery){
@@ -2089,17 +2187,23 @@
           btn.className = 'btn small' + (a.c ? ' ' + a.c : '');
           btn.textContent = a.t;
           btn.addEventListener('click', function(){
-            var url = a.p === 'cancel'
-              ? '/bookings/' + b.id + '/cancel'
-              : '/admin/bookings/' + b.id + '/' + a.p;
-            bar.querySelectorAll('button').forEach(function(x){ x.disabled = true; });
             // qbSyncGrid — статус брони красит её прямоугольник в сетке
             // (зелёный/жёлтый), а отмена вовсе убирает занятость: без этого
             // сетка показывала бы прежний цвет до переключения даты.
-            api('POST', url).then(load).then(qbSyncGrid).catch(function(e){
-              bar.querySelectorAll('button').forEach(function(x){ x.disabled = false; });
-              flash($('clearNote'), e.message);
-            });
+            var fire = function(by){
+              var url = a.p === 'cancel'
+                ? '/bookings/' + b.id + '/cancel'
+                : '/admin/bookings/' + b.id + '/' + a.p;
+              api('POST', url, by ? { by: by } : undefined).then(load).then(qbSyncGrid).catch(function(e){
+                renderBookings(lastBookings);
+                flash($('clearNote'), e.message);
+              });
+            };
+            if(a.p === 'cancel'){
+              return bkAskWhoCancels(bar, fire, function(){ renderBookings(lastBookings); });
+            }
+            bar.querySelectorAll('button').forEach(function(x){ x.disabled = true; });
+            fire(null);
           });
           bar.appendChild(btn);
         });
@@ -2516,15 +2620,21 @@
       btn.textContent = a.t;
       btn.addEventListener('click', function(){
         if(a.p === 'reschedule'){ qbEnterReschedule(b.hallId, b); return; }
-        var url = a.p === 'cancel' ? '/bookings/' + b.id + '/cancel' : '/admin/bookings/' + b.id + '/' + a.p;
+        var fire = function(by){
+          var url = a.p === 'cancel' ? '/bookings/' + b.id + '/cancel' : '/admin/bookings/' + b.id + '/' + a.p;
+          api('POST', url, by ? { by: by } : undefined).then(function(){
+            qbCloseDetail();
+            return load().then(qbSyncGrid);
+          }).catch(function(e){
+            qbRenderDetailActions(info);
+            flash($('qbDetailNote'), e.message);
+          });
+        };
+        if(a.p === 'cancel'){
+          return bkAskWhoCancels(box, fire, function(){ qbRenderDetailActions(info); });
+        }
         box.querySelectorAll('button').forEach(function(x){ x.disabled = true; });
-        api('POST', url).then(function(){
-          qbCloseDetail();
-          return load().then(qbSyncGrid);
-        }).catch(function(e){
-          box.querySelectorAll('button').forEach(function(x){ x.disabled = false; });
-          flash($('qbDetailNote'), e.message);
-        });
+        fire(null);
       });
       box.appendChild(btn);
     });
@@ -2783,12 +2893,22 @@
   var qbLookedUpKey = '';
   function qbShowClient(c){
     var hint = $('qbClientHint');
+    hint.style.color = '';
     if(!c){ hint.textContent = ''; return; }
     // Имя НЕ перетираем, если владелец уже что-то вписал сам.
     if(!$('qbName').value.trim() && c.name) $('qbName').value = c.name;
+    // Прогулы и поздние отмены — ровно тот момент, когда о них нужно знать:
+    // владелец как раз записывает бронь этого человека. Поэтому они впереди
+    // визитов и красным.
+    var faults = clFaultText(c);
     var bits = [];
     if(c.visits) bits.push(c.visits + ' ' + clVisitWord(c.visits));
     if(c.note) bits.push(c.note);
+    if(faults.length){
+      hint.style.color = 'var(--red)';
+      hint.textContent = faults.join(' · ') + (bits.length ? ' · ' + bits.join(' · ') : '');
+      return;
+    }
     hint.textContent = 'Знакомый клиент' + (bits.length ? ' — ' + bits.join(' · ') : '');
   }
   function qbLookupClient(){
@@ -3082,21 +3202,38 @@
       b.type = 'button'; b.className = 'cl-row'; b.dataset.id = c.id;
       var tags = (c.tags || []).slice(0, 3)
         .map(function(t){ return '<span class="cl-tag">' + esc(t) + '</span>'; }).join('');
+      // Нарушения — отдельной красной пометкой в строке, чтобы их было видно
+      // не открывая карточку.
+      var warn = clFaultText(c)
+        .map(function(t){ return '<span class="cl-warn">' + esc(t) + '</span>'; }).join('');
       var meta = c.visits
         ? esc(c.visits) + ' ' + clVisitWord(c.visits) + ' · ' + esc(Math.round(c.spent)) + ' BYN'
         : 'без броней';
       b.innerHTML = '<span class="cl-name">' + esc(c.name || 'Без имени') + '</span>'
-        + '<span class="cl-phone">' + esc(c.phone) + '</span>' + tags
+        + '<span class="cl-phone">' + esc(c.phone) + '</span>' + tags + warn
         + '<span class="cl-meta">' + meta + '</span>';
       b.addEventListener('click', function(){ clOpen(c.id); });
       box.appendChild(b);
     });
   }
-  function clVisitWord(n){
+  function plural(n, one, few, many){
     var a = n % 10, b = n % 100;
-    if(a === 1 && b !== 11) return 'визит';
-    if(a >= 2 && a <= 4 && (b < 12 || b > 14)) return 'визита';
-    return 'визитов';
+    if(a === 1 && b !== 11) return one;
+    if(a >= 2 && a <= 4 && (b < 12 || b > 14)) return few;
+    return many;
+  }
+  function clVisitWord(n){ return plural(n, 'визит', 'визита', 'визитов'); }
+  // Нарушения: прогулы (status='no_show') и отмены позже бесплатного окна
+  // (cancel_kind='late'). И то и другое считает бэкенд из броней — руками
+  // ничего не заносится. Отмены самой студии сюда не попадают.
+  function clFaultText(c){
+    var out = [];
+    if(c.noShow) out.push(c.noShow + ' ' + plural(c.noShow, 'прогул', 'прогула', 'прогулов')
+      + (c.noShowYear ? ' (' + c.noShowYear + ' за год)' : ''));
+    if(c.lateCancel) out.push(c.lateCancel + ' '
+      + plural(c.lateCancel, 'поздняя отмена', 'поздние отмены', 'поздних отмен')
+      + (c.lateCancelYear ? ' (' + c.lateCancelYear + ' за год)' : ''));
+    return out;
   }
   function loadClients(){
     return api('GET', '/admin/clients').then(function(list){
@@ -3174,10 +3311,22 @@
     });
   }
   function clStatsHtml(c){
-    if(!c.visits) return '<div><b>—</b>без броней</div>';
-    return '<div><b>' + esc(c.visits) + '</b>' + clVisitWord(c.visits) + '</div>'
-      + '<div><b>' + esc(Math.round(c.spent)) + ' BYN</b>потрачено</div>'
-      + (c.lastVisit ? '<div><b>' + esc(clFmtDate(c.lastVisit)) + '</b>последний визит</div>' : '');
+    var main = c.visits
+      ? '<div><b>' + esc(c.visits) + '</b>' + clVisitWord(c.visits) + '</div>'
+        + '<div><b>' + esc(Math.round(c.spent)) + ' BYN</b>потрачено</div>'
+        + (c.lastVisit ? '<div><b>' + esc(clFmtDate(c.lastVisit)) + '</b>последний визит</div>' : '')
+      : '<div><b>—</b>без броней</div>';
+    // Нарушения показываем только когда они есть: у аккуратного клиента в
+    // карточке не должно быть пустых строк «прогулов: 0».
+    if(c.noShow) main += '<div class="bad"><b>' + esc(c.noShow) + '</b>'
+      + plural(c.noShow, 'прогул', 'прогула', 'прогулов')
+      + (c.noShowYear ? ' · ' + esc(c.noShowYear) + ' за год' : '') + '</div>';
+    if(c.lateCancel) main += '<div class="bad"><b>' + esc(c.lateCancel) + '</b>'
+      + plural(c.lateCancel, 'поздняя отмена', 'поздние отмены', 'поздних отмен')
+      + (c.lateCancelYear ? ' · ' + esc(c.lateCancelYear) + ' за год' : '') + '</div>';
+    if(c.reschedules) main += '<div><b>' + esc(c.reschedules) + '</b>'
+      + plural(c.reschedules, 'перенос', 'переноса', 'переносов') + '</div>';
+    return main;
   }
   function clRenderHistory(list){
     var box = $('clHistory');
