@@ -455,6 +455,35 @@
   @keyframes qb-bar-up{from{transform:translateY(100%);}to{transform:translateY(0);}}
   .qb-bar-in{animation:qb-bar-up .22s cubic-bezier(.32,.72,0,1);}
 
+  /* ---------- клиенты ---------- */
+  /* Строка списка — кликабельная, но без рамок и карточек: разделяем
+     воздухом, как и всё остальное в кабинете. */
+  /* flex-wrap обязателен: на 375px имя + телефон + метки + статистика в одну
+     строку не влезают, и без переноса строка распирала документ вбок. */
+  .cl-row{display:flex;align-items:baseline;gap:6px 10px;flex-wrap:wrap;
+    width:100%;min-width:0;text-align:left;
+    background:none;border:none;font:inherit;color:inherit;cursor:pointer;
+    padding:9px 10px;margin:0 -10px;border-radius:var(--r-sm);}
+  .cl-row:hover{background:var(--surface-2);}
+  .cl-name{font-weight:600;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .cl-phone{font-family:var(--f-mono);font-size:12px;color:var(--text-3);white-space:nowrap;}
+  .cl-meta{margin-left:auto;font-size:12px;color:var(--text-3);white-space:nowrap;flex:none;}
+  .cl-tag{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--blue-bg);
+    color:var(--blue-dark);white-space:nowrap;}
+  /* Метка в модалке — с крестиком удаления, поэтому кнопка, а не span. */
+  .cl-tag-del{border:none;background:var(--blue-bg);color:var(--blue-dark);cursor:pointer;
+    font:inherit;font-size:11px;padding:4px 10px;border-radius:999px;}
+  .cl-tag-del:hover{background:var(--red-bg);color:var(--red);}
+  /* поле с подписью-суффиксом занимает строку целиком, подпись прижата справа */
+  .cl-fld{flex:1 1 100%;}
+  .cl-fld input{flex:1 1 auto;min-width:0;}
+  .cl-fld .u{flex:none;}
+  .cl-stats{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:12px;font-size:12.5px;color:var(--text-2);}
+  .cl-stats b{font-size:15px;font-weight:700;color:var(--text);display:block;letter-spacing:-.01em;}
+  .cl-hist{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:5px 0;}
+  .cl-hist .d{font-family:var(--f-mono);font-size:11.5px;color:var(--text-3);white-space:nowrap;}
+  .cl-hist[data-cancelled="true"]{color:var(--text-3);text-decoration:line-through;}
+
   /* ---------- модалка деталей брони ---------- */
   .modal-backdrop{
     position:fixed;inset:0;z-index:50;background:rgba(20,22,28,.35);
@@ -540,6 +569,7 @@
       <button class="nav-folder" data-folder="main" type="button">Основное</button>
       <button class="nav-folder" data-folder="halls" type="button">Залы</button>
       <button class="nav-folder" data-folder="booking" type="button">Бронирование</button>
+      <button class="nav-folder" data-folder="clients" type="button">Клиенты</button>
       <button class="nav-folder" data-folder="equipment" type="button">Оборудование</button>
       <button class="nav-folder" data-folder="team" type="button">Команда</button>
       <button class="nav-folder" data-folder="integrations" type="button">Интеграции</button>
@@ -738,6 +768,19 @@
       <div id="blkList" style="margin-top:8px"></div>
     </div>
 
+    <div class="card" id="sec-clients" data-folder="clients">
+      <h2>Клиенты</h2>
+      <div class="muted" style="margin-bottom:10px">Карточка заводится сама при каждой брони — по телефону. Здесь можно дописать то, чего в брони нет.</div>
+      <div class="row">
+        <input class="name" id="clSearch" placeholder="Поиск по имени, телефону или метке" autocomplete="off">
+      </div>
+      <div class="actions" style="margin-bottom:6px">
+        <button class="btn ghost small" id="clAdd" type="button">+ Клиент</button>
+      </div>
+      <div id="clList"><span class="muted">Загрузка…</span></div>
+      <div class="note" id="clNote"></div>
+    </div>
+
     <div class="card" id="sec-calendar" data-folder="integrations">
       <h2>Google Calendar</h2>
       <div id="calBody"><span class="muted">Загрузка…</span></div>
@@ -782,6 +825,50 @@
   </div>
 </div>
 
+<!-- Карточка клиента: и просмотр, и правка в одной модалке. Отдельного режима
+     «просмотр» нет намеренно — владелец приходит сюда, чтобы дописать заметку,
+     а не любоваться полями. -->
+<div class="modal-backdrop qb-form-modal" id="clModal" hidden>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="clModalTitle">Клиент</h3>
+      <button class="modal-close" id="clClose" type="button" aria-label="Закрыть">✕</button>
+    </div>
+    <div class="cl-stats" id="clStats"></div>
+    <div class="row"><input class="name" id="clName" placeholder="Имя" autocomplete="off"></div>
+    <div class="row"><input class="name" id="clPhone" type="tel" inputmode="numeric" placeholder="+375 (29) 123-45-67" autocomplete="off"></div>
+    <!-- Instagram и Telegram заполненными выглядят одинаково («@ник»), поэтому
+         подписаны — как единицы у числовых полей в остальных формах. -->
+    <div class="row">
+      <span class="unitwrap cl-fld"><input id="clInstagram" placeholder="@ник" autocomplete="off"><span class="u">instagram</span></span>
+    </div>
+    <div class="row">
+      <span class="unitwrap cl-fld"><input id="clTelegram" placeholder="@ник" autocomplete="off"><span class="u">telegram</span></span>
+    </div>
+    <div class="row">
+      <span class="unitwrap cl-fld"><input id="clEmail" type="email" placeholder="почта@пример.com" autocomplete="off"><span class="u">email</span></span>
+    </div>
+    <div class="row">
+      <span class="unitwrap cl-fld"><input id="clBirthday" type="date"><span class="u">рождение</span></span>
+    </div>
+    <div class="row">
+      <textarea class="name" id="clNoteField" rows="2" maxlength="2000" placeholder="Заметка: что снимает, что любит, о чём договорились" style="resize:vertical"></textarea>
+    </div>
+    <div class="fld-l">Метки</div>
+    <div class="chip-row" id="clTags" style="margin-bottom:8px"></div>
+    <div class="row">
+      <input class="name" id="clTagNew" placeholder="Добавить метку и нажать Enter" autocomplete="off">
+    </div>
+    <div class="fld-l">История</div>
+    <div id="clHistory" style="margin-bottom:10px"></div>
+    <div class="actions">
+      <button class="btn" id="clSave" type="button">Сохранить</button>
+      <button class="btn ghost" id="clDelete" type="button">Удалить</button>
+    </div>
+    <div class="note" id="clModalNote"></div>
+  </div>
+</div>
+
 <!-- Данные клиента для брони по звонку. Раньше эти поля висели в потоке под
      сеткой всегда, даже когда время ещё не выбрано; теперь открываются с
      липкой сводки по «Далее» — время уже выбрано, остаётся только клиент. -->
@@ -798,6 +885,8 @@
     <div class="row">
       <input class="name" id="qbPhone" type="tel" inputmode="numeric" placeholder="+375 (29) 123-45-67" autocomplete="off">
     </div>
+    <!-- Что мы знаем про этот номер: заполняется, когда телефон введён целиком -->
+    <div class="note" id="qbClientHint"></div>
     <div class="row">
       <span class="unitwrap"><input class="num" type="number" min="1" id="qbPeople" value="1"><span class="u">чел</span></span>
     </div>
@@ -2446,6 +2535,7 @@
   $('qbDetailModal').addEventListener('click', function(e){ if(e.target === e.currentTarget) qbCloseDetail(); });
   document.addEventListener('keydown', function(e){
     if(e.key !== 'Escape') return;
+    if(!$('clModal').hidden) return clClose();
     if(!$('qbFormModal').hidden) return qbCloseForm();
     if(!$('qbDetailModal').hidden) return qbCloseDetail();
   });
@@ -2682,7 +2772,34 @@
     this.value = qbPhoneFormat(this.value);
     var pos = qbPhoneCaretFor(this.value, target);
     this.setSelectionRange(pos, pos);
+    qbLookupClient();
   });
+
+  // Знакомый номер — подставляем имя и показываем, что мы про человека знаем.
+  // Ищем в уже загруженном списке карточек (CL.list приходит вместе с
+  // остальным кабинетом): это мгновенно и без запроса на каждую цифру. Запрос
+  // шлём только если список не загрузился — тогда есть отдельный роут by-phone.
+  var qbLookedUpKey = '';
+  function qbShowClient(c){
+    var hint = $('qbClientHint');
+    if(!c){ hint.textContent = ''; return; }
+    // Имя НЕ перетираем, если владелец уже что-то вписал сам.
+    if(!$('qbName').value.trim() && c.name) $('qbName').value = c.name;
+    var bits = [];
+    if(c.visits) bits.push(c.visits + ' ' + clVisitWord(c.visits));
+    if(c.note) bits.push(c.note);
+    hint.textContent = 'Знакомый клиент' + (bits.length ? ' — ' + bits.join(' · ') : '');
+  }
+  function qbLookupClient(){
+    var key = qbPhoneDigits($('qbPhone').value);
+    if(key.length !== 9){ qbLookedUpKey = ''; $('qbClientHint').textContent = ''; return; }
+    if(key === qbLookedUpKey) return;      // тот же номер — второй раз не ищем
+    qbLookedUpKey = key;
+    var local = CL.list.find(function(c){ return c.phoneKey === key; });
+    if(local || CL.list.length) return qbShowClient(local || null);
+    api('GET', '/admin/clients/by-phone/' + encodeURIComponent($('qbPhone').value))
+      .then(qbShowClient).catch(function(){ /* 404 — просто незнакомый номер */ });
+  }
 
   // ---------- модалка данных клиента ----------
   function qbOpenForm(){
@@ -2691,9 +2808,13 @@
     $('qbFormSum').textContent = hall.name + ' · ' + qbWhenLabel()
       + ' · ' + qbDurLabel() + ' · ' + qbPrice() + ' BYN';
     $('qbFormNote').textContent = '';
+    $('qbClientHint').textContent = '';
+    qbLookedUpKey = '';
     $('qbSubmit').disabled = false;
     $('qbSubmit').textContent = 'Забронировать';
     $('qbFormModal').hidden = false;
+    // Телефон мог остаться от прошлой брони — сразу покажем, знаем ли клиента.
+    qbLookupClient();
   }
   function qbCloseForm(){ $('qbFormModal').hidden = true; }
   $('qbFormClose').addEventListener('click', qbCloseForm);
@@ -2728,6 +2849,9 @@
       flash($('qbNote'), 'Бронь создана', true);
       $('qbName').value=''; $('qbPhone').value=''; $('qbPeople').value='1'; $('qbComment').value='';
       qbClearSel();
+      // Бронь могла завести новую карточку — подтянем список, чтобы подстановка
+      // по телефону знала о ней уже со следующей брони.
+      loadClients();
       // Сначала load() (обновит lastBookings), и только потом рисуем сетку —
       // иначе только что созданная бронь не находится в lastBookings и
       // отрисовывается серым «Занято (внешний календарь)».
@@ -2918,9 +3042,214 @@
       renderBookings(ov.bookings || []);
       renderBlockHallOptions();
       loadCalendar();
+      loadClients();
       return loadBlocks();
     });
   }
+
+  // ---------- клиенты ----------
+  // Список держим в памяти целиком: карточек у студии сотни, не тысячи, а
+  // поиск по трём полям на клиенте избавляет от запроса на каждую букву.
+  var CL = { list: [], open: null, tags: [] };
+
+  function clFmtDate(iso){
+    if(!iso) return '';
+    return new Date(String(iso).slice(0,10)+'T00:00:00')
+      .toLocaleDateString('ru-RU', { day:'numeric', month:'short', year:'numeric' });
+  }
+  function clMatches(c, q){
+    if(!q) return true;
+    var hay = (c.name || '') + ' ' + (c.phone || '') + ' ' + (c.phoneKey || '')
+      + ' ' + (c.tags || []).join(' ');
+    // Цифры ищем по цифрам: «291234567» должно находить «+375 (29) 123-45-67».
+    var digits = q.replace(/\D/g, '');
+    if(digits.length >= 3 && String(c.phoneKey || '').indexOf(digits) !== -1) return true;
+    return hay.toLowerCase().indexOf(q.toLowerCase()) !== -1;
+  }
+  function renderClients(){
+    var box = $('clList');
+    var q = $('clSearch').value.trim();
+    var rows = CL.list.filter(function(c){ return clMatches(c, q); });
+    if(!CL.list.length){
+      box.innerHTML = '<span class="muted">Пока никого. Карточки появятся сами после первых броней.</span>';
+      return;
+    }
+    if(!rows.length){ box.innerHTML = '<span class="muted">Никого не нашлось.</span>'; return; }
+    box.innerHTML = '';
+    rows.forEach(function(c){
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'cl-row'; b.dataset.id = c.id;
+      var tags = (c.tags || []).slice(0, 3)
+        .map(function(t){ return '<span class="cl-tag">' + esc(t) + '</span>'; }).join('');
+      var meta = c.visits
+        ? esc(c.visits) + ' ' + clVisitWord(c.visits) + ' · ' + esc(Math.round(c.spent)) + ' BYN'
+        : 'без броней';
+      b.innerHTML = '<span class="cl-name">' + esc(c.name || 'Без имени') + '</span>'
+        + '<span class="cl-phone">' + esc(c.phone) + '</span>' + tags
+        + '<span class="cl-meta">' + meta + '</span>';
+      b.addEventListener('click', function(){ clOpen(c.id); });
+      box.appendChild(b);
+    });
+  }
+  function clVisitWord(n){
+    var a = n % 10, b = n % 100;
+    if(a === 1 && b !== 11) return 'визит';
+    if(a >= 2 && a <= 4 && (b < 12 || b > 14)) return 'визита';
+    return 'визитов';
+  }
+  function loadClients(){
+    return api('GET', '/admin/clients').then(function(list){
+      CL.list = Array.isArray(list) ? list : [];
+      renderClients();
+    }).catch(function(e){
+      $('clList').innerHTML = '<span class="muted">' + esc(e.message) + '</span>';
+    });
+  }
+  function clRenderTags(){
+    var box = $('clTags');
+    box.innerHTML = '';
+    if(!CL.tags.length){
+      box.innerHTML = '<span class="muted" style="font-size:12px">меток нет</span>';
+      return;
+    }
+    CL.tags.forEach(function(t, i){
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'cl-tag-del';
+      b.textContent = t + ' ✕';
+      b.title = 'Убрать метку';
+      b.addEventListener('click', function(){ CL.tags.splice(i, 1); clRenderTags(); });
+      box.appendChild(b);
+    });
+  }
+  function clFill(c){
+    $('clName').value = c.name || '';
+    $('clPhone').value = c.phone || '';
+    $('clInstagram').value = c.instagram || '';
+    $('clTelegram').value = c.telegram || '';
+    $('clEmail').value = c.email || '';
+    $('clBirthday').value = c.birthday ? String(c.birthday).slice(0, 10) : '';
+    $('clNoteField').value = c.note || '';
+    CL.tags = (c.tags || []).slice();
+    clRenderTags();
+    $('clTagNew').value = '';
+    $('clModalNote').textContent = '';
+  }
+  // Новая карточка и существующая — одна и та же модалка; отличие в том, что
+  // у новой нет id (и значит нет истории и кнопки удаления).
+  function clOpenNew(){
+    CL.open = null;
+    $('clModalTitle').textContent = 'Новый клиент';
+    clFill({});
+    $('clPhone').value = '+375 ';
+    $('clStats').innerHTML = '';
+    $('clHistory').innerHTML = '<span class="muted" style="font-size:12px">Появится после первой брони.</span>';
+    $('clDelete').hidden = true;
+    $('clModal').hidden = false;
+  }
+  function clOpen(id){
+    var known = CL.list.find(function(x){ return x.id === id; }) || {};
+    CL.open = id;
+    $('clModalTitle').textContent = known.name || 'Клиент';
+    clFill(known);
+    $('clDelete').hidden = false;
+    $('clStats').innerHTML = clStatsHtml(known);
+    $('clHistory').innerHTML = '<span class="muted" style="font-size:12px">Загрузка…</span>';
+    $('clModal').hidden = false;
+    // Историю тянем отдельным запросом: в списке её нет, а нужна она только
+    // когда карточку открыли.
+    api('GET', '/admin/clients/' + encodeURIComponent(id)).then(function(full){
+      if(CL.open !== id) return;   // успели открыть другую
+      clRenderHistory(full.bookings || []);
+    }).catch(function(e){
+      if(CL.open === id) $('clHistory').innerHTML = '<span class="muted" style="font-size:12px">' + esc(e.message) + '</span>';
+    });
+  }
+  function clStatsHtml(c){
+    if(!c.visits) return '<div><b>—</b>без броней</div>';
+    return '<div><b>' + esc(c.visits) + '</b>' + clVisitWord(c.visits) + '</div>'
+      + '<div><b>' + esc(Math.round(c.spent)) + ' BYN</b>потрачено</div>'
+      + (c.lastVisit ? '<div><b>' + esc(clFmtDate(c.lastVisit)) + '</b>последний визит</div>' : '');
+  }
+  function clRenderHistory(list){
+    var box = $('clHistory');
+    if(!list.length){
+      box.innerHTML = '<span class="muted" style="font-size:12px">Броней пока нет.</span>';
+      return;
+    }
+    box.innerHTML = list.map(function(b){
+      var off = b.status === 'cancelled' || b.status === 'declined' || b.status === 'no_show';
+      return '<div class="cl-hist" data-cancelled="' + off + '">'
+        + '<span class="d">' + esc(clFmtDate(b.date)) + ' · ' + minLabel(b.start) + '–' + minLabel(b.end) + '</span>'
+        + '<span>' + esc(b.hallName || '') + ' · ' + esc(Math.round(b.price)) + ' BYN</span>'
+        + '</div>';
+    }).join('');
+  }
+  function clClose(){ $('clModal').hidden = true; CL.open = null; }
+  function clBody(){
+    return {
+      name: $('clName').value.trim(),
+      phone: qbPhoneFormat($('clPhone').value),
+      instagram: $('clInstagram').value.trim(),
+      telegram: $('clTelegram').value.trim(),
+      email: $('clEmail').value.trim(),
+      birthday: $('clBirthday').value || null,
+      note: $('clNoteField').value.trim(),
+      tags: CL.tags.slice(),
+    };
+  }
+  function clSave(){
+    var note = $('clModalNote');
+    if(qbPhoneDigits($('clPhone').value).length !== 9) return flash(note, 'Телефон: 9 цифр после +375');
+    var btn = $('clSave'); btn.disabled = true;
+    var body = clBody();
+    // Запоминаем ДО clClose(): он обнуляет CL.open, и сообщение по нему уже
+    // не отличит правку от создания.
+    var isEdit = !!CL.open;
+    var p = isEdit
+      ? api('PUT', '/admin/clients/' + encodeURIComponent(CL.open), body)
+      : api('POST', '/admin/clients', body);
+    p.then(function(){
+      clClose();
+      flash($('clNote'), isEdit ? 'Карточка сохранена' : 'Клиент добавлен', true);
+      btn.disabled = false;
+      return loadClients();
+    }).catch(function(e){
+      flash(note, e.message);
+      btn.disabled = false;
+    });
+  }
+  $('clAdd').addEventListener('click', clOpenNew);
+  $('clClose').addEventListener('click', clClose);
+  $('clModal').addEventListener('click', function(e){ if(e.target === e.currentTarget) clClose(); });
+  $('clSave').addEventListener('click', clSave);
+  $('clSearch').addEventListener('input', renderClients);
+  $('clPhone').addEventListener('focus', function(){ if(!this.value) this.value = '+375 '; });
+  $('clPhone').addEventListener('input', function(){
+    var caret = this.selectionStart;
+    var target = qbPhoneDigitsBeforeCaret(this.value, caret);
+    this.value = qbPhoneFormat(this.value);
+    var pos = qbPhoneCaretFor(this.value, target);
+    this.setSelectionRange(pos, pos);
+  });
+  $('clTagNew').addEventListener('keydown', function(e){
+    if(e.key !== 'Enter') return;
+    e.preventDefault();
+    var v = this.value.trim().slice(0, 40);
+    if(v && CL.tags.indexOf(v) === -1 && CL.tags.length < 20) CL.tags.push(v);
+    this.value = '';
+    clRenderTags();
+  });
+  $('clDelete').addEventListener('click', function(){
+    if(!CL.open) return;
+    if(!confirm('Удалить карточку? Брони этого клиента останутся на месте.')) return;
+    var btn = this; btn.disabled = true;
+    api('DELETE', '/admin/clients/' + encodeURIComponent(CL.open)).then(function(){
+      clClose();
+      flash($('clNote'), 'Карточка удалена', true);
+      btn.disabled = false;
+      return loadClients();
+    }).catch(function(e){ flash($('clModalNote'), e.message); btn.disabled = false; });
+  });
 
   function renderBlockHallOptions(){
     var sel = $('blkHall');
