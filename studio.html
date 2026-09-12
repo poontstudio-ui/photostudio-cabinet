@@ -164,12 +164,41 @@
   .addr-suggest-item:hover,.addr-suggest-item.active{background:var(--surface-2);}
   .addr-suggest-item b{font-weight:600;}
   .addr-suggest-item span{display:block;font-size:11px;color:var(--text-3);margin-top:1px;}
-  .pr-day{border:none;background:var(--bg);color:var(--text-3);
-          border-radius:var(--r-sm);padding:4px 7px;font-size:11px;cursor:pointer;line-height:1;}
-  .pr-day.on{background:var(--blue-bg);color:var(--blue-dark);font-weight:600;}
-  .hall-prules .pr-row .num{width:70px;}
-  .hall-prules select{padding:5px 6px;font-size:12px;border:none;
-                      border-radius:var(--r-sm);background:var(--bg);color:var(--text);}
+  .hall-prules .pr-row .num, .hall-packages .pr-row .num{width:70px;}
+
+  /* ---------- тарифы зала: сетка «дни недели × часы» ---------- */
+  /* Тот же визуальный язык, что у сетки брони: без рамок, час — плитка,
+     нерабочее время — штриховка, выделение — синяя заливка. Цена написана
+     прямо в клетке, поэтому карта цен читается без легенды. */
+  .pg-bulk{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+  .pg-apply{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;}
+  .pg-apply .num{width:84px;}
+  /* На узком экране (320px) семь колонок по минимуму уже не влезают и вбок
+     уезжала вся страница — поэтому сетка в своём горизонтальном скролле,
+     как #qbGridScroll у сетки брони. */
+  .pg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .pg-scroll::-webkit-scrollbar{display:none;}
+  /* 46px + 7×38 + 8×4 = 344 — ровно влезает в 375px-телефон без прокрутки */
+  .pg-grid{display:grid;gap:4px;grid-template-columns:46px repeat(7, minmax(38px,1fr));
+    grid-auto-rows:32px;width:max-content;min-width:100%;}
+  .pg-corner{background:none;}
+  .pg-head{border:none;background:none;font:inherit;font-size:12.5px;font-weight:600;
+    color:var(--text);cursor:pointer;padding:0;}
+  .pg-hour{border:none;background:none;cursor:pointer;padding:0 6px 0 0;text-align:right;
+    font-family:var(--f-mono);font-size:10.5px;color:var(--text-3);}
+  .pg-head:hover,.pg-hour:hover{color:var(--blue);}
+  .pg-cell{border-radius:6px;background:var(--bg);cursor:pointer;transition:background .1s;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--f-mono);font-size:11px;color:var(--text-3);}
+  .pg-cell[data-state="base"]:hover{background:#e7e9ed;}
+  /* час с ценой, отличной от базовой */
+  .pg-cell[data-state="set"]{background:var(--blue-bg);color:var(--blue-dark);font-weight:600;}
+  .pg-cell[data-state="closed"]{cursor:not-allowed;
+    background:repeating-linear-gradient(-45deg,
+      rgba(20,22,28,.05), rgba(20,22,28,.05) 5px,
+      rgba(20,22,28,.015) 5px, rgba(20,22,28,.015) 10px);}
+  /* выделение — последним правилом, перекрывает и base, и set */
+  .pg-cell[data-sel="true"],.pg-cell[data-sel="true"]:hover{background:var(--blue);color:#fff;}
 
   /* ---------- залы: карточки + деталь ---------- */
   /* Залы — как у клиента по содержанию (фото, имя, цена синим), но без
@@ -889,73 +918,200 @@
       styles:Array.isArray(h.styles)?h.styles.slice():[],
       photos:Array.isArray(h.photos)?h.photos.slice():[]};
     HALL_BOOLS.forEach(function(f){ o[f] = !!h[f]; });
-    o.priceRules = Array.isArray(h.priceRules)?h.priceRules.map(function(r){return {dow:Array.isArray(r.dow)?r.dow.slice():null,from:r.from,to:r.to,rate:r.rate,minMin:r.minMin!=null?r.minMin:null};}):[];
+    // minMin (мин. бронь по окну) больше не редактируется: тарифы задаются
+    // сеткой «дни × часы», минимальная длительность осталась общей по студии.
+    o.priceRules = Array.isArray(h.priceRules)?h.priceRules.map(function(r){return {dow:Array.isArray(r.dow)?r.dow.slice():null,from:r.from,to:r.to,rate:r.rate};}):[];
     o.packages = Array.isArray(h.packages)?h.packages.map(function(p){return {hours:p.hours,price:p.price};}):[];
     return o;
   }
 
-  // ---------- тарифы по времени (динамическое ценообразование) ----------
+  // ---------- тарифы зала: сетка «дни недели × часы» ----------
+  // Раньше это был список правил («дни-кнопки + от/до + ставка»), по которому
+  // невозможно было увидеть карту цен целиком. Теперь — сетка: X — дни недели,
+  // Y — часы. Владелец выделяет клетки и назначает им цену за час.
+  // Хранение на бэкенде не изменилось (priceRules), сетка компилируется в
+  // правила при сохранении — см. pgCompile().
   var DOW_ORDER = [1,2,3,4,5,6,0];
   var DOW_LBL = {0:'Вс',1:'Пн',2:'Вт',3:'Ср',4:'Чт',5:'Пт',6:'Сб'};
+  var PG_WEEKDAYS = [1,2,3,4,5], PG_WEEKEND = [6,0];
   function hhmm(m){ return (m<600?'0':'')+Math.floor(m/60)+':'+(m%60<10?'0':'')+(m%60); }
-  function timeOpts(sel){
-    var o = '';
-    for(var m=0;m<=1440;m+=30) o += '<option value="'+m+'"'+(m===sel?' selected':'')+'>'+hhmm(m)+'</option>';
-    return o;
+
+  // Состояние открытой сетки тарифов (зал в кабинете открыт всегда один).
+  // price: 'dow:час' -> цена/час; отсутствие ключа = базовая ставка зала.
+  // sel: 'dow:час' -> true (выделено). Пересобирается в pgLoad при открытии.
+  var PG = { i:-1, hours:[], price:{}, sel:{}, dirty:false, half:false };
+
+  function pgKey(d, hr){ return d+':'+hr; }
+  function pgDayWin(d){ var w = hoursDraft[d]; return w ? {start:w.start, end:w.end} : {start:9, end:22}; }
+  function pgOpen(d, hr){ var w = pgDayWin(d); return hr >= w.start && hr < w.end; }
+  // Ось Y — от самого раннего открытия до самого позднего закрытия по всем
+  // дням; часы, когда конкретный день закрыт, рисуем штриховкой (как в сетке
+  // брони) и не даём выделять.
+  function pgBuildHours(){
+    var s = 24, e = 0;
+    for(var d=0; d<7; d++){ var w = pgDayWin(d); if(w.end > w.start){ s = Math.min(s, w.start); e = Math.max(e, w.end); } }
+    if(e <= s){ s = 9; e = 22; }
+    var out = []; for(var hr=s; hr<e; hr++) out.push(hr);
+    return out;
   }
+  // Цена часа по правилам — точное зеркало minuteRate() из lib/rules.js:
+  // первое сверху правило, чей dow подходит и чьё окно накрывает начало часа.
+  function pgRateAt(rules, d, hr){
+    var m = hr*60;
+    for(var k=0;k<rules.length;k++){
+      var r = rules[k];
+      if(Array.isArray(r.dow) && r.dow.length && r.dow.indexOf(d) === -1) continue;
+      if(m >= r.from && m < r.to) return r.rate;
+    }
+    return null;
+  }
+  function pgLoad(i){
+    var h = hallsDraft[i];
+    var rules = Array.isArray(h.priceRules) ? h.priceRules : [];
+    PG = { i:i, hours:pgBuildHours(), price:{}, sel:{}, dirty:false,
+      // Старые правила могли иметь получасовые границы — сетка часовая, при
+      // сохранении они округлятся. Предупреждаем, а не молча меняем цену.
+      half: rules.some(function(r){ return (r.from % 60) || (r.to % 60); }) };
+    for(var d=0; d<7; d++){
+      PG.hours.forEach(function(hr){
+        if(!pgOpen(d, hr)) return;
+        var v = pgRateAt(rules, d, hr);
+        if(v != null) PG.price[pgKey(d, hr)] = v;
+      });
+    }
+  }
+  // Сетка → priceRules. Клетки с базовой ценой пропускаем (их считает
+  // hall.rate). Соседние часы с одной ценой склеиваем в окно, дни с
+  // одинаковым набором окон — в одно правило с dow:[...]. Поэтому 7×13
+  // клеток дают 1–3 правила вместо 91, и лимит бэкенда (30) при вменяемых
+  // тарифах недостижим. Правила не пересекаются, порядок не важен.
+  function pgCompile(){
+    var perDay = {}, groups = {}, out = [];
+    for(var d=0; d<7; d++){
+      var segs = [], cur = null;
+      PG.hours.forEach(function(hr){
+        var v = (pgOpen(d, hr) && PG.price[pgKey(d, hr)] != null) ? PG.price[pgKey(d, hr)] : null;
+        if(v == null){ cur = null; return; }
+        if(cur && cur.rate === v && cur.to === hr*60){ cur.to = (hr+1)*60; return; }
+        cur = { from:hr*60, to:(hr+1)*60, rate:v };
+        segs.push(cur);
+      });
+      perDay[d] = segs;
+    }
+    for(var d2=0; d2<7; d2++){
+      if(!perDay[d2].length) continue;
+      var sig = JSON.stringify(perDay[d2]);
+      if(!groups[sig]) groups[sig] = { dow:[], segs:perDay[d2] };
+      groups[sig].dow.push(d2);
+    }
+    Object.keys(groups).forEach(function(sig){
+      var g = groups[sig];
+      g.segs.forEach(function(s){ out.push({ from:s.from, to:s.to, rate:s.rate, dow:g.dow.slice() }); });
+    });
+    return out;
+  }
+  // Ключи клеток: все открытые часы перечисленных дней / один час по всем дням.
+  function pgKeysOfDays(days){
+    var out = [];
+    days.forEach(function(d){ PG.hours.forEach(function(hr){ if(pgOpen(d, hr)) out.push(pgKey(d, hr)); }); });
+    return out;
+  }
+  function pgKeysOfHour(hr){
+    var out = [];
+    DOW_ORDER.forEach(function(d){ if(pgOpen(d, hr)) out.push(pgKey(d, hr)); });
+    return out;
+  }
+  // Групповое выделение: всё уже выделено — снимаем, иначе добавляем.
+  function pgToggle(keys){
+    if(!keys.length) return;
+    var all = keys.every(function(k){ return PG.sel[k]; });
+    keys.forEach(function(k){ if(all) delete PG.sel[k]; else PG.sel[k] = true; });
+    renderHallPriceRules(PG.i);
+  }
+  function pgSelCount(){ return Object.keys(PG.sel).length; }
+
   function renderHallPriceRules(i){
     var h = hallsDraft[i];
     var box = document.querySelector('.hall-prules[data-i="'+i+'"]');
     if(!box) return;
     if(!h.id){ box.innerHTML = '<span class="muted">Сохраните зал, чтобы задать тарифы по времени.</span>'; return; }
-    var rules = h.priceRules || (h.priceRules = []);
-    var rows = rules.map(function(r, ri){
-      var days = DOW_ORDER.map(function(d){
-        var on = Array.isArray(r.dow) && r.dow.indexOf(d) !== -1;
-        return '<button type="button" class="pr-day'+(on?' on':'')+'" data-i="'+i+'" data-ri="'+ri+'" data-d="'+d+'">'+DOW_LBL[d]+'</button>';
-      }).join('');
-      return '<div class="pr-row" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:6px 0;border-top:1px solid var(--line)">' +
-        '<span class="pr-days" style="display:flex;gap:2px">'+days+'</span>' +
-        '<span class="muted" style="font-size:11px">'+((!r.dow||!r.dow.length)?'все дни':'')+'</span>' +
-        '<select class="pr-f" data-i="'+i+'" data-ri="'+ri+'">'+timeOpts(r.from)+'</select>' +
-        '<span class="muted">–</span>' +
-        '<select class="pr-t" data-i="'+i+'" data-ri="'+ri+'">'+timeOpts(r.to)+'</select>' +
-        '<span class="unitwrap"><input class="num pr-rate" type="number" min="0" step="1" data-i="'+i+'" data-ri="'+ri+'" value="'+esc(r.rate)+'"><span class="u">BYN/ч</span></span>' +
-        '<span class="unitwrap"><input class="num pr-min" type="number" min="30" step="30" placeholder="—" data-i="'+i+'" data-ri="'+ri+'" value="'+esc(r.minMin!=null?r.minMin:'')+'"><span class="u">мин. бронь</span></span>' +
-        '<button type="button" class="del pr-del" data-i="'+i+'" data-ri="'+ri+'">✕</button>' +
-        '</div>';
-    }).join('');
+    if(PG.i !== i) pgLoad(i);
+    var base = (typeof h.rate === 'number' && isFinite(h.rate)) ? h.rate : 0;
+    var nSel = pgSelCount();
+
+    // Явные grid-row/grid-column на КАЖДОМ элементе сетки — смешение авто- и
+    // явной расстановки уже ломало гриды в этом файле, см. .qb-grid.
+    var cells = '<div class="pg-corner" style="grid-row:1;grid-column:1"></div>';
+    DOW_ORDER.forEach(function(d, ci){
+      cells += '<button type="button" class="pg-head" data-d="'+d+'" title="Весь день"'
+        + ' style="grid-row:1;grid-column:'+(ci+2)+'">'+DOW_LBL[d]+'</button>';
+    });
+    PG.hours.forEach(function(hr, ri){
+      var row = ri + 2;
+      cells += '<button type="button" class="pg-hour" data-hr="'+hr+'" title="Этот час во все дни"'
+        + ' style="grid-row:'+row+';grid-column:1">'+hhmm(hr*60)+'</button>';
+      DOW_ORDER.forEach(function(d, ci){
+        var k = pgKey(d, hr), open = pgOpen(d, hr), v = PG.price[k];
+        var st = !open ? 'closed' : (v != null ? 'set' : 'base');
+        cells += '<div class="pg-cell" data-k="'+k+'" data-state="'+st+'"'
+          + (PG.sel[k] ? ' data-sel="true"' : '')
+          + ' style="grid-row:'+row+';grid-column:'+(ci+2)+'">'
+          + (open ? esc(v != null ? v : base) : '') + '</div>';
+      });
+    });
+
     box.innerHTML =
-      '<div class="muted" style="font-size:12px;margin-bottom:2px">Тарифы по времени. Вне окон — базовая ставка '+esc(h.rate)+' BYN/ч. Если окна пересеклись, берётся верхнее.</div>' +
-      rows +
-      '<div style="margin-top:6px;display:flex;gap:8px;align-items:center">' +
-        '<button type="button" class="btn ghost small pr-add">+ Тариф</button>' +
-        (rules.length ? '<button type="button" class="btn small pr-save">Сохранить тарифы</button>' : '') +
+      '<div class="muted" style="font-size:12px;margin-bottom:8px">Тарифы зала. Выделите часы и назначьте им цену. ' +
+        'Невыделенные часы считаются по базовой ставке ' + esc(base) + ' BYN/ч.</div>' +
+      (PG.half ? '<div style="font-size:12px;color:var(--amber);margin-bottom:8px">Прежние тарифы были заданы с получасовыми границами — в сетке они округлены до целых часов. Проверьте цены перед сохранением.</div>' : '') +
+      '<div class="pg-bulk">' +
+        '<button type="button" class="chip-tog pg-b" data-g="weekdays">Будни</button>' +
+        '<button type="button" class="chip-tog pg-b" data-g="weekend">Выходные</button>' +
+        '<button type="button" class="chip-tog pg-b" data-g="all">Все часы</button>' +
+        (nSel ? '<button type="button" class="chip-tog pg-b" data-g="none">Снять выделение</button>' : '') +
+      '</div>' +
+      '<div class="pg-apply">' +
+        '<span class="unitwrap"><input class="num pg-val" type="number" min="0" step="1" value="' + esc(base) + '"><span class="u">BYN/ч</span></span>' +
+        '<button type="button" class="btn small pg-set"' + (nSel ? '' : ' disabled') + '>Назначить выделенным</button>' +
+        '<button type="button" class="btn ghost small pg-reset"' + (nSel ? '' : ' disabled') + '>Сбросить к базовой</button>' +
+        '<span class="muted" style="font-size:12px">' + (nSel ? 'выделено часов: ' + nSel : 'ничего не выделено') + '</span>' +
+      '</div>' +
+      '<div class="pg-scroll"><div class="pg-grid">' + cells + '</div></div>' +
+      '<div style="margin-top:10px;display:flex;gap:8px;align-items:center">' +
+        '<button type="button" class="btn small pr-save">Сохранить тарифы</button>' +
+        (PG.dirty ? '<span class="muted" style="font-size:12px">есть несохранённые изменения</span>' : '') +
       '</div><div class="note pr-note"></div>';
 
-    box.querySelectorAll('.pr-day').forEach(function(b){ b.addEventListener('click', function(){
-      var r = rules[+b.dataset.ri]; if(!Array.isArray(r.dow)) r.dow = [];
-      var d = +b.dataset.d, k = r.dow.indexOf(d);
-      if(k===-1) r.dow.push(d); else r.dow.splice(k,1);
-      renderHallPriceRules(i);
-    }); });
-    box.querySelectorAll('.pr-f,.pr-t,.pr-rate,.pr-min').forEach(function(inp){ inp.addEventListener('input', function(){
-      var r = rules[+inp.dataset.ri];
-      if(inp.classList.contains('pr-f')) r.from = +inp.value;
-      else if(inp.classList.contains('pr-t')) r.to = +inp.value;
-      else if(inp.classList.contains('pr-min')){ var mm = parseInt(inp.value,10); r.minMin = Number.isInteger(mm) ? mm : null; }
-      else r.rate = parseFloat(inp.value);
-    }); });
-    box.querySelectorAll('.pr-del').forEach(function(b){ b.addEventListener('click', function(){
-      rules.splice(+b.dataset.ri,1); renderHallPriceRules(i);
-    }); });
-    var add = box.querySelector('.pr-add');
-    if(add) add.addEventListener('click', function(){
-      rules.push({ dow:[], from:1080, to:1440, rate: h.rate || 0 });
-      renderHallPriceRules(i);
+    box.querySelector('.pg-grid').addEventListener('click', function(e){
+      var t = e.target;
+      var cell = t.closest ? t.closest('.pg-cell') : null;
+      if(cell){ if(cell.dataset.state !== 'closed') pgToggle([cell.dataset.k]); return; }
+      var head = t.closest ? t.closest('.pg-head') : null;
+      if(head){ pgToggle(pgKeysOfDays([+head.dataset.d])); return; }
+      var hour = t.closest ? t.closest('.pg-hour') : null;
+      if(hour) pgToggle(pgKeysOfHour(+hour.dataset.hr));
     });
-    var save = box.querySelector('.pr-save');
-    if(save) save.addEventListener('click', function(){ saveHallPriceRules(i); });
+    box.querySelectorAll('.pg-b').forEach(function(b){ b.addEventListener('click', function(){
+      var g = b.dataset.g;
+      if(g === 'none'){ PG.sel = {}; renderHallPriceRules(i); return; }
+      pgToggle(pgKeysOfDays(g === 'weekdays' ? PG_WEEKDAYS : g === 'weekend' ? PG_WEEKEND : DOW_ORDER));
+    }); });
+    var apply = function(toBase){
+      var keys = Object.keys(PG.sel);
+      if(!keys.length) return;
+      var n = box.querySelector('.pr-note');
+      var val = null;
+      if(!toBase){
+        val = parseFloat(box.querySelector('.pg-val').value);
+        if(!(isFinite(val) && val >= 0 && val <= 100000)) return flash(n, 'Цена — число от 0 до 100000');
+      }
+      keys.forEach(function(k){ if(toBase) delete PG.price[k]; else PG.price[k] = val; });
+      PG.sel = {}; PG.dirty = true;
+      renderHallPriceRules(i);
+    };
+    box.querySelector('.pg-set').addEventListener('click', function(){ apply(false); });
+    box.querySelector('.pg-reset').addEventListener('click', function(){ apply(true); });
+    box.querySelector('.pr-save').addEventListener('click', function(){ saveHallPriceRules(i); });
   }
   function renderHallPackages(i){
     var h = hallsDraft[i];
@@ -1018,29 +1174,27 @@
   function saveHallPriceRules(i){
     var h = hallsDraft[i];
     var n = document.querySelector('.hall-prules[data-i="'+i+'"] .pr-note');
-    var clean = [];
-    for(var k=0;k<(h.priceRules||[]).length;k++){
-      var r = h.priceRules[k];
-      if(!(r.from % 30 === 0 && r.to % 30 === 0 && r.from < r.to && r.to <= 1440)){
-        if(n) flash(n, 'Окно #'+(k+1)+': конец должен быть позже начала, шаг 30 мин'); return;
+    if(PG.i !== i) pgLoad(i);
+    var clean = pgCompile();
+    // Лимит бэкенда (isValidPriceRules): не больше 30 правил. После склейки
+    // упереться в него можно только «шахматной» ценой у каждого часа.
+    if(clean.length > 30){
+      if(n) flash(n, 'Слишком дробные тарифы: получилось ' + clean.length + ' правил при лимите 30. Сделайте цены крупными блоками часов.');
+      return;
+    }
+    for(var k=0;k<clean.length;k++){
+      if(!(typeof clean[k].rate === 'number' && isFinite(clean[k].rate) && clean[k].rate >= 0 && clean[k].rate <= 100000)){
+        if(n) flash(n, 'Цена — число от 0 до 100000'); return;
       }
-      if(!(typeof r.rate === 'number' && isFinite(r.rate) && r.rate >= 0)){
-        if(n) flash(n, 'Окно #'+(k+1)+': ставка — число не меньше 0'); return;
-      }
-      if(r.minMin != null && !(Number.isInteger(r.minMin) && r.minMin % 30 === 0 && r.minMin >= 30 && r.minMin <= 480)){
-        if(n) flash(n, 'Окно #'+(k+1)+': мин. бронь — кратна 30, от 30 до 480'); return;
-      }
-      clean.push({ from:r.from, to:r.to, rate:r.rate,
-        dow:(Array.isArray(r.dow) && r.dow.length) ? r.dow.slice().sort(function(a,b){return a-b;}) : undefined,
-        minMin:(r.minMin != null ? r.minMin : undefined) });
     }
     api('PUT', '/admin/halls/' + encodeURIComponent(h.id) + '/price-rules', clean)
       .then(function(res){
         h.priceRules = Array.isArray(res.priceRules) ? res.priceRules : clean;
         if(HALLS_BY_ID[h.id]) HALLS_BY_ID[h.id].priceRules = h.priceRules;
+        pgLoad(i);
         renderHallPriceRules(i);
         var nn = document.querySelector('.hall-prules[data-i="'+i+'"] .pr-note');
-        if(nn) flash(nn, 'Тарифы сохранены', true);
+        if(nn) flash(nn, clean.length ? 'Тарифы сохранены' : 'Тарифы сняты — весь день по базовой ставке', true);
       })
       .catch(function(e){ if(n) flash(n, e.message); });
   }
@@ -1139,6 +1293,7 @@
 
   function openHallDetail(i){
     openHallIndex = i;
+    PG.i = -1;   // сетку тарифов всегда открываем из сохранённых priceRules
     $('hallsListView').hidden = true;
     $('hallDetailView').hidden = false;
     renderHallDetail(i);
@@ -1193,7 +1348,9 @@
         if(inp.type==='checkbox') h[f] = inp.checked;
         else if(f==='name') h.name = inp.value;
         else if(f==='hallType') h.hallType = inp.value || null;
-        else if(f==='rate') h.rate = parseFloat(inp.value);
+        // базовая ставка — фон сетки тарифов: незакрашенные клетки показывают
+        // именно её, поэтому перерисовываем сетку сразу
+        else if(f==='rate'){ h.rate = parseFloat(inp.value); renderHallPriceRules(i); }
         else { var v = parseInt(inp.value,10); h[f] = Number.isInteger(v) ? v : null; }
       });
     });
