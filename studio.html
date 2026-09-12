@@ -768,17 +768,60 @@
       <div id="blkList" style="margin-top:8px"></div>
     </div>
 
+    <!-- Список и карточка — два вида одной карточки-секции, как у залов
+         (hallsListView/hallDetailView). Модалкой карточка быть не может:
+         полей много, снизу ещё история броней — на телефоне это не влезало
+         по высоте и не прокручивалось. -->
     <div class="card" id="sec-clients" data-folder="clients">
-      <h2>Клиенты</h2>
-      <div class="muted" style="margin-bottom:10px">Карточка заводится сама при каждой брони — по телефону. Здесь можно дописать то, чего в брони нет.</div>
-      <div class="row">
-        <input class="name" id="clSearch" placeholder="Поиск по имени, телефону или метке" autocomplete="off">
+      <div id="clListView">
+        <h2>Клиенты</h2>
+        <div class="muted" style="margin-bottom:10px">Карточка заводится сама при каждой брони — по телефону. Здесь можно дописать то, чего в брони нет.</div>
+        <div class="row">
+          <input class="name" id="clSearch" placeholder="Поиск по имени, телефону или метке" autocomplete="off">
+        </div>
+        <div class="actions" style="margin-bottom:6px">
+          <button class="btn ghost small" id="clAdd" type="button">+ Клиент</button>
+        </div>
+        <div id="clList"><span class="muted">Загрузка…</span></div>
+        <div class="note" id="clNote"></div>
       </div>
-      <div class="actions" style="margin-bottom:6px">
-        <button class="btn ghost small" id="clAdd" type="button">+ Клиент</button>
+
+      <div id="clDetailView" hidden>
+        <button class="btn ghost small" id="clBack" type="button">← Клиенты</button>
+        <h2 id="clTitle" style="margin-top:12px">Клиент</h2>
+        <div class="cl-stats" id="clStats"></div>
+        <div class="row"><input class="name" id="clName" placeholder="Имя" autocomplete="off"></div>
+        <div class="row"><input class="name" id="clPhone" type="tel" inputmode="numeric" placeholder="+375 (29) 123-45-67" autocomplete="off"></div>
+        <!-- Instagram и Telegram заполненными выглядят одинаково («@ник»),
+             поэтому подписаны — как единицы у числовых полей в других формах. -->
+        <div class="row">
+          <span class="unitwrap cl-fld"><input id="clInstagram" placeholder="@ник" autocomplete="off"><span class="u">instagram</span></span>
+        </div>
+        <div class="row">
+          <span class="unitwrap cl-fld"><input id="clTelegram" placeholder="@ник" autocomplete="off"><span class="u">telegram</span></span>
+        </div>
+        <div class="row">
+          <span class="unitwrap cl-fld"><input id="clEmail" type="email" placeholder="почта@пример.com" autocomplete="off"><span class="u">email</span></span>
+        </div>
+        <div class="row">
+          <span class="unitwrap cl-fld"><input id="clBirthday" type="date"><span class="u">рождение</span></span>
+        </div>
+        <div class="row">
+          <textarea class="name" id="clNoteField" rows="3" maxlength="2000" placeholder="Заметка: что снимает, что любит, о чём договорились" style="resize:vertical"></textarea>
+        </div>
+        <div class="fld-l">Метки</div>
+        <div class="chip-row" id="clTags" style="margin-bottom:8px"></div>
+        <div class="row">
+          <input class="name" id="clTagNew" placeholder="Добавить метку и нажать Enter" autocomplete="off">
+        </div>
+        <div class="fld-l">История броней</div>
+        <div id="clHistory" style="margin-bottom:12px"></div>
+        <div class="actions">
+          <button class="btn ghost small danger" id="clDelete" type="button">Удалить клиента</button>
+          <button class="btn small" id="clSave" type="button">Сохранить</button>
+        </div>
+        <div class="note" id="clDetailNote"></div>
       </div>
-      <div id="clList"><span class="muted">Загрузка…</span></div>
-      <div class="note" id="clNote"></div>
     </div>
 
     <div class="card" id="sec-calendar" data-folder="integrations">
@@ -822,50 +865,6 @@
     <div id="qbDetailBody"></div>
     <div class="actions" id="qbDetailActions" style="margin-top:12px"></div>
     <div class="note" id="qbDetailNote"></div>
-  </div>
-</div>
-
-<!-- Карточка клиента: и просмотр, и правка в одной модалке. Отдельного режима
-     «просмотр» нет намеренно — владелец приходит сюда, чтобы дописать заметку,
-     а не любоваться полями. -->
-<div class="modal-backdrop qb-form-modal" id="clModal" hidden>
-  <div class="modal-box">
-    <div class="modal-head">
-      <h3 id="clModalTitle">Клиент</h3>
-      <button class="modal-close" id="clClose" type="button" aria-label="Закрыть">✕</button>
-    </div>
-    <div class="cl-stats" id="clStats"></div>
-    <div class="row"><input class="name" id="clName" placeholder="Имя" autocomplete="off"></div>
-    <div class="row"><input class="name" id="clPhone" type="tel" inputmode="numeric" placeholder="+375 (29) 123-45-67" autocomplete="off"></div>
-    <!-- Instagram и Telegram заполненными выглядят одинаково («@ник»), поэтому
-         подписаны — как единицы у числовых полей в остальных формах. -->
-    <div class="row">
-      <span class="unitwrap cl-fld"><input id="clInstagram" placeholder="@ник" autocomplete="off"><span class="u">instagram</span></span>
-    </div>
-    <div class="row">
-      <span class="unitwrap cl-fld"><input id="clTelegram" placeholder="@ник" autocomplete="off"><span class="u">telegram</span></span>
-    </div>
-    <div class="row">
-      <span class="unitwrap cl-fld"><input id="clEmail" type="email" placeholder="почта@пример.com" autocomplete="off"><span class="u">email</span></span>
-    </div>
-    <div class="row">
-      <span class="unitwrap cl-fld"><input id="clBirthday" type="date"><span class="u">рождение</span></span>
-    </div>
-    <div class="row">
-      <textarea class="name" id="clNoteField" rows="2" maxlength="2000" placeholder="Заметка: что снимает, что любит, о чём договорились" style="resize:vertical"></textarea>
-    </div>
-    <div class="fld-l">Метки</div>
-    <div class="chip-row" id="clTags" style="margin-bottom:8px"></div>
-    <div class="row">
-      <input class="name" id="clTagNew" placeholder="Добавить метку и нажать Enter" autocomplete="off">
-    </div>
-    <div class="fld-l">История</div>
-    <div id="clHistory" style="margin-bottom:10px"></div>
-    <div class="actions">
-      <button class="btn" id="clSave" type="button">Сохранить</button>
-      <button class="btn ghost" id="clDelete" type="button">Удалить</button>
-    </div>
-    <div class="note" id="clModalNote"></div>
   </div>
 </div>
 
@@ -2535,7 +2534,9 @@
   $('qbDetailModal').addEventListener('click', function(e){ if(e.target === e.currentTarget) qbCloseDetail(); });
   document.addEventListener('keydown', function(e){
     if(e.key !== 'Escape') return;
-    if(!$('clModal').hidden) return clClose();
+    // Карточка клиента — не модалка, а отдельный вид секции, но Escape из неё
+    // тоже уместен: это ровно тот же «назад к списку».
+    if(!$('clDetailView').hidden) return clClose();
     if(!$('qbFormModal').hidden) return qbCloseForm();
     if(!$('qbDetailModal').hidden) return qbCloseDetail();
   });
@@ -3132,29 +3133,37 @@
     CL.tags = (c.tags || []).slice();
     clRenderTags();
     $('clTagNew').value = '';
-    $('clModalNote').textContent = '';
+    $('clDetailNote').textContent = '';
   }
-  // Новая карточка и существующая — одна и та же модалка; отличие в том, что
-  // у новой нет id (и значит нет истории и кнопки удаления).
+  // Список и карточка — два вида одной секции, как у залов. Модалкой карточка
+  // быть не может: полей много, снизу история броней — на телефоне это не
+  // влезало по высоте.
+  function clShowDetail(on){
+    $('clListView').hidden = on;
+    $('clDetailView').hidden = !on;
+    if(on) window.scrollTo(0, 0);
+  }
+  // Новая карточка и существующая — один и тот же вид; отличие в том, что у
+  // новой нет id (а значит, нет истории и кнопки удаления).
   function clOpenNew(){
     CL.open = null;
-    $('clModalTitle').textContent = 'Новый клиент';
+    $('clTitle').textContent = 'Новый клиент';
     clFill({});
     $('clPhone').value = '+375 ';
     $('clStats').innerHTML = '';
     $('clHistory').innerHTML = '<span class="muted" style="font-size:12px">Появится после первой брони.</span>';
     $('clDelete').hidden = true;
-    $('clModal').hidden = false;
+    clShowDetail(true);
   }
   function clOpen(id){
     var known = CL.list.find(function(x){ return x.id === id; }) || {};
     CL.open = id;
-    $('clModalTitle').textContent = known.name || 'Клиент';
+    $('clTitle').textContent = known.name || 'Клиент';
     clFill(known);
     $('clDelete').hidden = false;
     $('clStats').innerHTML = clStatsHtml(known);
     $('clHistory').innerHTML = '<span class="muted" style="font-size:12px">Загрузка…</span>';
-    $('clModal').hidden = false;
+    clShowDetail(true);
     // Историю тянем отдельным запросом: в списке её нет, а нужна она только
     // когда карточку открыли.
     api('GET', '/admin/clients/' + encodeURIComponent(id)).then(function(full){
@@ -3184,7 +3193,7 @@
         + '</div>';
     }).join('');
   }
-  function clClose(){ $('clModal').hidden = true; CL.open = null; }
+  function clClose(){ clShowDetail(false); CL.open = null; }
   function clBody(){
     return {
       name: $('clName').value.trim(),
@@ -3198,7 +3207,7 @@
     };
   }
   function clSave(){
-    var note = $('clModalNote');
+    var note = $('clDetailNote');
     if(qbPhoneDigits($('clPhone').value).length !== 9) return flash(note, 'Телефон: 9 цифр после +375');
     var btn = $('clSave'); btn.disabled = true;
     var body = clBody();
@@ -3219,8 +3228,7 @@
     });
   }
   $('clAdd').addEventListener('click', clOpenNew);
-  $('clClose').addEventListener('click', clClose);
-  $('clModal').addEventListener('click', function(e){ if(e.target === e.currentTarget) clClose(); });
+  $('clBack').addEventListener('click', clClose);
   $('clSave').addEventListener('click', clSave);
   $('clSearch').addEventListener('input', renderClients);
   $('clPhone').addEventListener('focus', function(){ if(!this.value) this.value = '+375 '; });
@@ -3248,7 +3256,7 @@
       flash($('clNote'), 'Карточка удалена', true);
       btn.disabled = false;
       return loadClients();
-    }).catch(function(e){ flash($('clModalNote'), e.message); btn.disabled = false; });
+    }).catch(function(e){ flash($('clDetailNote'), e.message); btn.disabled = false; });
   });
 
   function renderBlockHallOptions(){
