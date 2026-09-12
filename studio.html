@@ -490,6 +490,12 @@
   .cl-stats{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:12px;font-size:12.5px;color:var(--text-2);}
   .cl-stats b{font-size:15px;font-weight:700;color:var(--text);display:block;letter-spacing:-.01em;}
   .cl-stats .bad,.cl-stats .bad b{color:var(--red);}
+  /* долг: итог крупно, ниже — строки начислений с кнопками */
+  .cl-debt-total{font-size:15px;font-weight:700;letter-spacing:-.01em;margin-bottom:6px;}
+  .cl-debt-total.bad{color:var(--red);}
+  .cl-debt{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:5px 0;font-size:12.5px;}
+  .cl-debt-what{flex:1 1 180px;min-width:0;}
+  .cl-debt-st{color:var(--text-3);font-size:11.5px;}
   .cl-hist{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:5px 0;}
   .cl-hist .d{font-family:var(--f-mono);font-size:11.5px;color:var(--text-3);white-space:nowrap;}
   .cl-hist[data-cancelled="true"]{color:var(--text-3);text-decoration:line-through;}
@@ -750,6 +756,24 @@
       <div style="margin-top:6px"><span class="muted">Правила отмены и переноса</span></div>
       <div id="polEd" style="margin:6px 0"></div>
       <button class="btn ghost small" id="polAdd" type="button">+ Ступень</button>
+
+      <!-- Ступени выше описывают только % возврата при отмене. Прогул — не
+           отмена, а «платный перенос» там всего лишь галочка без суммы,
+           поэтому ставки задаются здесь. -->
+      <div style="margin-top:18px"><span class="muted">Задолженности клиента</span></div>
+      <div class="muted" style="margin:2px 0 8px">Начисляется автоматически по правилам выше. Виден в карточке клиента, там же можно простить или отметить оплаченным.</div>
+      <div class="row">
+        <span style="flex:1 1 100%">Плата за прогул · за платный перенос, % от стоимости</span>
+        <span class="unitwrap"><input class="num" type="number" id="setNoShowPct" min="0" max="100" step="5"><span class="u">прогул</span></span>
+        <span class="unitwrap"><input class="num" type="number" id="setReschedPct" min="0" max="100" step="5"><span class="u">перенос</span></span>
+      </div>
+      <div class="muted" style="margin:2px 0 12px">0 — за это событие не начислять ничего. Поздняя отмена считается по ступеням выше: цена минус возврат.</div>
+      <label class="row" style="cursor:pointer">
+        <input type="checkbox" id="setDebtBlocks" style="width:auto;flex:none">
+        <span>Не подтверждать брони должников автоматически</span>
+      </label>
+      <div class="muted" style="margin:2px 0 12px">Бронь клиента с долгом придёт заявкой, даже если автоподтверждение включено. Отказа клиент не увидит — решаете вы.</div>
+
       <div class="actions" style="margin-top:10px"><button class="btn small" id="setSave" type="button">Сохранить настройки</button></div>
       <div class="note" id="setNote"></div>
     </div>
@@ -827,6 +851,12 @@
         <div class="chip-row" id="clTags" style="margin-bottom:8px"></div>
         <div class="row">
           <input class="name" id="clTagNew" placeholder="Добавить метку и нажать Enter" autocomplete="off">
+        </div>
+        <!-- Долг начисляется сам по правилам отмен и переносов; каждое
+             начисление гасится отдельно — «оплачено» или «прощено». -->
+        <div id="clDebtBox" hidden>
+          <div class="fld-l">Задолженность</div>
+          <div id="clDebtList" style="margin-bottom:10px"></div>
         </div>
         <div class="fld-l">История броней</div>
         <div id="clHistory" style="margin-bottom:12px"></div>
@@ -1118,7 +1148,8 @@
   var hallsDraft = [], equipDraft = [], hoursDraft = [], ownersDraft = [], myId = '';
   var settingsDraft = { autoConfirm:false, bufferMin:10, minBookingMin:60, cancelFreeHours:24,
     lastminuteEnabled:false, lastminuteHours:24, lastminutePct:20,
-    reminderEnabled:true, reminderMinutesBefore:60 };
+    reminderEnabled:true, reminderMinutesBefore:60,
+    noShowFeePct:100, rescheduleFeePct:25, debtBlocksAutoconfirm:true };
   var profileDraft = { name:'', subtitle:'', city:'', address:'', phone:'', lat:null, lon:null };
   var _pfMap = null, _pfPin = null, _pfPinMoved = false, _pfMapInit = false;
   var pfSavedSnapshot = null;  // последние сохранённые текстовые поля — для «Сохранить» только при реальных правках
@@ -1953,6 +1984,9 @@
     $('setLmPct').value = settingsDraft.lastminutePct;
     $('setRemEnabled').checked = !!settingsDraft.reminderEnabled;
     $('setRemMinutes').value = settingsDraft.reminderMinutesBefore;
+    $('setNoShowPct').value = settingsDraft.noShowFeePct;
+    $('setReschedPct').value = settingsDraft.rescheduleFeePct;
+    $('setDebtBlocks').checked = !!settingsDraft.debtBlocksAutoconfirm;
     renderPolicy();
   }
 
@@ -3084,6 +3118,11 @@
     if(!Number.isInteger(lmP) || lmP < 1 || lmP > 90) return flash($('setNote'), 'Скидка — от 1 до 90 %');
     var remMin = parseInt($('setRemMinutes').value, 10);
     if(!Number.isInteger(remMin) || remMin < 10 || remMin > 180) return flash($('setNote'), 'Напоминание — от 10 до 180 минут');
+    // 0 разрешён — это «за прогул/перенос не начислять ничего».
+    var nsPct = parseInt($('setNoShowPct').value, 10);
+    var rsPct = parseInt($('setReschedPct').value, 10);
+    if(!Number.isInteger(nsPct) || nsPct < 0 || nsPct > 100) return flash($('setNote'), 'Плата за прогул — 0..100 %');
+    if(!Number.isInteger(rsPct) || rsPct < 0 || rsPct > 100) return flash($('setNote'), 'Плата за перенос — 0..100 %');
     var payload = {
       autoConfirm: $('setAutoConfirm').checked,
       bufferMin: buf, minBookingMin: minDur, cancelPolicy: pol,
@@ -3091,6 +3130,8 @@
       lastminuteHours: lmH, lastminutePct: lmP,
       reminderEnabled: $('setRemEnabled').checked,
       reminderMinutesBefore: remMin,
+      noShowFeePct: nsPct, rescheduleFeePct: rsPct,
+      debtBlocksAutoconfirm: $('setDebtBlocks').checked,
     };
     $('setSave').disabled = true;
     api('PUT', '/admin/settings', payload)
@@ -3105,6 +3146,9 @@
           lastminutePct: Number.isInteger(lm.pct) ? lm.pct : 20,
           reminderEnabled: !!rem.enabled,
           reminderMinutesBefore: Number.isInteger(rem.minutesBefore) ? rem.minutesBefore : 60,
+          noShowFeePct: Number.isInteger(u.noShowFeePct) ? u.noShowFeePct : settingsDraft.noShowFeePct,
+          rescheduleFeePct: Number.isInteger(u.rescheduleFeePct) ? u.rescheduleFeePct : settingsDraft.rescheduleFeePct,
+          debtBlocksAutoconfirm: !!u.debtBlocksAutoconfirm,
         };
         if(Array.isArray(u.cancelPolicy) && u.cancelPolicy.length) policyDraft = u.cancelPolicy;
         renderSettings();
@@ -3206,6 +3250,8 @@
       // не открывая карточку.
       var warn = clFaultText(c)
         .map(function(t){ return '<span class="cl-warn">' + esc(t) + '</span>'; }).join('');
+      // Долг — тоже красной пометкой: по нему решают, подтверждать ли бронь.
+      if(c.debtDue > 0) warn = '<span class="cl-warn">долг ' + esc(Math.round(c.debtDue)) + ' BYN</span>' + warn;
       var meta = c.visits
         ? esc(c.visits) + ' ' + clVisitWord(c.visits) + ' · ' + esc(Math.round(c.spent)) + ' BYN'
         : 'без броней';
@@ -3289,6 +3335,7 @@
     $('clPhone').value = '+375 ';
     $('clStats').innerHTML = '';
     $('clHistory').innerHTML = '<span class="muted" style="font-size:12px">Появится после первой брони.</span>';
+    $('clDebtBox').hidden = true;
     $('clDelete').hidden = true;
     clShowDetail(true);
   }
@@ -3303,9 +3350,13 @@
     clShowDetail(true);
     // Историю тянем отдельным запросом: в списке её нет, а нужна она только
     // когда карточку открыли.
+    $('clDebtBox').hidden = true;
     api('GET', '/admin/clients/' + encodeURIComponent(id)).then(function(full){
       if(CL.open !== id) return;   // успели открыть другую
       clRenderHistory(full.bookings || []);
+      clRenderDebts(full.debts);
+      // Счётчики из полного ответа: в списке они могли устареть.
+      $('clStats').innerHTML = clStatsHtml(full);
     }).catch(function(e){
       if(CL.open === id) $('clHistory').innerHTML = '<span class="muted" style="font-size:12px">' + esc(e.message) + '</span>';
     });
@@ -3341,6 +3392,83 @@
         + '<span>' + esc(b.hallName || '') + ' · ' + esc(Math.round(b.price)) + ' BYN</span>'
         + '</div>';
     }).join('');
+  }
+  var CL_DEBT_REASON = { late_cancel:'поздняя отмена', no_show:'прогул', reschedule:'платный перенос' };
+  // Начисления показываем все: непогашенные — с кнопками, погашенные — строкой
+  // «оплачено/прощено». Владельцу важно видеть, что он уже простил, иначе
+  // прощение выглядит как будто долга и не было.
+  function clRenderDebts(list){
+    var box = $('clDebtBox'), c = $('clDebtList');
+    list = Array.isArray(list) ? list : [];
+    box.hidden = !list.length;
+    if(!list.length) return;
+    c.innerHTML = '';
+    var due = list.filter(function(d){ return !d.settledAt; });
+    var total = due.reduce(function(s, d){ return s + d.amount; }, 0);
+    var head = document.createElement('div');
+    head.className = 'cl-debt-total' + (total > 0 ? ' bad' : '');
+    head.textContent = total > 0
+      ? 'Должен ' + Math.round(total) + ' BYN'
+      : 'Долгов нет';
+    c.appendChild(head);
+
+    list.forEach(function(d){
+      var row = document.createElement('div');
+      row.className = 'cl-debt';
+      var what = document.createElement('span');
+      what.className = 'cl-debt-what';
+      what.textContent = Math.round(d.amount) + ' BYN · ' + (CL_DEBT_REASON[d.reason] || d.reason)
+        + (d.date ? ' · ' + clFmtDate(d.date) : '');
+      row.appendChild(what);
+      if(d.settledAt){
+        var st = document.createElement('span');
+        st.className = 'cl-debt-st';
+        st.textContent = d.settledKind === 'paid' ? 'оплачено' : 'прощено';
+        row.appendChild(st);
+      } else {
+        [['paid', 'Оплачено'], ['forgiven', 'Простить']].forEach(function(o){
+          var b = document.createElement('button');
+          b.type = 'button'; b.className = 'btn ghost small';
+          b.textContent = o[1];
+          b.addEventListener('click', function(){ clSettleDebt(d.id, o[0], row); });
+          row.appendChild(b);
+        });
+      }
+      c.appendChild(row);
+    });
+
+    if(due.length > 1){
+      var all = document.createElement('button');
+      all.type = 'button'; all.className = 'btn ghost small';
+      all.style.marginTop = '6px';
+      all.textContent = 'Простить весь долг';
+      all.addEventListener('click', function(){
+        if(!confirm('Простить весь долг — ' + Math.round(total) + ' BYN?')) return;
+        clSettleDebt(null, 'forgiven', all);
+      });
+      c.appendChild(all);
+    }
+  }
+  function clSettleDebt(debtId, kind, btnHost){
+    if(!CL.open) return;
+    var id = CL.open;
+    btnHost.querySelectorAll ? btnHost.querySelectorAll('button').forEach(function(b){ b.disabled = true; })
+                             : (btnHost.disabled = true);
+    api('POST', '/admin/clients/' + encodeURIComponent(id) + '/debts/settle',
+        { debtId: debtId || undefined, kind: kind })
+      .then(function(){
+        // Перечитываем карточку целиком: изменились и список начислений, и
+        // баланс, и счётчики в шапке.
+        return api('GET', '/admin/clients/' + encodeURIComponent(id));
+      })
+      .then(function(full){
+        if(CL.open !== id) return;
+        $('clStats').innerHTML = clStatsHtml(full);
+        clRenderDebts(full.debts);
+        flash($('clDetailNote'), kind === 'paid' ? 'Отмечено оплаченным' : 'Долг прощён', true);
+        loadClients();
+      })
+      .catch(function(e){ flash($('clDetailNote'), e.message); });
   }
   function clClose(){ clShowDetail(false); CL.open = null; }
   function clBody(){
@@ -3548,6 +3676,9 @@
           lastminutePct: Number.isInteger(lm.pct) ? lm.pct : 20,
           reminderEnabled: rem.enabled !== undefined ? !!rem.enabled : true,
           reminderMinutesBefore: Number.isInteger(rem.minutesBefore) ? rem.minutesBefore : 60,
+          noShowFeePct: Number.isInteger(cfg.noShowFeePct) ? cfg.noShowFeePct : 100,
+          rescheduleFeePct: Number.isInteger(cfg.rescheduleFeePct) ? cfg.rescheduleFeePct : 25,
+          debtBlocksAutoconfirm: cfg.debtBlocksAutoconfirm !== undefined ? !!cfg.debtBlocksAutoconfirm : true,
         };
         if(Array.isArray(cfg.cancelPolicy) && cfg.cancelPolicy.length) policyDraft = cfg.cancelPolicy;
         renderSettings();
