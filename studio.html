@@ -271,14 +271,14 @@
     position:sticky;top:0;z-index:5;overflow:hidden;
     background:var(--surface);padding-bottom:4px;
   }
-  .qb-grid-head{display:grid;row-gap:4px;column-gap:10px;font-size:12px;width:max-content;min-width:100%;}
+  .qb-grid-head{display:grid;gap:4px;font-size:12px;width:max-content;min-width:100%;}
   .qb-grid-scroll{
     overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;
   }
   .qb-grid-scroll::-webkit-scrollbar{display:none;}
   /* grid-auto-rows фиксирует высоту строки: иначе подпись внутри короткой
      брони (две строки текста) раздувала свою строку, и ряды шли вразнобой. */
-  .qb-grid{display:grid;row-gap:4px;column-gap:10px;grid-auto-rows:34px;font-size:12px;width:max-content;min-width:100%;}
+  .qb-grid{display:grid;gap:4px;grid-auto-rows:34px;font-size:12px;width:max-content;min-width:100%;}
   .qb-corner, .qb-head, .qb-time{background:var(--surface);color:var(--text-3);}
   .qb-corner{position:sticky;left:0;z-index:2;}
   .qb-head{
@@ -292,10 +292,10 @@
   .qb-time{
     position:sticky;left:0;z-index:3;padding:0 8px 0 2px;display:flex;align-items:center;justify-content:flex-end;
     font-family:var(--f-mono);font-size:10.5px;color:var(--text-3);
-    /* фон растянут в зазоры сетки (column-gap:10px справа, row-gap:4px
-       вверх/вниз половиной — вторую половину закроет соседняя строка). Иначе
+    /* фон растянут в зазоры сетки (gap:4px): вправо на всю ширину зазора и на
+       половину — вверх/вниз (вторую половину закроет соседняя строка). Иначе
        уехавший под колонку прямоугольник брони просвечивает в этих щелях. */
-    box-shadow:10px 0 0 var(--surface), 0 -2px 0 var(--surface), 0 2px 0 var(--surface);
+    box-shadow:4px 0 0 var(--surface), 0 -2px 0 var(--surface), 0 2px 0 var(--surface);
   }
   /* Минимализм: ячейки без рамок. Свободная — светлая плитка; прошедшее и
      нерабочее время — штриховка: пробовали «просто пусто», но так хуже
