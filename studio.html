@@ -116,14 +116,21 @@
 
   /* ---------- формы ---------- */
   .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:9px;}
-  .row input,.row select,.row textarea{
+  .row input,.row select,.row textarea,.pg-apply input{
     background:var(--bg);border:1px solid transparent;border-radius:var(--r-sm);
     color:var(--text);font:inherit;font-size:14px;padding:11px 12px;
     transition:border-color .12s,background .12s,box-shadow .12s;
   }
   .row input::placeholder,.row textarea::placeholder{color:var(--text-3);}
-  .row input:focus,.row select:focus,.row textarea:focus{outline:none;border-color:var(--blue);
+  .row input:focus,.row select:focus,.row textarea:focus,.pg-apply input:focus{outline:none;border-color:var(--blue);
     background:var(--surface);box-shadow:0 0 0 3px var(--blue-bg);}
+  /* Safari на iPhone зумит страницу на любом поле со шрифтом меньше 16px —
+     на тач-устройствах поднимаем до 16px (на десктопе оставляем 14px, чтобы
+     формы выглядели как раньше). Трогать viewport с maximum-scale нельзя:
+     это отняло бы у владельца щипковый зум. */
+  @media (pointer:coarse){
+    .row input,.row select,.row textarea,.pg-apply input,.hours-day input{font-size:16px;}
+  }
   .row .name{flex:1 1 100%;min-width:0;}
   .row .num{width:96px;}
   /* Чекбоксы — переключатели, как в мобильных приложениях: крупная
