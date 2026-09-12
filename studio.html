@@ -710,7 +710,7 @@
       <h2>Сводка</h2>
       <div class="stats">
         <div class="stat"><div class="v" id="stCount">—</div><div class="l">Активных броней</div></div>
-        <div class="stat"><div class="v" id="stRev">—</div><div class="l">Выручка, BYN</div></div>
+        <div class="stat"><div class="v" id="stRev">—</div><div class="l">Выручка, <span id="stRevCur">BYN</span></div></div>
         <div class="stat"><div class="v" id="stAvg">—</div><div class="l">Средний чек</div></div>
       </div>
     </div>
@@ -1156,6 +1156,15 @@
     });
   }
   function flash(el, msg, ok){ el.textContent = msg; el.style.color = ok ? 'var(--amber)' : 'var(--red)'; if(ok) setTimeout(function(){ el.textContent=''; }, 2500); }
+  // Валюта студии: приходит в /config. До этого «BYN» было зашито в разметку
+  // в 18 местах, и студия в другой валюте показывала бы чужие подписи.
+  var CUR = 'BYN';
+  // Телефон хранится канонически («+375291234567»), а показываем его человеку
+  // в привычном виде. Форматтер тот же, что у поля ввода, — одна маска на всё.
+  function phonePretty(p){
+    var d = String(p||'').replace(/\D/g,'');
+    return d.length >= 9 ? qbPhoneFormat(p) : String(p||'');
+  }
   function minLabel(m){ m=((m%1440)+1440)%1440; return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
   function dateLabel(iso){ return new Date(String(iso).slice(0,10)+'T00:00:00').toLocaleDateString('ru-RU',{day:'numeric',month:'long'}); }
 
@@ -1166,7 +1175,9 @@
   // на экране — ровно как вписал клиент.
   function telHtml(phone){
     if(!phone) return '—';
-    return '<a href="tel:'+esc(String(phone).trim().replace(/[^\d+]/g,''))+'">'+esc(phone)+'</a>';
+    // В базе номер канонический («+375291234567»), человеку показываем его в
+    // привычном виде — набирается по клику всё равно по цифрам.
+    return '<a href="tel:'+esc(String(phone).trim().replace(/[^\d+]/g,''))+'">'+esc(phonePretty(phone))+'</a>';
   }
   var STUDIO_STATUS_RU = { published:'Опубликована', draft:'Черновик', suspended:'Приостановлена' };
   // Шапка страницы — название студии крупно и адрес, как шапка клиентского
@@ -1422,7 +1433,7 @@
 
     box.innerHTML =
       '<div class="muted" style="font-size:12px;margin-bottom:8px">Тарифы зала. Выделите часы и назначьте им цену. ' +
-        'Невыделенные часы считаются по базовой ставке ' + esc(base) + ' BYN/ч.</div>' +
+        'Невыделенные часы считаются по базовой ставке ' + esc(base) + ' ' + CUR + '/ч.</div>' +
       (PG.half ? '<div style="font-size:12px;color:var(--amber);margin-bottom:8px">Прежние тарифы были заданы с получасовыми границами — в сетке они округлены до целых часов. Проверьте цены перед сохранением.</div>' : '') +
       // Состав чипов НЕ зависит от выделения: «Снять выделение» четвёртым
       // чипом на телефоне переносилось на вторую строку, ряд вырастал с 34
@@ -1449,7 +1460,7 @@
         // дёргалась бы снизу заново на каждом выделенном часе.
         ? '<div class="pg-bar' + (barWasOn ? '' : ' pg-bar-in') + '">' +
             '<span class="pg-bar-n">выделено часов: ' + nSel + '</span>' +
-            '<span class="unitwrap"><input class="num pg-val" type="number" min="0" step="1" value="' + esc(PG.val) + '"><span class="u">BYN/ч</span></span>' +
+            '<span class="unitwrap"><input class="num pg-val" type="number" min="0" step="1" value="' + esc(PG.val) + '"><span class="u">'+CUR+'/ч</span></span>' +
             '<button type="button" class="btn small pg-set">Назначить</button>' +
             '<button type="button" class="btn ghost small pg-reset">Сбросить к базовой</button>' +
             '<button type="button" class="del pg-clear" title="Снять выделение" aria-label="Снять выделение">✕</button>' +
@@ -1506,7 +1517,7 @@
       return '<div class="pr-row" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:6px 0;border-top:1px solid var(--line)">' +
         '<span class="unitwrap"><input class="num pk-h" type="number" min="0.5" step="0.5" data-i="'+i+'" data-pi="'+pi+'" value="'+esc(p.hours)+'"><span class="u">ч</span></span>' +
         '<span class="muted">=</span>' +
-        '<span class="unitwrap"><input class="num pk-p" type="number" min="0" step="1" data-i="'+i+'" data-pi="'+pi+'" value="'+esc(p.price)+'"><span class="u">BYN</span></span>' +
+        '<span class="unitwrap"><input class="num pk-p" type="number" min="0" step="1" data-i="'+i+'" data-pi="'+pi+'" value="'+esc(p.price)+'"><span class="u">'+CUR+'</span></span>' +
         '<button type="button" class="del pk-del" data-i="'+i+'" data-pi="'+pi+'">✕</button>' +
         '</div>';
     }).join('');
@@ -1659,7 +1670,7 @@
         '<div class="hall-card-body">' +
           '<div class="hall-card-name">'+esc(h.name || 'Без названия')+'</div>' +
           '<div class="hall-card-meta">до '+esc(h.capacity)+' чел.'+(h.areaM2 ? ' · '+esc(h.areaM2)+' м²' : '')+'</div>' +
-          '<div class="hall-card-rate">'+esc(h.rate)+' BYN/ч</div>' +
+          '<div class="hall-card-rate">'+esc(h.rate)+' '+CUR+'/ч</div>' +
         '</div>';
       card.addEventListener('click', function(){ openHallDetail(i); });
       g.appendChild(card);
@@ -1716,7 +1727,7 @@
       '<div class="row"><input class="name" data-f="name" placeholder="Название зала" value="'+esc(h.name)+'"></div>' +
       '<div class="row">' +
         '<span class="unitwrap"><input class="num" type="number" min="1" step="1" data-f="capacity" value="'+esc(h.capacity)+'"><span class="u">чел</span></span>' +
-        '<span class="unitwrap"><input class="num" type="number" min="0" step="1" data-f="rate" value="'+esc(h.rate)+'"><span class="u">BYN/ч</span></span>' +
+        '<span class="unitwrap"><input class="num" type="number" min="0" step="1" data-f="rate" value="'+esc(h.rate)+'"><span class="u">'+CUR+'/ч</span></span>' +
       '</div>' +
       (numProps ? '<div class="row">' + numProps + '</div>' : '') +
       styleChips + amenityGroups +
@@ -1803,7 +1814,7 @@
       var row = document.createElement('div'); row.className = 'row';
       row.innerHTML =
         '<input class="name" data-i="'+i+'" data-f="name" placeholder="Название" value="'+esc(it.name)+'">' +
-        '<span class="unitwrap"><input class="num" type="number" min="0" step="1" data-i="'+i+'" data-f="price" value="'+esc(it.price)+'"><span class="u">BYN</span></span>' +
+        '<span class="unitwrap"><input class="num" type="number" min="0" step="1" data-i="'+i+'" data-f="price" value="'+esc(it.price)+'"><span class="u">'+CUR+'</span></span>' +
         '<select data-i="'+i+'" data-f="unit"><option value="flat"'+(it.unit==='flat'?' selected':'')+'>за бронь</option><option value="hour"'+(it.unit==='hour'?' selected':'')+'>за час</option></select>' +
         '<button class="del" data-i="'+i+'" type="button">✕</button>';
       c.appendChild(row);
@@ -2264,7 +2275,7 @@
         '<div class="bk-top"><div class="bk-when">'+esc(dateLabel(b.date))+' <span>· '+minLabel(b.start)+'–'+minLabel(b.end)+'</span></div>' +
           '<span class="st">'+esc(ST_LABEL[b.status] || b.status)+'</span></div>' +
         '<div class="hall">'+esc(hall)+'</div>' +
-        '<div class="meta">'+esc(b.people)+' чел · '+esc(b.price)+' BYN</div>' +
+        '<div class="meta">'+esc(b.people)+' чел · '+esc(b.price)+' '+CUR+'</div>' +
         '<div class="who">'+esc(b.name||'—')+(b.phone ? ' · '+telHtml(b.phone) : '')+'</div>';
       var acts = bkActions(b.status);
       if(acts.length){
@@ -2664,7 +2675,7 @@
       rows.push(['Телефон', telHtml(b.phone)]);
       rows.push(['Гостей', esc(b.people != null ? b.people : '—')]);
       rows.push(['Комментарий', b.comment ? esc(b.comment) : '—']);
-      rows.push(['Сумма', esc(b.price) + ' BYN']);
+      rows.push(['Сумма', esc(b.price) + ' ' + CUR]);
       rows.push(['Статус', esc(ST_LABEL[b.status] || b.status)]);
     } else if(info.kind === 'block'){
       rows.push(['Тип', 'Блокировка администратора']);
@@ -2792,7 +2803,7 @@
       // Как сводка внизу клиентского приложения: мелко — что выбрано, крупно —
       // сколько это стоит.
       sum.innerHTML = '<div class="qb-sum-row">' + esc(hall.name) + ' · ' + esc(qbWhenLabel()) + '</div>'
-        + '<div class="qb-sum-total">' + qbPrice() + ' BYN · ' + qbDurLabel() + '</div>';
+        + '<div class="qb-sum-total">' + qbPrice() + ' ' + CUR + ' · ' + qbDurLabel() + '</div>';
       next.innerHTML = 'Далее <span class="ic" aria-hidden="true">→</span>';
       $('qbPeople').max = hall.capacity;
       if(parseInt($('qbPeople').value,10) > hall.capacity) $('qbPeople').value = hall.capacity;
@@ -3014,7 +3025,7 @@
     if(!qbSelectionValid()) return;
     var hall = qbHall();
     $('qbFormSum').textContent = hall.name + ' · ' + qbWhenLabel()
-      + ' · ' + qbDurLabel() + ' · ' + qbPrice() + ' BYN';
+      + ' · ' + qbDurLabel() + ' · ' + qbPrice() + ' ' + CUR;
     $('qbFormNote').textContent = '';
     $('qbClientHint').textContent = '';
     qbLookedUpKey = '';
@@ -3318,12 +3329,12 @@
       var warn = clFaultText(c)
         .map(function(t){ return '<span class="cl-warn">' + esc(t) + '</span>'; }).join('');
       // Долг — тоже красной пометкой: по нему решают, подтверждать ли бронь.
-      if(c.debtDue > 0) warn = '<span class="cl-warn">долг ' + esc(Math.round(c.debtDue)) + ' BYN</span>' + warn;
+      if(c.debtDue > 0) warn = '<span class="cl-warn">долг ' + esc(Math.round(c.debtDue)) + ' ' + CUR + '</span>' + warn;
       var meta = c.visits
-        ? esc(c.visits) + ' ' + clVisitWord(c.visits) + ' · ' + esc(Math.round(c.spent)) + ' BYN'
+        ? esc(c.visits) + ' ' + clVisitWord(c.visits) + ' · ' + esc(Math.round(c.spent)) + ' ' + CUR
         : 'без броней';
       b.innerHTML = '<span class="cl-name">' + esc(c.name || 'Без имени') + '</span>'
-        + '<span class="cl-phone">' + esc(c.phone) + '</span>' + tags + warn
+        + '<span class="cl-phone">' + esc(phonePretty(c.phone)) + '</span>' + tags + warn
         + '<span class="cl-meta">' + meta + '</span>';
       b.addEventListener('click', function(){ clOpen(c.id); });
       box.appendChild(b);
@@ -3374,7 +3385,7 @@
   }
   function clFill(c){
     $('clName').value = c.name || '';
-    $('clPhone').value = c.phone || '';
+    $('clPhone').value = c.phone ? phonePretty(c.phone) : '';
     $('clInstagram').value = c.instagram || '';
     $('clTelegram').value = c.telegram || '';
     $('clEmail').value = c.email || '';
@@ -3431,7 +3442,7 @@
   function clStatsHtml(c){
     var main = c.visits
       ? '<div><b>' + esc(c.visits) + '</b>' + clVisitWord(c.visits) + '</div>'
-        + '<div><b>' + esc(Math.round(c.spent)) + ' BYN</b>потрачено</div>'
+        + '<div><b>' + esc(Math.round(c.spent)) + ' ' + CUR + '</b>потрачено</div>'
         + (c.lastVisit ? '<div><b>' + esc(clFmtDate(c.lastVisit)) + '</b>последний визит</div>' : '')
       : '<div><b>—</b>без броней</div>';
     // Нарушения показываем только когда они есть: у аккуратного клиента в
@@ -3456,7 +3467,7 @@
       var off = b.status === 'cancelled' || b.status === 'declined' || b.status === 'no_show';
       return '<div class="cl-hist" data-cancelled="' + off + '">'
         + '<span class="d">' + esc(clFmtDate(b.date)) + ' · ' + minLabel(b.start) + '–' + minLabel(b.end) + '</span>'
-        + '<span>' + esc(b.hallName || '') + ' · ' + esc(Math.round(b.price)) + ' BYN</span>'
+        + '<span>' + esc(b.hallName || '') + ' · ' + esc(Math.round(b.price)) + ' ' + CUR + '</span>'
         + '</div>';
     }).join('');
   }
@@ -3475,7 +3486,7 @@
     var head = document.createElement('div');
     head.className = 'cl-debt-total' + (total > 0 ? ' bad' : '');
     head.textContent = total > 0
-      ? 'Должен ' + Math.round(total) + ' BYN'
+      ? 'Должен ' + Math.round(total) + ' ' + CUR
       : 'Долгов нет';
     c.appendChild(head);
 
@@ -3484,7 +3495,7 @@
       row.className = 'cl-debt';
       var what = document.createElement('span');
       what.className = 'cl-debt-what';
-      what.textContent = Math.round(d.amount) + ' BYN · ' + (CL_DEBT_REASON[d.reason] || d.reason)
+      what.textContent = Math.round(d.amount) + ' ' + CUR + ' · ' + (CL_DEBT_REASON[d.reason] || d.reason)
         + (d.date ? ' · ' + clFmtDate(d.date) : '');
       row.appendChild(what);
       if(d.settledAt){
@@ -3510,7 +3521,7 @@
       all.style.marginTop = '6px';
       all.textContent = 'Простить весь долг';
       all.addEventListener('click', function(){
-        if(!confirm('Простить весь долг — ' + Math.round(total) + ' BYN?')) return;
+        if(!confirm('Простить весь долг — ' + Math.round(total) + ' ' + CUR + '?')) return;
         clSettleDebt(null, 'forgiven', all);
       });
       c.appendChild(all);
@@ -3733,6 +3744,10 @@
           ? h.map(function(d){ return {start:d.start, end:d.end}; })
           : Array.from({length:7}, function(){ return {start:cfg.hoursStart, end:cfg.hoursEnd}; });
         renderHours();
+        if(typeof cfg.currency === 'string' && cfg.currency) {
+          CUR = cfg.currency;
+          $('stRevCur').textContent = CUR;
+        }
         if(cfg.verticalUi && cfg.verticalUi.hallProps) HALL_PROPS = cfg.verticalUi.hallProps;
         MAPS_KEY = typeof cfg.yandexMapsKey === 'string' ? cfg.yandexMapsKey : '';
         profileDraft = {
