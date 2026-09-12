@@ -190,15 +190,20 @@
   .pg-cell{border-radius:6px;background:var(--bg);cursor:pointer;transition:background .1s;
     display:flex;align-items:center;justify-content:center;
     font-family:var(--f-mono);font-size:11px;color:var(--text-3);}
-  .pg-cell[data-state="base"]:hover{background:#e7e9ed;}
-  /* час с ценой, отличной от базовой */
+  /* Цвет клетки — «температура» цены, её ставит JS инлайном (шкала считается
+     по диапазону цен сетки, см. pgRampColor). Поэтому ховер здесь filter, а
+     не background: инлайн-фон перебил бы любое фоновое правило. */
+  .pg-cell:not([data-state="closed"]):hover{filter:brightness(.95);}
+  /* Запасной цвет для часа с ценой, отличной от базовой: работает, когда
+     шкалы нет (цена всюду одна) и JS цвет не проставил. */
   .pg-cell[data-state="set"]{background:var(--blue-bg);color:var(--blue-dark);font-weight:600;}
   .pg-cell[data-state="closed"]{cursor:not-allowed;
     background:repeating-linear-gradient(-45deg,
       rgba(20,22,28,.05), rgba(20,22,28,.05) 5px,
       rgba(20,22,28,.015) 5px, rgba(20,22,28,.015) 10px);}
-  /* выделение — последним правилом, перекрывает и base, и set */
-  .pg-cell[data-sel="true"],.pg-cell[data-sel="true"]:hover{background:var(--blue);color:#fff;}
+  /* Выделение — тёмно-нейтральное, НЕ синее: синий теперь занят холодным
+     (дешёвым) концом шкалы, и синее выделение читалось бы как «дёшево». */
+  .pg-cell[data-sel="true"]{background:var(--text);color:#fff;font-weight:600;}
 
   /* ---------- залы: карточки + деталь ---------- */
   /* Залы — как у клиента по содержанию (фото, имя, цена синим), но без
@@ -1030,6 +1035,34 @@
   }
   function pgSelCount(){ return Object.keys(PG.sel).length; }
 
+  // «Температура» цены: самый дешёвый час сетки — холодный, самый дорогой —
+  // тёплый. Шкала считается по ценам ИМЕННО ЭТОЙ сетки (базовая ставка тоже
+  // участвует — её показывают незакрашенные клетки), поэтому всегда занимает
+  // весь диапазон. Одна цена на всю сетку — шкала не нужна, клетки остаются
+  // нейтральными (иначе вся сетка была бы залита одним случайным цветом).
+  var PG_RAMP = [
+    { bg:[220,233,250], fg:[20,83,158] },   // холодный синий — дешевле всего
+    { bg:[220,238,239], fg:[15,98,96]  },   // бирюзовый
+    { bg:[226,240,223], fg:[47,104,55] },   // зелёный
+    { bg:[250,236,205], fg:[138,90,8]  },   // янтарный
+    { bg:[249,220,211], fg:[163,58,32] }    // тёплый красный — дороже всего
+  ];
+  function pgRampColor(t){
+    var x = Math.max(0, Math.min(1, t)) * (PG_RAMP.length - 1);
+    var i = Math.min(PG_RAMP.length - 2, Math.floor(x)), f = x - i;
+    var a = PG_RAMP[i], b = PG_RAMP[i+1];
+    function mix(p, q){
+      return 'rgb(' + p.map(function(v, k){ return Math.round(v + (q[k]-v)*f); }).join(',') + ')';
+    }
+    return { bg: mix(a.bg, b.bg), fg: mix(a.fg, b.fg) };
+  }
+  // Цена часа с учётом базовой ставки — null, если день в этот час закрыт.
+  function pgCellPrice(d, hr, base){
+    if(!pgOpen(d, hr)) return null;
+    var v = PG.price[pgKey(d, hr)];
+    return v != null ? v : base;
+  }
+
   function renderHallPriceRules(i){
     var h = hallsDraft[i];
     var box = document.querySelector('.hall-prules[data-i="'+i+'"]');
@@ -1046,6 +1079,18 @@
       cells += '<button type="button" class="pg-head" data-d="'+d+'" title="Весь день"'
         + ' style="grid-row:1;grid-column:'+(ci+2)+'">'+DOW_LBL[d]+'</button>';
     });
+    // Диапазон цен по всем открытым клеткам — шкала «температуры».
+    var lo = null, hi = null;
+    for(var dd=0; dd<7; dd++){
+      PG.hours.forEach(function(hr){
+        var p = pgCellPrice(dd, hr, base);
+        if(p == null) return;
+        if(lo == null || p < lo) lo = p;
+        if(hi == null || p > hi) hi = p;
+      });
+    }
+    var spread = (lo != null && hi > lo);
+
     PG.hours.forEach(function(hr, ri){
       var row = ri + 2;
       cells += '<button type="button" class="pg-hour" data-hr="'+hr+'" title="Этот час во все дни"'
@@ -1053,9 +1098,16 @@
       DOW_ORDER.forEach(function(d, ci){
         var k = pgKey(d, hr), open = pgOpen(d, hr), v = PG.price[k];
         var st = !open ? 'closed' : (v != null ? 'set' : 'base');
+        var style = 'grid-row:'+row+';grid-column:'+(ci+2);
+        // У выделенной клетки цвет не трогаем: её красит CSS-правило
+        // [data-sel] (инлайн-стиль перебил бы его и выделение пропало бы).
+        if(open && spread && !PG.sel[k]){
+          var c = pgRampColor((pgCellPrice(d, hr, base) - lo) / (hi - lo));
+          style += ';background:'+c.bg+';color:'+c.fg;
+        }
         cells += '<div class="pg-cell" data-k="'+k+'" data-state="'+st+'"'
           + (PG.sel[k] ? ' data-sel="true"' : '')
-          + ' style="grid-row:'+row+';grid-column:'+(ci+2)+'">'
+          + ' style="'+style+'">'
           + (open ? esc(v != null ? v : base) : '') + '</div>';
       });
     });
