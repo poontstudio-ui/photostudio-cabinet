@@ -3241,7 +3241,17 @@
   });
 
   // ---------- load ----------
+  // Все независимые запросы уходят СРАЗУ, одной волной, а не после overview.
+  // Каждый запрос к API — примерно полсекунды (Render), а раньше календарь,
+  // клиенты и блокировки ждали, пока ответит overview: кабинет становился
+  // рабочим за две волны вместо одной, то есть вдвое дольше.
+  // Блокировки — единственные, кого нельзя нарисовать сразу: renderBlocks
+  // берёт названия залов из HALLS_BY_ID, а их приносит overview. Поэтому
+  // запрос стартует вместе со всеми, а отрисовка ждёт overview.
   function load(){
+    loadCalendar();
+    loadClients();
+    var blocksP = api('GET', '/admin/blocks').catch(function(){ return null; });
     return api('GET', '/admin/overview').then(function(ov){
       myId = String(ov.me || '');
       (ov.halls||[]).forEach(function(h){ HALLS_BY_ID[h.id] = h; });
@@ -3259,9 +3269,13 @@
       renderHalls(); renderEquip(); renderOwners();
       renderBookings(ov.bookings || []);
       renderBlockHallOptions();
-      loadCalendar();
-      loadClients();
-      return loadBlocks();
+      return blocksP.then(function(list){
+        // null — запрос не удался; блокировки не критичны для загрузки
+        // страницы, ведём себя как прежний loadBlocks с его пустым catch.
+        if(!list) return;
+        blocksList = Array.isArray(list) ? list : [];
+        renderBlocks();
+      });
     });
   }
 
