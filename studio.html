@@ -435,6 +435,8 @@
   .qb-date-chip[data-active="true"] .qb-date-num{color:var(--blue-dark);}
   /* сводка выбранного слота — как summary-row/summary-total у клиента */
   .qb-sum{margin:14px 0 12px;font-size:13px;color:var(--text-2);}
+  /* без текста подсказка не должна оставлять под сеткой пустой отступ */
+  .qb-sum:empty{margin:0;}
   .qb-sum-row{font-size:12.5px;color:var(--text-2);}
   .qb-sum-total{font-size:20px;font-weight:700;letter-spacing:-.01em;margin-top:3px;}
 
@@ -2486,7 +2488,10 @@
             ? 'Пакет переносится целиком — выберите начало на сетке'
             : (qbSelectionPending() ? 'Отметьте вторую точку промежутка'
                : 'Выберите новое время в зале «' + QB.reschedule.hallName + '»'))
-        : (qbSelectionPending() ? 'Отметьте вторую точку промежутка' : 'Отметьте начало брони на сетке');
+        // В обычном режиме подсказки в покое нет — сетка говорит сама за себя.
+        // «Вторая точка» остаётся: это уже начатое действие, на нём без
+        // подсказки непонятно, почему бронь ещё не готова.
+        : (qbSelectionPending() ? 'Отметьте вторую точку промежутка' : '');
       return;
     }
     hint.textContent = '';
