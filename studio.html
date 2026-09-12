@@ -739,6 +739,17 @@
   if(tgl) tgl.addEventListener('click', function(){
     shell.dataset.nav = shell.dataset.nav === 'open' ? '' : 'open';
   });
+  // Закрыть меню кликом вне сайдбара: на мобильном при открытом меню между
+  // сайдбаром (z-index:40) и контентом лежит затемнение — ::after у .shell
+  // (z-index:30, см. CSS). У псевдоэлемента нет своего узла, клик по нему
+  // всплывает с target=.shell, поэтому этой проверки достаточно — как и у
+  // клика по фону модалки (qbDetailModal) ниже в файле.
+  shell.addEventListener('click', function(e){
+    if(shell.dataset.nav === 'open' && e.target === shell) shell.dataset.nav = '';
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && shell.dataset.nav === 'open') shell.dataset.nav = '';
+  });
 
   // Левое меню — «папки», не якоря: клик переключает видимую группу карточек,
   // а не скроллит длинную страницу. Раньше каждая ссылка вела на свой якорь
