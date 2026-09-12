@@ -456,17 +456,18 @@
       </div>
       <div class="qb-sum" id="qbHint"></div>
 
-      <div class="row">
+      <div class="row" id="qbCreateRow1">
         <input class="name" id="qbName" placeholder="Имя клиента" autocomplete="off">
         <input class="name" id="qbPhone" placeholder="Телефон" inputmode="tel" autocomplete="off">
       </div>
-      <div class="row">
+      <div class="row" id="qbCreateRow2">
         <span class="unitwrap"><input class="num" type="number" min="1" id="qbPeople" value="1"><span class="u">чел</span></span>
       </div>
-      <div class="row">
+      <div class="row" id="qbCreateRow3">
         <textarea class="name" id="qbComment" rows="2" maxlength="300" placeholder="Комментарий (необязательно) — например, своя аппаратура" style="resize:vertical"></textarea>
       </div>
       <div class="actions" style="margin-top:6px">
+        <button class="btn ghost" id="qbRescheduleCancel" type="button" hidden>Отмена переноса</button>
         <button class="btn" id="qbSubmit" type="button" disabled>Забронировать</button>
       </div>
       <div class="note" id="qbNote"></div>
@@ -661,6 +662,8 @@
       <button class="modal-close" id="qbDetailClose" type="button" aria-label="Закрыть">✕</button>
     </div>
     <div id="qbDetailBody"></div>
+    <div class="actions" id="qbDetailActions" style="margin-top:12px"></div>
+    <div class="note" id="qbDetailNote"></div>
   </div>
 </div>
 
@@ -847,6 +850,12 @@
     busy: {},              // {hallId: [{start,end}]}, минуты от полуночи
     dayBookings: null,     // брони QB.date с деталями (/admin/bookings?date); null — не загрузились
     sel: { hallId:null, start:null, end:null },   // индексы слотов; end не включается
+    // Перенос существующей брони — режим той же сетки, не отдельная форма.
+    // { id, hallId, hallName, pkgSlots, originalDate, originalStart, originalEnd } | null.
+    // pkgSlots — фикс. длительность для пакетной брони (двигается целиком,
+    // как и в клиентском RS-модуле); originalDate/Start/End — чтобы вычесть
+    // собственное текущее время из занятости (иначе бронь мешала бы сама себе).
+    reschedule: null,
   };
   var hallsDraft = [], equipDraft = [], hoursDraft = [], ownersDraft = [], myId = '';
   var settingsDraft = { autoConfirm:false, bufferMin:10, minBookingMin:60, cancelFreeHours:24,
@@ -1846,11 +1855,19 @@
   // выделения, в том же зале — весь промежуток до новой точки; тап ВНУТРИ
   // выделения — сброс, остаётся только эта клетка.
   function qbTapCell(hallId, slot){
+    // Перенос пакетной брони двигается целиком — тап ставит начало, длина
+    // фиксирована (как в клиентском RS-модуле при переносе пакета).
+    if(QB.reschedule && QB.reschedule.pkgSlots){
+      return qbSetSel(hallId, slot, slot + QB.reschedule.pkgSlots);
+    }
     if(QB.sel.hallId === hallId && qbHasSel()){
       if(slot >= QB.sel.start && slot < QB.sel.end) return qbSetSel(hallId, slot, slot+1);
       var a = Math.min(QB.sel.start, slot);
       var b = Math.max(QB.sel.end - 1, slot) + 1;
-      return qbSetSel(hallId, a, b);
+      // Между текущим выделением и тапнутой клеткой есть занятое время —
+      // промежуток не выделяется. Не оставляем тап без ответа (не будет
+      // выглядеть как «не нажимается») — начинаем выбор заново с этой клетки.
+      return qbSetSel(hallId, a, b) || qbSetSel(hallId, slot, slot+1);
     }
     return qbSetSel(hallId, slot, slot+1);
   }
@@ -1859,7 +1876,9 @@
     if(!qbHasSel()) return false;
     var hall = qbHall();
     if(!hall || !qbSpanFree(hall.id, QB.sel.start, QB.sel.end)) return false;
-    return (QB.sel.end - QB.sel.start) >= qbMinSlots(hall, QB.sel.start);
+    var len = QB.sel.end - QB.sel.start;
+    if(QB.reschedule && QB.reschedule.pkgSlots) return len === QB.reschedule.pkgSlots;
+    return len >= qbMinSlots(hall, QB.sel.start);
   }
   function qbSelectionPending(){
     if(!qbHasSel()) return false;
@@ -2023,7 +2042,43 @@
     $('qbDetailBody').innerHTML = rows.map(function(r){
       return '<div class="qbd-row"><span class="qbd-l">'+r[0]+'</span><span class="qbd-v">'+r[1]+'</span></div>';
     }).join('');
+    qbRenderDetailActions(info);
+    $('qbDetailNote').textContent = '';
     $('qbDetailModal').hidden = false;
+  }
+  // Кнопки смены статуса внутри «Детали брони» — те же переходы, что и в
+  // списке на дашборде (bkActions), плюс «Перенести», пока бронь ещё
+  // предстоит (переносить завершённую/отменённую уже некуда). Кнопки
+  // создаются заново при каждом открытии — старые вместе с их слушателями
+  // просто отбрасываются через innerHTML='' (тот же приём, что в renderBookings).
+  function qbRenderDetailActions(info){
+    var box = $('qbDetailActions');
+    box.innerHTML = '';
+    if(info.kind !== 'booking') return;
+    var b = info.data;
+    var acts = bkActions(b.status).slice();
+    if(b.status === 'pending' || b.status === 'confirmed'){
+      acts.unshift({ p:'reschedule', t:'Перенести', c:'ghost' });
+    }
+    acts.forEach(function(a){
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn small' + (a.c ? ' ' + a.c : '');
+      btn.textContent = a.t;
+      btn.addEventListener('click', function(){
+        if(a.p === 'reschedule'){ qbEnterReschedule(b.hallId, b); return; }
+        var url = a.p === 'cancel' ? '/bookings/' + b.id + '/cancel' : '/admin/bookings/' + b.id + '/' + a.p;
+        box.querySelectorAll('button').forEach(function(x){ x.disabled = true; });
+        api('POST', url).then(function(){
+          qbCloseDetail();
+          return load().then(qbSyncGrid);
+        }).catch(function(e){
+          box.querySelectorAll('button').forEach(function(x){ x.disabled = false; });
+          flash($('qbDetailNote'), e.message);
+        });
+      });
+      box.appendChild(btn);
+    });
   }
   function qbCloseDetail(){ $('qbDetailModal').hidden = true; }
   $('qbDetailClose').addEventListener('click', qbCloseDetail);
@@ -2034,6 +2089,25 @@
   function qbRenderHint(){
     var hint = $('qbHint');
     var submit = $('qbSubmit');
+    if(QB.reschedule){
+      if(qbSelectionValid()){
+        var mins2 = (QB.sel.end - QB.sel.start) * QB.slotMin;
+        var dur2 = mins2 % 60 ? Math.floor(mins2/60) + ' ч ' + (mins2%60) + ' мин' : (mins2/60) + ' ч';
+        hint.dataset.state = 'ready';
+        hint.innerHTML = '<div class="qb-sum-row">Новое время для «' + esc(QB.reschedule.name) + '»</div>'
+          + '<div class="qb-sum-total">' + esc(dateLabel(QB.date)) + ' · '
+          + minLabel(QB.sel.start*QB.slotMin) + '–' + minLabel(QB.sel.end*QB.slotMin) + ' · ' + dur2 + '</div>';
+        submit.disabled = false;
+      } else {
+        hint.dataset.state = '';
+        hint.textContent = QB.reschedule.pkgSlots
+          ? 'Пакет переносится целиком — выберите начало на сетке'
+          : (qbSelectionPending() ? 'Отметьте вторую точку промежутка'
+             : 'Выберите новое время в зале «' + QB.reschedule.hallName + '»');
+        submit.disabled = true;
+      }
+      return;
+    }
     if(qbSelectionValid()){
       var hall = qbHall();
       var mins = (QB.sel.end - QB.sel.start) * QB.slotMin;
@@ -2058,6 +2132,9 @@
     if(blk){ qbShowDetail(blk.dataset.hall, Number(blk.dataset.start), Number(blk.dataset.end)); return; }
     var el = e.target && e.target.closest ? e.target.closest('.qb-cell') : null;
     if(!el || el.dataset.state !== 'free') return;
+    // Перенос не меняет зал — сервер его и не принимает (только date/start/
+    // end): клетки другого зала во время переноса игнорируем.
+    if(QB.reschedule && el.dataset.hall !== QB.reschedule.hallId) return;
     if(qbTapCell(el.dataset.hall, Number(el.dataset.slot))) qbRenderGrid();
   });
   // Шапка (залы) живёт вне горизонтального скроллера — синхронизируем её
@@ -2092,6 +2169,18 @@
       if(date !== QB.date) return;
       QB.busy = r[0] || {};
       QB.dayBookings = Array.isArray(r[1]) ? r[1] : null;
+      // Переносимая бронь не должна мешать сама себе: на СВОЕЙ текущей дате
+      // вычитаем её же интервал из занятости (иначе на неё саму нельзя было
+      // бы даже кликнуть при возврате на то же время) — тот же приём, что в
+      // клиентском RS-модуле.
+      if(QB.reschedule && date === QB.reschedule.originalDate){
+        var list = QB.busy[QB.reschedule.hallId];
+        if(Array.isArray(list)){
+          QB.busy[QB.reschedule.hallId] = list.filter(function(iv){
+            return !(iv.start === QB.reschedule.originalStart && iv.end === QB.reschedule.originalEnd);
+          });
+        }
+      }
     });
   }
   function qbRefresh(){
@@ -2106,7 +2195,60 @@
   function qbSyncGrid(){
     return qbLoadBusy().then(qbRenderGrid);
   }
+  // Переключение формы «Новая бронь по звонку» между созданием и переносом:
+  // поля имени/телефона/людей/комментария прячутся — оба действия ведут на
+  // одну и ту же кнопку/подсказку под сеткой, чтобы не плодить вторую форму.
+  function qbSetCreateFieldsHidden(hidden){
+    $('qbCreateRow1').hidden = hidden;
+    $('qbCreateRow2').hidden = hidden;
+    $('qbCreateRow3').hidden = hidden;
+    $('qbRescheduleCancel').hidden = !hidden;
+  }
+  function qbEnterReschedule(hallId, booking){
+    QB.reschedule = {
+      id: booking.id,
+      hallId: hallId,
+      hallName: (QB.halls.find(function(h){ return h.id === hallId; }) || {}).name || '',
+      name: booking.name || 'бронь',
+      pkgSlots: booking.packageHours != null
+        ? Math.max(1, Math.round(booking.packageHours * 60 / QB.slotMin)) : null,
+      originalDate: booking.date, originalStart: booking.start, originalEnd: booking.end,
+    };
+    qbCloseDetail();
+    qbClearSel();
+    qbSetCreateFieldsHidden(true);
+    $('qbSubmit').textContent = 'Перенести';
+    qbSyncGrid();
+    $('sec-quickbook').scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+  function qbExitReschedule(){
+    QB.reschedule = null;
+    qbClearSel();
+    qbSetCreateFieldsHidden(false);
+    $('qbSubmit').textContent = 'Забронировать';
+    qbSyncGrid();
+  }
+  $('qbRescheduleCancel').addEventListener('click', qbExitReschedule);
+  function qbConfirmReschedule(){
+    if(!qbSelectionValid()) return;
+    var id = QB.reschedule.id;
+    var payload = { date: QB.date, start: QB.sel.start*QB.slotMin, end: QB.sel.end*QB.slotMin };
+    var btn = $('qbSubmit'); btn.disabled = true; btn.textContent = 'Переносим…';
+    api('POST', '/bookings/' + id + '/reschedule', payload).then(function(){
+      flash($('qbNote'), 'Бронь перенесена', true);
+      qbExitReschedule();
+      // load() обновит lastBookings/dayBookings ДО перерисовки — иначе
+      // прямоугольник на новом месте на миг покажется серым «внешний
+      // календарь» (тот же порядок, что и после создания брони по звонку).
+      return load().then(qbSyncGrid);
+    }).catch(function(e){
+      flash($('qbNote'), e.message);
+      btn.textContent = 'Перенести';
+      btn.disabled = !qbSelectionValid();
+    });
+  }
   $('qbSubmit').addEventListener('click', function(){
+    if(QB.reschedule) return qbConfirmReschedule();
     if(!qbSelectionValid()) return;
     var name = $('qbName').value.trim();
     var phone = $('qbPhone').value.trim();
