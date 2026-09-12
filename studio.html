@@ -305,7 +305,10 @@
     background:var(--bg);cursor:pointer;transition:background .1s;
   }
   .qb-cell[data-state="free"]:hover{background:#e7e9ed;}
-  .qb-cell[data-state="busy"]{cursor:default;}
+  /* Под занятой клеткой фона нет вообще: сверху лежит .qb-booked, и любой
+     непокрытый им пиксель (скругления, субпиксельное округление на retina)
+     иначе светится серой каёмкой вокруг брони. Так же сделано у клиента. */
+  .qb-cell[data-state="busy"]{cursor:default;background:none;}
   .qb-cell[data-state="past"],
   .qb-cell[data-state="closed"]{
     cursor:not-allowed;
@@ -317,8 +320,12 @@
   .qb-empty{padding:14px 4px;color:var(--text-3);font-size:13px;}
   /* Один прямоугольник на бронь/блокировку, поверх сетки, цвет по статусу.
      z-index:1 держит его над обычными qb-cell (z:auto), но под шапкой/часами. */
+  /* Без margin: прямоугольник обязан накрывать свою область сетки ровно
+     в край. С margin:1px из-под него со всех сторон торчала серая клетка —
+     на retina это 2–3 физических пикселя, владелец видел «серые артефакты»
+     вокруг зелёных и жёлтых броней (измерено: клетка 64→236, блок 65→235). */
   .qb-booked{
-    position:relative;z-index:1;margin:1px;border-radius:6px;
+    position:relative;z-index:1;border-radius:6px;
     /* фон по умолчанию — чтобы неизвестный статус не оказался невидимым
        прямоугольником (цвета ниже перекрывают его для известных). */
     background:#e4e6ea;border:none;cursor:pointer;
