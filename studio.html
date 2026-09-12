@@ -538,27 +538,35 @@
   .cl-hist[data-cancelled="true"]{color:var(--text-3);text-decoration:line-through;}
 
   /* ---------- модалка деталей брони ---------- */
+  /* ОДИН механизм окон на оба приложения (те же метрики — в
+     photostudio-frontend/index.html). Раньше кабинет показывал окна по центру
+     без ограничения высоты, клиент — шторкой снизу с прокруткой, и
+     затемнение у них было разного цвета и плотности.
+     Главное тут не косметика: у окна появились max-height и прокрутка. Без
+     них высокое окно не помещалось на телефоне и кнопки внизу уезжали за
+     экран — на это уже наступили с карточкой клиента. */
   .modal-backdrop{
-    position:fixed;inset:0;z-index:50;background:rgba(20,22,28,.35);
+    position:fixed;inset:0;z-index:50;background:rgba(20,22,28,.45);
     display:flex;align-items:center;justify-content:center;padding:16px;
   }
   .modal-backdrop[hidden]{display:none;}
   .modal-box{
-    background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);
-    max-width:380px;width:100%;padding:18px 20px;
+    background:var(--surface);border-radius:var(--r-md);box-shadow:var(--shadow);
+    max-width:420px;width:100%;padding:20px;
+    max-height:92vh;overflow-y:auto;overscroll-behavior:contain;
+    animation:sheet-in .2s cubic-bezier(.32,.72,0,1);
   }
+  @keyframes sheet-in{from{transform:translateY(12px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  @keyframes sheet-up{from{transform:translateY(100%);}to{transform:translateY(0);}}
+  @media (prefers-reduced-motion:reduce){ .modal-box{animation:none;} }
   .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
   .modal-head h3{margin:0;font-size:var(--fs-lg);font-weight:600;letter-spacing:-.005em;}
   .modal-close{border:none;background:none;color:var(--text-3);font-size:var(--fs-lg);
     line-height:1;cursor:pointer;padding:4px;border-radius:var(--r-sm);}
   .modal-close:hover{color:var(--text);background:var(--surface-2);}
-  /* Форма клиента выезжает, а не возникает: её открывают с липкой панели
-     внизу, и движение снизу вверх связывает одно с другим. */
-  @keyframes qb-modal-in{from{transform:translateY(16px);opacity:0;}to{transform:translateY(0);opacity:1;}}
-  .qb-form-modal .modal-box{animation:qb-modal-in .2s cubic-bezier(.32,.72,0,1);}
-  @media (prefers-reduced-motion:reduce){
-    .qb-form-modal .modal-box,.qb-bar-in{animation:none;}
-  }
+  /* Отдельная анимация для формы клиента больше не нужна: выезд снизу стал
+     общим поведением всех окон (см. .modal-box выше и мобильный блок). */
+  @media (prefers-reduced-motion:reduce){ .qb-bar-in{animation:none;} }
   .qbd-row{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;
     padding:6px 0;font-size:var(--fs-md);}
   .qbd-l{color:var(--text-3);flex:none;}
@@ -597,6 +605,14 @@
              width:36px;height:36px;border:none;background:var(--bg);
              border-radius:var(--r-sm);font-size:var(--fs-lg);cursor:pointer;margin-bottom:18px;}
     .card{margin-bottom:48px;}
+    /* На телефоне окно — шторка снизу: до неё дотягивается большой палец, и
+       это привычнее окна посреди экрана. Так же устроен клиент. */
+    .modal-backdrop{align-items:flex-end;padding:0;}
+    .modal-box{
+      max-width:none;border-radius:var(--r-md) var(--r-md) 0 0;
+      padding:20px 16px calc(20px + env(safe-area-inset-bottom));
+      animation:sheet-up .22s cubic-bezier(.32,.72,0,1);
+    }
     /* сайдбар здесь off-canvas — липким панелям больше не от чего отступать */
     .pg-bar{left:0;padding:12px 16px;}
     .qb-bar{left:0;padding:12px 16px;gap:10px;}
