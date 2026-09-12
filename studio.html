@@ -188,6 +188,13 @@
     box-shadow:0 -4px 16px rgba(20,22,28,.10);}
   .pg-bar .num{width:84px;}
   .pg-bar-n{font-size:12px;color:var(--text-2);margin-right:2px;}
+  .pg-clear{margin-left:auto;}
+  /* Выезд снизу. Класс pg-bar-in навешивается только в тот раз, когда панели
+     ещё не было (см. barWasOn) — иначе она переигрывала бы анимацию на
+     каждом клике по клетке, т.к. блок перерисовывается целиком. */
+  @keyframes pg-bar-up{from{transform:translateY(100%);}to{transform:translateY(0);}}
+  .pg-bar-in{animation:pg-bar-up .18s ease-out;}
+  @media (prefers-reduced-motion:reduce){ .pg-bar-in{animation:none;} }
   /* На узком экране (320px) семь колонок по минимуму уже не влезают и вбок
      уезжала вся страница — поэтому сетка в своём горизонтальном скролле,
      как #qbGridScroll у сетки брони. */
@@ -963,7 +970,7 @@
   // sel: 'dow:час' -> true (выделено). Пересобирается в pgLoad при открытии.
   // val — то, что набрано в поле цены липкой панели; живёт в состоянии, т.к.
   // каждый клик по клетке перерисовывает блок и пересоздаёт поле.
-  var PG = { i:-1, hours:[], price:{}, sel:{}, dirty:false, half:false, val:'' };
+  var PG = { i:-1, hours:[], price:{}, sel:{}, dirty:false, half:false, val:'', barOn:false };
 
   function pgKey(d, hr){ return d+':'+hr; }
   function pgDayWin(d){ var w = hoursDraft[d]; return w ? {start:w.start, end:w.end} : {start:9, end:22}; }
@@ -992,7 +999,7 @@
   function pgLoad(i){
     var h = hallsDraft[i];
     var rules = Array.isArray(h.priceRules) ? h.priceRules : [];
-    PG = { i:i, hours:pgBuildHours(), price:{}, sel:{}, dirty:false,
+    PG = { i:i, hours:pgBuildHours(), price:{}, sel:{}, dirty:false, barOn:false,
       // Поле цены открываем с базовой ставкой зала — чаще всего от неё и
       // пляшут, а «сбросить к базовой» рядом отдельной кнопкой.
       val: (typeof h.rate === 'number' && isFinite(h.rate)) ? String(h.rate) : '',
@@ -1093,6 +1100,8 @@
     if(PG.i !== i) pgLoad(i);
     var base = (typeof h.rate === 'number' && isFinite(h.rate)) ? h.rate : 0;
     var nSel = pgSelCount();
+    var barWasOn = PG.barOn;   // была ли панель на экране до этой перерисовки
+    PG.barOn = nSel > 0;
 
     // Явные grid-row/grid-column на КАЖДОМ элементе сетки — смешение авто- и
     // явной расстановки уже ломало гриды в этом файле, см. .qb-grid.
@@ -1138,11 +1147,14 @@
       '<div class="muted" style="font-size:12px;margin-bottom:8px">Тарифы зала. Выделите часы и назначьте им цену. ' +
         'Невыделенные часы считаются по базовой ставке ' + esc(base) + ' BYN/ч.</div>' +
       (PG.half ? '<div style="font-size:12px;color:var(--amber);margin-bottom:8px">Прежние тарифы были заданы с получасовыми границами — в сетке они округлены до целых часов. Проверьте цены перед сохранением.</div>' : '') +
+      // Состав чипов НЕ зависит от выделения: «Снять выделение» четвёртым
+      // чипом на телефоне переносилось на вторую строку, ряд вырастал с 34
+      // до 75px и дёргал сетку вниз на 40px при каждом выделении/снятии.
+      // Снятие переехало крестиком в липкую панель.
       '<div class="pg-bulk">' +
         '<button type="button" class="chip-tog pg-b" data-g="weekdays">Будни</button>' +
         '<button type="button" class="chip-tog pg-b" data-g="weekend">Выходные</button>' +
         '<button type="button" class="chip-tog pg-b" data-g="all">Все часы</button>' +
-        (nSel ? '<button type="button" class="chip-tog pg-b" data-g="none">Снять выделение</button>' : '') +
       '</div>' +
       '<div class="pg-scroll"><div class="pg-grid">' + cells + '</div></div>' +
       '<div style="margin-top:10px;display:flex;gap:8px;align-items:center">' +
@@ -1155,11 +1167,15 @@
       // .content и так padding-bottom:90px, это больше высоты панели, а
       // распорка дёргала бы вниз всё содержимое при каждом выделении.
       (nSel
-        ? '<div class="pg-bar">' +
+        // Анимация выезда — ТОЛЬКО когда панели не было: каждый клик по
+        // клетке перерисовывает блок целиком, и без этой проверки панель
+        // дёргалась бы снизу заново на каждом выделенном часе.
+        ? '<div class="pg-bar' + (barWasOn ? '' : ' pg-bar-in') + '">' +
             '<span class="pg-bar-n">выделено часов: ' + nSel + '</span>' +
             '<span class="unitwrap"><input class="num pg-val" type="number" min="0" step="1" value="' + esc(PG.val) + '"><span class="u">BYN/ч</span></span>' +
             '<button type="button" class="btn small pg-set">Назначить</button>' +
             '<button type="button" class="btn ghost small pg-reset">Сбросить к базовой</button>' +
+            '<button type="button" class="del pg-clear" title="Снять выделение" aria-label="Снять выделение">✕</button>' +
           '</div>'
         : '');
 
@@ -1174,7 +1190,6 @@
     });
     box.querySelectorAll('.pg-b').forEach(function(b){ b.addEventListener('click', function(){
       var g = b.dataset.g;
-      if(g === 'none'){ PG.sel = {}; renderHallPriceRules(i); return; }
       pgToggle(pgKeysOfDays(g === 'weekdays' ? PG_WEEKDAYS : g === 'weekend' ? PG_WEEKEND : DOW_ORDER));
     }); });
     var apply = function(toBase){
@@ -1198,6 +1213,9 @@
       valInp.addEventListener('input', function(){ PG.val = valInp.value; });
       box.querySelector('.pg-set').addEventListener('click', function(){ apply(false); });
       box.querySelector('.pg-reset').addEventListener('click', function(){ apply(true); });
+      box.querySelector('.pg-clear').addEventListener('click', function(){
+        PG.sel = {}; renderHallPriceRules(i);
+      });
     }
     box.querySelector('.pr-save').addEventListener('click', function(){ saveHallPriceRules(i); });
   }
