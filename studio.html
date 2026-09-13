@@ -154,6 +154,11 @@
   .stat .l{font-size:var(--fs-sm);color:var(--text-2);margin-top:8px;}
 
   /* ---------- формы ---------- */
+  /* Настройка, которая имеет смысл только вместе с тумблером выше (сейчас —
+     исключение для должников при автоподтверждении): сдвинута и отчёркнута
+     слева, целиком показывается/прячется вместе со своим условием. */
+  .set-sub{margin:2px 0 12px 4px;padding-left:14px;border-left:2px solid var(--line);}
+  .set-sub[hidden]{display:none;}
   .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:9px;}
   .row input,.row select,.row textarea,.pg-bar input{
     background:var(--bg);border:1px solid transparent;border-radius:var(--r-sm);
@@ -797,6 +802,17 @@
         <span>Подтверждать брони автоматически</span>
       </label>
       <div class="muted" style="margin:2px 0 12px">Выключено — каждая заявка ждёт вашего подтверждения (до 24 ч), потом слот освобождается.</div>
+      <!-- Исключение имеет смысл только пока включено автоподтверждение —
+           без него и так каждая заявка ждёт владельца. Поэтому не отдельный
+           пункт в общем списке, а вложенный под тем самым тумблером, и виден
+           только вместе с ним (см. syncDebtBlocksVisibility). -->
+      <div class="set-sub" id="setDebtBlocksWrap">
+        <label class="row" style="cursor:pointer">
+          <input type="checkbox" id="setDebtBlocks" style="width:auto;flex:none">
+          <span>Кроме клиентов с долгом — их подтверждать вручную</span>
+        </label>
+        <div class="muted" style="margin:2px 0 12px">Бронь такого клиента придёт заявкой на подтверждение, а не встанет в расписание сама. Отказа клиент не увидит — решаете вы.</div>
+      </div>
       <div class="row">
         <span style="flex:1 1 100%">Буфер после брони, мин</span>
         <input class="num" type="number" id="setBuffer" min="0" max="120" step="5">
@@ -847,11 +863,6 @@
         <span class="unitwrap"><input class="num" type="number" id="setReschedPct" min="0" max="100" step="5"><span class="u">перенос</span></span>
       </div>
       <div class="muted" style="margin:2px 0 12px">0 — за это событие не начислять ничего. Поздняя отмена считается по ступеням выше: цена минус возврат.</div>
-      <label class="row" style="cursor:pointer">
-        <input type="checkbox" id="setDebtBlocks" style="width:auto;flex:none">
-        <span>Не подтверждать брони должников автоматически</span>
-      </label>
-      <div class="muted" style="margin:2px 0 12px">Бронь клиента с долгом придёт заявкой, даже если автоподтверждение включено. Отказа клиент не увидит — решаете вы.</div>
 
       <div class="actions" style="margin-top:10px"><button class="btn small" id="setSave" type="button">Сохранить настройки</button></div>
       <div class="note" id="setNote"></div>
@@ -2148,6 +2159,15 @@
     });
   }
 
+  // Исключение для должников видно, только пока включено автоподтверждение —
+  // без него оно ни на что не влияет (и так каждая заявка ждёт владельца).
+  // Значение чекбокса при этом не трогаем: выключил автоподтверждение —
+  // настройка спряталась, но не сбросилась, включил обратно — она на месте.
+  function syncDebtBlocksVisibility(){
+    $('setDebtBlocksWrap').hidden = !$('setAutoConfirm').checked;
+  }
+  $('setAutoConfirm').addEventListener('change', syncDebtBlocksVisibility);
+
   function renderSettings(){
     $('setAutoConfirm').checked = !!settingsDraft.autoConfirm;
     $('setBuffer').value = settingsDraft.bufferMin;
@@ -2160,6 +2180,7 @@
     $('setNoShowPct').value = settingsDraft.noShowFeePct;
     $('setReschedPct').value = settingsDraft.rescheduleFeePct;
     $('setDebtBlocks').checked = !!settingsDraft.debtBlocksAutoconfirm;
+    syncDebtBlocksVisibility();
     renderPolicy();
   }
 
