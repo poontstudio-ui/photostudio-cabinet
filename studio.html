@@ -329,9 +329,16 @@
   .dash-pending.active{background:var(--amber);color:#fff;border-color:var(--amber);}
   /* «Требуют закрытия» — прошедшие брони, которые владелец ещё не разобрал.
      Фон янтарный, как у блока ожидающих заявок: это тоже «требует вашего
-     ответа». */
+     ответа». Список свёрнут по умолчанию — заголовок раскрывает его. */
   #dashVerdict{background:var(--amber-bg);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:12px;}
   #dashVerdict[hidden]{display:none;}
+  .verdict-head{display:flex;align-items:center;gap:6px;width:100%;text-align:left;
+    background:none;border:none;padding:0;margin:0;font:inherit;font-size:var(--fs-sm);
+    font-weight:600;color:inherit;cursor:pointer;}
+  .verdict-head .chev{width:14px;height:14px;flex:none;transition:transform .15s;}
+  .verdict-head[aria-expanded="true"] .chev{transform:rotate(90deg);}
+  #dashVerdictBody{margin-top:8px;}
+  #dashVerdictBody[hidden]{display:none;}
   .verdict-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:4px 0;}
   /* Текст строки — сам кнопка: по нему открывается окно закрытия. Выглядит
      как текст, но подчёркивается при наведении, чтобы это было видно. */
@@ -2366,6 +2373,12 @@
   // не попасть.
   var closeQueue = [];
   var VERDICT_SHOWN = 8;   // сколько строк показываем; остальные — счётчиком
+  // Свёрнуто по умолчанию: список неразобранных броней может расти, и не
+  // должен всё время занимать место на дашборде — только когда владелец сам
+  // решил его открыть. Живёт вне renderCloseQueue, чтобы переживать
+  // перерисовку после каждого load() (иначе разворот сбрасывался бы при
+  // каждом обновлении, в том числе сразу после своего же «Закрыть»).
+  var closeQueueOpen = false;
 
   function loadCloseQueue(){
     return api('GET', '/admin/bookings/awaiting-close').then(function(list){
@@ -2384,13 +2397,24 @@
     box.innerHTML = '';
     if(!closeQueue.length) return;
 
-    var head = document.createElement('div');
-    head.className = 'muted';
-    head.style.cssText = 'font-size:var(--fs-sm);margin-bottom:6px';
-    head.textContent = closeQueue.length === 1
-      ? 'Одна бронь ждёт закрытия'
-      : ('Требуют закрытия: ' + closeQueue.length);
+    // Заголовок — сам кнопка: раскрывает/сворачивает список. Стрелка
+    // поворачивается в открытом состоянии (см. CSS .verdict-head[aria-expanded]).
+    var head = document.createElement('button');
+    head.type = 'button';
+    head.className = 'verdict-head';
+    head.setAttribute('aria-expanded', String(closeQueueOpen));
+    head.innerHTML =
+      '<svg class="ic chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>' +
+      '<span>' + (closeQueue.length === 1 ? 'Одна бронь ждёт закрытия' : ('Требуют закрытия: ' + closeQueue.length)) + '</span>';
+    head.addEventListener('click', function(){
+      closeQueueOpen = !closeQueueOpen;
+      renderCloseQueue();
+    });
     box.appendChild(head);
+
+    var body = document.createElement('div');
+    body.id = 'dashVerdictBody';
+    body.hidden = !closeQueueOpen;
 
     closeQueue.slice(0, VERDICT_SHOWN).forEach(function(b){
       var hall = (HALLS_BY_ID[b.hallId] || {}).name || '';
@@ -2421,7 +2445,7 @@
       });
       row.appendChild(ok);
 
-      box.appendChild(row);
+      body.appendChild(row);
     });
 
     if(closeQueue.length > VERDICT_SHOWN){
@@ -2430,7 +2454,7 @@
       more.style.cssText = 'font-size:var(--fs-xs);margin-top:6px';
       more.textContent = 'и ещё ' + (closeQueue.length - VERDICT_SHOWN) +
         ' — появятся здесь, когда разберёте эти';
-      box.appendChild(more);
+      body.appendChild(more);
     }
 
     // Ошибка закрытия печатается ЗДЕСЬ, а не в общей заметке внизу карточки:
@@ -2439,7 +2463,9 @@
     var note = document.createElement('div');
     note.className = 'note';
     note.id = 'dashVerdictNote';
-    box.appendChild(note);
+    body.appendChild(note);
+
+    box.appendChild(body);
   }
 
   // ---------- Окно закрытия брони ----------
