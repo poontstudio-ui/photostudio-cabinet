@@ -479,6 +479,22 @@
   .qb-booked[data-status="block"],
   .qb-booked[data-status="external"]{background:#e4e6ea;}
   .qb-booked:hover{filter:brightness(.97);}
+  /* Долгий тап/зажатая мышь на активной брони включает перенос перетаскиванием
+     (см. QBD в JS) — только confirmed/pending реально переносимы, поэтому
+     курсор-подсказка только на них. -webkit-touch-callout/user-select гасят
+     системное меню и выделение текста, которые на телефоне иначе всплыли бы
+     раньше, чем сработает наш долгий тап. */
+  .qb-booked[data-status="confirmed"],
+  .qb-booked[data-status="pending"]{cursor:grab;-webkit-touch-callout:none;user-select:none;}
+  body.qb-dragging-active,
+  body.qb-dragging-active .qb-booked[data-status="confirmed"],
+  body.qb-dragging-active .qb-booked[data-status="pending"]{cursor:grabbing;}
+  /* Короткий «щелчок» в момент, когда перетаскивание захватилось (долгий тап
+     сработал / мышь сдвинулась) — тактильного отклика (Vibration API) на
+     iOS Safari нет, поэтому подтверждаем взятие визуально. */
+  @keyframes qb-drag-pop{0%{transform:scale(1);}40%{transform:scale(1.04);box-shadow:0 6px 16px rgba(20,22,28,.22);}100%{transform:scale(1);}}
+  .qb-booked.qb-drag-armed{animation:qb-drag-pop .22s ease-out;}
+  @media (prefers-reduced-motion:reduce){ .qb-booked.qb-drag-armed{animation:none;} }
 
   /* Лента дат + слайдер месяцев — тот же приём, что у клиента: месяц-чипы
      пересобирают qb-date-row 14+-дневным окном до конца месяца, дата-чипы
@@ -3342,6 +3358,11 @@
     if(!wasOn) bar.classList.add('qb-bar-in');
   }
   $('qbGrid').addEventListener('click', function(e){
+    // Клик, которым на самом деле закончилось перетаскивание (см. QBD ниже):
+    // палец/мышь отпустили над броней — без этой проверки следом открылась
+    // бы модалка деталей, хотя владелец только что перенёс бронь на новое
+    // место и ждёт липкую кнопку «Перенести», а не всплывшее окно поверх неё.
+    if(QBD.justDragged){ QBD.justDragged = false; return; }
     var blk = e.target && e.target.closest ? e.target.closest('.qb-booked') : null;
     if(blk){ qbShowDetail(blk.dataset.hall, Number(blk.dataset.start), Number(blk.dataset.end)); return; }
     var el = e.target && e.target.closest ? e.target.closest('.qb-cell') : null;
@@ -3351,6 +3372,133 @@
     if(QB.reschedule && el.dataset.hall !== QB.reschedule.hallId) return;
     if(qbTapCell(el.dataset.hall, Number(el.dataset.slot))) qbRenderGrid();
   });
+
+  // ---------- Перенос перетаскиванием: долгий тап (телефон) / зажатая мышь ----------
+  // Тот же режим переноса, что и по кнопке «Перенести» в деталях брони —
+  // просто другой способ в него войти и выбрать новое время: не тапом по
+  // кнопке и потом по клетке, а захватом брони и перетаскиванием прямо на
+  // сетке. Подтверждение — та же липкая кнопка «Перенести» внизу (qb-bar),
+  // автосохранения по отпусканию нет: соскочивший на соседнюю клетку палец
+  // не должен сам по себе переносить бронь без возможности передумать.
+  //
+  // Указатели (Pointer Events), а не отдельно touch/mouse — так же, как
+  // остальной current-код уже унифицирован на кликах. Долгий тап нужен
+  // ИМЕННО на сенсоре: там тот же одиночный палец обычно скроллит сетку, и
+  // жест должен сначала «дозреть», прежде чем мы отберём его у скролла.
+  // На мыши такой конфликт отсутствует (скролл — отдельное колесо), поэтому
+  // там тащим сразу по первому заметному движению, без задержки.
+  var QBD = { pointerId:null, armed:false, timer:null, isMouse:false,
+    startX:0, startY:0, lastX:0, lastY:0, hallId:null, booking:null, el:null,
+    durSlots:1, justDragged:false };
+  var QBD_LONGPRESS_MS = 450;
+  var QBD_MOVE_CANCEL_PX = 8;   // сенсор: сдвинулись больше — это скролл, не перенос
+  var QBD_MOVE_ARM_PX = 4;      // мышь: сдвинулись больше — сразу тащим
+
+  // Клетка/бронь под точкой экрана. Во время переноса под пальцем может
+  // оказаться не только пустая .qb-cell, но и прямоугольник ДРУГОЙ брони —
+  // у нас нет отдельного «слоя предпросмотра», подсветка выбора рисуется
+  // прямо в сетке через QB.sel, поэтому и цель ищем по факту того, что
+  // сейчас лежит в этой точке документа.
+  function qbSlotAt(clientX, clientY){
+    var el = document.elementFromPoint(clientX, clientY);
+    if(!el || !el.closest) return null;
+    var cell = el.closest('.qb-cell');
+    if(cell) return { hallId: cell.dataset.hall, slot: Number(cell.dataset.slot) };
+    var blk = el.closest('.qb-booked');
+    if(blk) return { hallId: blk.dataset.hall, slot: Math.round(Number(blk.dataset.start) / QB.slotMin) };
+    return null;
+  }
+  function qbDragUpdate(clientX, clientY){
+    var hit = qbSlotAt(clientX, clientY);
+    // Свой зал — сервер перенос в другой зал и не принимает (см. клик по
+    // клетке выше); чужой зал под пальцем просто игнорируем, а не срываем
+    // перенос — выбор остаётся на последней валидной клетке.
+    if(!hit || hit.hallId !== QBD.hallId) return;
+    if(qbHasSel() && QB.sel.start === hit.slot && QB.sel.end === hit.slot + QBD.durSlots) return;
+    if(qbSetSel(hit.hallId, hit.slot, hit.slot + QBD.durSlots)) qbRenderGrid();
+  }
+  function qbDragArm(){
+    QBD.timer = null;
+    QBD.armed = true;
+    document.body.classList.add('qb-dragging-active');
+    if(QBD.el){
+      var el = QBD.el;
+      el.classList.add('qb-drag-armed');
+      setTimeout(function(){ el.classList.remove('qb-drag-armed'); }, 220);
+    }
+    // Уже в переносе именно ЭТОЙ брони (повторный захват, чтобы поправить
+    // выбранное время) — незачем сбрасывать состояние переноса заново.
+    if(!QB.reschedule || QB.reschedule.id !== QBD.booking.id){
+      qbEnterReschedule(QBD.hallId, QBD.booking, { fromDrag:true });
+    }
+    QBD.durSlots = QB.reschedule.pkgSlots
+      || Math.max(1, Math.round((QBD.booking.end - QBD.booking.start) / QB.slotMin));
+    try{ $('qbGridScroll').setPointerCapture(QBD.pointerId); }catch(err){}
+    qbDragUpdate(QBD.lastX, QBD.lastY);
+  }
+  function qbDragStart(e){
+    if(e.pointerType === 'mouse' && e.button !== 0) return;   // только левая кнопка
+    if(QBD.pointerId != null) return;                         // уже ведём другой указатель
+    var blk = e.target && e.target.closest ? e.target.closest('.qb-booked') : null;
+    if(!blk) return;
+    var info = qbFindDetail(blk.dataset.hall, Number(blk.dataset.start), Number(blk.dataset.end));
+    // Переносимы только реальные брони в pending/confirmed — не блокировки,
+    // не завершённые/отменённые, не чужой внешний календарь.
+    if(info.kind !== 'booking' || (info.data.status !== 'pending' && info.data.status !== 'confirmed')) return;
+    // Уже переносим другую бронь — не мешаем ей, начать вторую нельзя (в
+    // QB.reschedule помещается только одна).
+    if(QB.reschedule && QB.reschedule.id !== info.data.id) return;
+    QBD.pointerId = e.pointerId;
+    QBD.armed = false;
+    QBD.hallId = blk.dataset.hall;
+    QBD.booking = info.data;
+    QBD.el = blk;
+    QBD.isMouse = e.pointerType === 'mouse';
+    QBD.startX = QBD.lastX = e.clientX;
+    QBD.startY = QBD.lastY = e.clientY;
+    if(!QBD.isMouse) QBD.timer = setTimeout(qbDragArm, QBD_LONGPRESS_MS);
+  }
+  function qbDragMove(e){
+    if(e.pointerId !== QBD.pointerId) return;
+    QBD.lastX = e.clientX; QBD.lastY = e.clientY;
+    if(!QBD.armed){
+      var dist = Math.hypot(e.clientX - QBD.startX, e.clientY - QBD.startY);
+      if(QBD.isMouse){
+        if(dist > QBD_MOVE_ARM_PX) qbDragArm();
+        return;
+      }
+      // Палец сдвинулся раньше, чем «дозрел» долгий тап — это скролл сетки,
+      // а не намерение перенести бронь. Таймер снимаем и НЕ трогаем событие
+      // (preventDefault ниже так и не вызывается) — страница прокручивается
+      // как обычно.
+      if(dist > QBD_MOVE_CANCEL_PX){ clearTimeout(QBD.timer); QBD.timer = null; QBD.pointerId = null; }
+      return;
+    }
+    e.preventDefault();
+    qbDragUpdate(e.clientX, e.clientY);
+  }
+  function qbDragEnd(e){
+    if(e.pointerId !== QBD.pointerId) return;
+    if(QBD.timer){ clearTimeout(QBD.timer); QBD.timer = null; }
+    if(QBD.armed){
+      document.body.classList.remove('qb-dragging-active');
+      try{ $('qbGridScroll').releasePointerCapture(e.pointerId); }catch(err){}
+      // Отпустили — режим переноса и уже выбранное время остаются как есть,
+      // подтверждает липкая кнопка «Перенести» (см. qbRenderHint). Следом за
+      // pointerup браузер всё равно пришлёт синтетический click по той же
+      // брони — гасим его один раз (см. начало обработчика клика по сетке);
+      // таймер — подстраховка на случай, если клика вообще не случится
+      // (отпустили не над кликабельным элементом), чтобы флаг не завис.
+      QBD.justDragged = true;
+      setTimeout(function(){ QBD.justDragged = false; }, 50);
+    }
+    QBD.armed = false;
+    QBD.pointerId = null;
+  }
+  $('qbGrid').addEventListener('pointerdown', qbDragStart);
+  $('qbGridScroll').addEventListener('pointermove', qbDragMove, { passive:false });
+  $('qbGridScroll').addEventListener('pointerup', qbDragEnd);
+  $('qbGridScroll').addEventListener('pointercancel', qbDragEnd);
   // Шапка (залы) живёт вне горизонтального скроллера — синхронизируем её
   // положение вручную при скролле тела (тот же приём, что в клиентском
   // index.html: gridScrollEl.addEventListener('scroll', ...)).
@@ -3416,7 +3564,15 @@
   function qbSetRescheduleUi(on){
     $('qbRescheduleCancel').hidden = !on;
   }
-  function qbEnterReschedule(hallId, booking){
+  // opts.fromDrag — вход через перетаскивание (см. QBD ниже): жест уже идёт
+  // прямо на этой сетке, поэтому здесь нельзя ни перескраллить страницу
+  // (увела бы бронь из-под пальца), ни ждать сетевой перезапрос (пока он не
+  // ответит, перетаскивание не могло бы даже выделить клетку под своей же
+  // старой броней — см. комментарий у фильтра ниже). Вместо ре-фетча —
+  // тот же фильтр «своя бронь не мешает сама себе», что qbLoadBusy делает
+  // после перезапроса, но синхронно поверх уже загруженной QB.busy.
+  function qbEnterReschedule(hallId, booking, opts){
+    opts = opts || {};
     QB.reschedule = {
       id: booking.id,
       hallId: hallId,
@@ -3426,9 +3582,21 @@
         ? Math.max(1, Math.round(booking.packageHours * 60 / QB.slotMin)) : null,
       originalDate: booking.date, originalStart: booking.start, originalEnd: booking.end,
     };
-    qbCloseDetail();
     qbClearSel();
     qbSetRescheduleUi(true);
+    if(opts.fromDrag){
+      if(QB.date === booking.date){
+        var list = QB.busy[hallId];
+        if(Array.isArray(list)){
+          QB.busy[hallId] = list.filter(function(iv){
+            return !(iv.start === booking.start && iv.end === booking.end);
+          });
+        }
+      }
+      qbRenderGrid();
+      return;
+    }
+    qbCloseDetail();
     qbSyncGrid();
     $('sec-quickbook').scrollIntoView({ behavior:'smooth', block:'start' });
   }
