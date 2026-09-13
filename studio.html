@@ -145,7 +145,9 @@
   .card h2{font-size:var(--fs-xl);font-weight:700;margin:0 0 16px;letter-spacing:-.015em;}
   .card h2 + .muted{margin-top:-8px;}
 
-  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  /* auto-fit, а не фиксированные 3 колонки: плиток стало четыре, и на узком
+     экране они должны лечь 2x2, а не сжаться в нечитаемый столбик. */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:12px;}
   .stat{padding:0;}
   .stat .v{font-size:var(--fs-2xl);font-weight:700;letter-spacing:-.02em;line-height:1;color:var(--blue);
            font-variant-numeric:tabular-nums;}
@@ -312,12 +314,25 @@
   .dash-pending b{font-size:var(--fs-lg);font-weight:700;}
   .dash-pending[hidden]{display:none;}
   .dash-pending.active{background:var(--amber);color:#fff;border-color:var(--amber);}
-  /* «Состоялась?» — строка с вопросом и двумя кнопками. Фон янтарный, как у
-     блока ожидающих заявок: это тоже «требует вашего ответа». */
+  /* «Требуют закрытия» — прошедшие брони, которые владелец ещё не разобрал.
+     Фон янтарный, как у блока ожидающих заявок: это тоже «требует вашего
+     ответа». */
   #dashVerdict{background:var(--amber-bg);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:12px;}
   #dashVerdict[hidden]{display:none;}
   .verdict-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:4px 0;}
-  .vd-what{flex:1 1 200px;min-width:0;font-size:var(--fs-sm);}
+  /* Текст строки — сам кнопка: по нему открывается окно закрытия. Выглядит
+     как текст, но подчёркивается при наведении, чтобы это было видно. */
+  .vd-what{flex:1 1 200px;min-width:0;font-size:var(--fs-sm);text-align:left;
+    border:none;background:none;color:inherit;font-family:inherit;padding:0;cursor:pointer;}
+  .vd-what:hover{text-decoration:underline;}
+  .vd-what b{font-weight:600;}
+  /* Оценка клиента: пять звёзд. Незаполненная — контур, заполненная — янтарь.
+     Пропустить оценку можно: такие брони в средний рейтинг не идут. */
+  .stars{display:flex;gap:4px;}
+  .stars button{border:none;background:none;cursor:pointer;padding:2px;line-height:1;
+    font-size:var(--fs-xl);color:var(--text-3);}
+  .stars button[aria-pressed="true"]{color:var(--amber);}
+  .stars button:focus-visible{outline:2px solid var(--accent);border-radius:var(--r-sm);}
   /* Бронь в списке — только текст и воздух: дата+время крупно, статус
      цветным словом, зал, клиент с кликабельным телефоном. Без рамок и полос. */
   .bk{margin-bottom:30px;}
@@ -695,9 +710,9 @@
       <button type="button" class="dash-pending" id="dashPending" hidden>
         <b id="dashPendingCount">0</b> ожидают подтверждения
       </button>
-      <!-- Прошедшие брони, по которым не сказано, состоялись они или нет.
-           Отсюда берётся статистика прогулов, поэтому спрашиваем сразу, пока
-           бронь свежая; через сутки бронь автозавершится сама. -->
+      <!-- Прошедшие брони, которые владелец ещё не разобрал: сверить сумму
+           (на съёмке бывают допродажи), поставить оценку, закрыть. Отсюда же
+           берётся статистика прогулов. -->
       <div id="dashVerdict" hidden></div>
       <div id="bookings"><div class="empty">—</div></div>
       <div class="actions" style="margin-top:10px">
@@ -710,7 +725,11 @@
       <h2>Сводка</h2>
       <div class="stats">
         <div class="stat"><div class="v" id="stCount">—</div><div class="l">Активных броней</div></div>
-        <div class="stat"><div class="v" id="stRev">—</div><div class="l">Выручка, <span id="stRevCur">BYN</span></div></div>
+        <!-- Две цифры, а не одна «выручка»: состоявшееся и предстоящее живут
+             по разным правилам (первое — по итоговым суммам с допродажами,
+             второе — по договорным) и смешивать их в одну значит врать. -->
+        <div class="stat"><div class="v" id="stEarned">—</div><div class="l">Заработано, <span id="stRevCur">BYN</span></div></div>
+        <div class="stat"><div class="v" id="stUpcoming">—</div><div class="l">Предстоит, <span id="stUpcCur">BYN</span></div></div>
         <div class="stat"><div class="v" id="stAvg">—</div><div class="l">Средний чек</div></div>
       </div>
     </div>
@@ -962,6 +981,38 @@
     <div id="qbDetailBody"></div>
     <div class="actions" id="qbDetailActions" style="margin-top:12px"></div>
     <div class="note" id="qbDetailNote"></div>
+  </div>
+</div>
+
+<!-- Закрытие состоявшейся брони: сверить сумму, поставить оценку, закрыть.
+     Отдельное окно, а не расширение «Деталей брони»: детали — это просмотр,
+     а здесь владелец вводит данные, и смешивать режимы значило бы показывать
+     поля ввода там, где их в 9 случаях из 10 никто не тронет. -->
+<div class="modal-backdrop" id="bcModal" hidden>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Закрыть бронь</h3>
+      <button class="modal-close" id="bcClose" type="button" aria-label="Закрыть">✕</button>
+    </div>
+    <div class="muted" id="bcSum" style="font-size:var(--fs-sm);margin-bottom:12px"></div>
+    <div class="row">
+      <label class="fld-l" for="bcPrice">Итоговая сумма</label>
+      <span class="unitwrap"><input class="num" type="number" min="0" step="0.01" id="bcPrice"><span class="u" id="bcPriceCur">BYN</span></span>
+    </div>
+    <div class="note" id="bcPriceHint"></div>
+    <div class="row">
+      <textarea class="name" id="bcNote" rows="2" maxlength="300" placeholder="За что доплата — например, «+1 час и печать»" style="resize:vertical"></textarea>
+    </div>
+    <div class="row" style="align-items:center;gap:10px">
+      <span class="fld-l">Оценка клиента</span>
+      <div class="stars" id="bcStars" role="group" aria-label="Оценка клиента"></div>
+      <button class="btn ghost small" id="bcStarsClear" type="button" hidden>Убрать</button>
+    </div>
+    <div class="actions">
+      <button class="btn" id="bcSubmit" type="button">Закрыть бронь</button>
+      <button class="btn ghost small stop" id="bcNoShow" type="button">Не пришёл</button>
+    </div>
+    <div class="note" id="bcNote2"></div>
   </div>
 </div>
 
@@ -2115,15 +2166,27 @@
   }
   var ST_LABEL = { pending:'ожидает', confirmed:'подтверждена', completed:'завершена',
                    declined:'отклонена', cancelled:'отменена', no_show:'не пришёл' };
-  // действия по текущему статусу: [{path, label, cls}]
-  function bkActions(st){
+  // Действия по текущему состоянию брони: [{p:путь, t:подпись, c:класс}].
+  // Принимает бронь целиком, а не только статус: «закрыть» зависит ещё и от
+  // closedAt — разобранную бронь закрывать второй раз нечего.
+  // p:'close' — не роут, а признак «открыть окно закрытия» (там сумма и
+  // оценка, и уже оно шлёт POST .../close).
+  function bkActions(b){
+    var st = b.status;
     if(st === 'pending') return [
       { p:'confirm', t:'Подтвердить', c:'go' },
       { p:'decline', t:'Отклонить',  c:'stop' } ];
     if(st === 'confirmed') return [
-      { p:'complete', t:'Завершить',  c:'go' },
-      { p:'no-show',  t:'Не пришёл',  c:'stop' },
-      { p:'cancel',   t:'Отменить',   c:'ghost' } ];
+      // «Закрыть» вместо прежнего «Завершить»: просто сменить статус мало —
+      // съёмку надо разобрать (сумма с допродажами, оценка), иначе статистика
+      // так и остаётся приблизительной.
+      { p:'close',   t:'Закрыть',    c:'go' },
+      { p:'no-show', t:'Не пришёл',  c:'stop' },
+      { p:'cancel',  t:'Отменить',   c:'ghost' } ];
+    // Автозавершённая страховкой бронь: статус уже completed, но не разобрана.
+    if(st === 'completed' && !b.closedAt) return [
+      { p:'close',   t:'Закрыть',    c:'go' },
+      { p:'no-show', t:'Не пришёл',  c:'stop' } ];
     return [];
   }
 
@@ -2185,56 +2248,184 @@
     return onlyDigits(b.phone).indexOf(qDigits) !== -1 || onlyDigits(b.date).indexOf(qDigits) !== -1;
   }
 
-  // «Состоялась?» по прошедшим подтверждённым броням. Без этого вопроса
-  // статистика прогулов не наберётся: не пришедший клиент в базе выглядит так
-  // же, как пришедший, пока владелец не нажмёт «Не пришёл». Через сутки после
-  // окончания бронь автозавершается воркером и из списка уходит сама — то
-  // есть спрашиваем только пока ответ ещё актуален и ничего не накапливается.
-  // Прогул при этом можно отметить и позже, из деталей брони.
-  function renderVerdictAsks(list){
+  // ---------- Требуют закрытия ----------
+  // Прошедшая съёмка не должна «повисать»: владелец сверяет сумму (на съёмке
+  // бывают допродажи), ставит оценку клиенту и закрывает бронь — так уточняется
+  // статистика, и так же набирается статистика прогулов (не пришедший клиент
+  // в базе выглядит как пришедший, пока этого не сказать).
+  //
+  // Список берём отдельным запросом, а не фильтром по броням дашборда: тот
+  // усечён потолком в 500 последних по created_at, и давняя неразобранная
+  // бронь — как раз та, которую надо показать в первую очередь, — в него может
+  // не попасть.
+  var closeQueue = [];
+  var VERDICT_SHOWN = 8;   // сколько строк показываем; остальные — счётчиком
+
+  function loadCloseQueue(){
+    return api('GET', '/admin/bookings/awaiting-close').then(function(list){
+      closeQueue = Array.isArray(list) ? list : [];
+      renderCloseQueue();
+    }).catch(function(){
+      // Очередь не критична для загрузки страницы — ведём себя как блокировки:
+      // молча оставляем блок пустым.
+    });
+  }
+
+  function renderCloseQueue(){
     var box = $('dashVerdict');
     if(!box) return;
-    var now = qbWallClock();
-    var due = list.filter(function(b){
-      if(b.status !== 'confirmed') return false;
-      return b.date < now.date || (b.date === now.date && b.end <= now.minutes);
-    }).slice(0, 8);
-    box.hidden = !due.length;
+    box.hidden = !closeQueue.length;
     box.innerHTML = '';
-    if(!due.length) return;
+    if(!closeQueue.length) return;
+
     var head = document.createElement('div');
     head.className = 'muted';
-    head.style.cssText = 'font-size:12px;margin-bottom:6px';
-    head.textContent = due.length === 1 ? 'Эта бронь состоялась?' : 'Эти брони состоялись?';
+    head.style.cssText = 'font-size:var(--fs-sm);margin-bottom:6px';
+    head.textContent = closeQueue.length === 1
+      ? 'Одна бронь ждёт закрытия'
+      : ('Требуют закрытия: ' + closeQueue.length);
     box.appendChild(head);
-    due.forEach(function(b){
+
+    closeQueue.slice(0, VERDICT_SHOWN).forEach(function(b){
       var hall = (HALLS_BY_ID[b.hallId] || {}).name || '';
       var row = document.createElement('div');
       row.className = 'verdict-row';
-      var who = document.createElement('span');
-      who.className = 'vd-what';
-      who.textContent = dateLabel(b.date) + ' ' + minLabel(b.start) + '–' + minLabel(b.end)
-        + ' · ' + (b.name || '—') + (hall ? ' · ' + hall : '');
-      row.appendChild(who);
-      [['complete', 'Состоялась', 'go'], ['no-show', 'Не пришёл', 'stop']].forEach(function(o){
-        var btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'btn small ' + o[2];
-        btn.textContent = o[1];
-        btn.addEventListener('click', function(){
-          row.querySelectorAll('button').forEach(function(x){ x.disabled = true; });
-          api('POST', '/admin/bookings/' + b.id + '/' + o[0])
-            .then(load).then(qbSyncGrid)
-            .catch(function(e){
-              row.querySelectorAll('button').forEach(function(x){ x.disabled = false; });
-              flash($('clearNote'), e.message);
-            });
+
+      // Текст — кнопка: открывает окно, где можно поправить сумму и оценить.
+      var what = document.createElement('button');
+      what.type = 'button';
+      what.className = 'vd-what';
+      what.innerHTML = '<b>' + esc(dateLabel(b.date)) + '</b> ' +
+        minLabel(b.start) + '–' + minLabel(b.end) +
+        ' · ' + esc(b.name || '—') + (hall ? ' · ' + esc(hall) : '');
+      what.addEventListener('click', function(){ bcOpen(b); });
+      row.appendChild(what);
+
+      // Быстрый путь для большинства броней: ничего не менялось — один тап.
+      var ok = document.createElement('button');
+      ok.type = 'button';
+      ok.className = 'btn small go';
+      ok.textContent = 'Закрыть';
+      ok.addEventListener('click', function(){
+        row.querySelectorAll('button').forEach(function(x){ x.disabled = true; });
+        bcSend(b, {}).catch(function(e){
+          row.querySelectorAll('button').forEach(function(x){ x.disabled = false; });
+          flash($('dashVerdictNote'), e.message);
         });
-        row.appendChild(btn);
       });
+      row.appendChild(ok);
+
       box.appendChild(row);
     });
+
+    if(closeQueue.length > VERDICT_SHOWN){
+      var more = document.createElement('div');
+      more.className = 'muted';
+      more.style.cssText = 'font-size:var(--fs-xs);margin-top:6px';
+      more.textContent = 'и ещё ' + (closeQueue.length - VERDICT_SHOWN) +
+        ' — появятся здесь, когда разберёте эти';
+      box.appendChild(more);
+    }
+
+    // Ошибка закрытия печатается ЗДЕСЬ, а не в общей заметке внизу карточки:
+    // владелец смотрит на очередь, и сообщение под списком броней он бы просто
+    // не увидел — кнопка вернулась бы в исходное состояние без объяснений.
+    var note = document.createElement('div');
+    note.className = 'note';
+    note.id = 'dashVerdictNote';
+    box.appendChild(note);
   }
+
+  // ---------- Окно закрытия брони ----------
+  var BC = { booking: null, rating: null };
+
+  function bcOpen(b){
+    BC.booking = b;
+    BC.rating = b.rating || null;
+    var hall = (HALLS_BY_ID[b.hallId] || {}).name || '';
+    $('bcSum').textContent = dateLabel(b.date) + ' · ' + minLabel(b.start) + '–' + minLabel(b.end) +
+      (hall ? ' · ' + hall : '') + ' · ' + (b.name || '—');
+    // Поле пустое, а договорная — в подсказке и плейсхолдере: пустое поле
+    // значит «как договаривались», и это верно для большинства броней.
+    // Подставить туда сумму значило бы каждый раз слать её обратно как
+    // «итоговую», затирая разницу между «сверил» и «не трогал».
+    var inp = $('bcPrice');
+    inp.value = b.finalPrice != null ? b.finalPrice : '';
+    inp.placeholder = String(b.price);
+    $('bcPriceCur').textContent = CUR;
+    $('bcPriceHint').textContent = 'Договорная — ' + b.price + ' ' + CUR +
+      '. Оставьте пустым, если сумма не менялась.';
+    $('bcNote').value = b.finalNote || '';
+    $('bcNote2').textContent = '';
+    bcRenderStars();
+    $('bcModal').hidden = false;
+  }
+  function bcClose(){ $('bcModal').hidden = true; BC.booking = null; }
+
+  function bcRenderStars(){
+    var box = $('bcStars');
+    box.innerHTML = '';
+    for(var i = 1; i <= 5; i++){
+      (function(n){
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.setAttribute('aria-label', 'Оценка ' + n);
+        b.setAttribute('aria-pressed', BC.rating >= n ? 'true' : 'false');
+        b.textContent = BC.rating >= n ? '★' : '☆';
+        b.addEventListener('click', function(){
+          // Повторный тап по той же звезде снимает оценку: «не оценил» —
+          // нормальный исход, такие брони в средний рейтинг не идут.
+          BC.rating = (BC.rating === n) ? null : n;
+          bcRenderStars();
+        });
+        box.appendChild(b);
+      })(i);
+    }
+    $('bcStarsClear').hidden = !BC.rating;
+  }
+
+  // Отправка закрытия. body уже собран вызывающим: из окна — с суммой и
+  // оценкой, из списка — пустой («всё как договаривались»).
+  function bcSend(b, body){
+    return api('POST', '/admin/bookings/' + b.id + '/close', body)
+      .then(function(){ return load(); })
+      .then(qbSyncGrid);
+  }
+
+  $('bcClose').addEventListener('click', bcClose);
+  $('bcModal').addEventListener('click', function(e){ if(e.target === e.currentTarget) bcClose(); });
+  $('bcStarsClear').addEventListener('click', function(){ BC.rating = null; bcRenderStars(); });
+
+  $('bcSubmit').addEventListener('click', function(){
+    var b = BC.booking; if(!b) return;
+    var raw = $('bcPrice').value.trim();
+    var body = { finalNote: $('bcNote').value.trim(), rating: BC.rating };
+    if(raw !== ''){
+      var v = Number(raw.replace(',', '.'));
+      if(!isFinite(v) || v < 0) return flash($('bcNote2'), 'Сумма — число не меньше нуля');
+      body.finalPrice = v;
+    }
+    var bar = $('bcSubmit').parentNode;
+    bar.querySelectorAll('button').forEach(function(x){ x.disabled = true; });
+    bcSend(b, body).then(bcClose).catch(function(e){
+      bar.querySelectorAll('button').forEach(function(x){ x.disabled = false; });
+      flash($('bcNote2'), e.message);
+    });
+  });
+
+  // Прогул — из того же окна: владелец открывает бронь, чтобы её разобрать, и
+  // «не пришёл» здесь такой же законный исход, как закрытие.
+  $('bcNoShow').addEventListener('click', function(){
+    var b = BC.booking; if(!b) return;
+    var bar = $('bcNoShow').parentNode;
+    bar.querySelectorAll('button').forEach(function(x){ x.disabled = true; });
+    api('POST', '/admin/bookings/' + b.id + '/no-show')
+      .then(load).then(qbSyncGrid).then(bcClose)
+      .catch(function(e){
+        bar.querySelectorAll('button').forEach(function(x){ x.disabled = false; });
+        flash($('bcNote2'), e.message);
+      });
+  });
 
   function renderBookings(list){
     lastBookings = list;
@@ -2249,8 +2440,6 @@
       pbox.classList.toggle('active', dashPendingOnly);
       if(!pendCount) dashPendingOnly = false;
     }
-
-    renderVerdictAsks(list);
 
     var shown = dashPendingOnly ? pending : list;
     if(dashSearchQuery){
@@ -2277,7 +2466,7 @@
         '<div class="hall">'+esc(hall)+'</div>' +
         '<div class="meta">'+esc(b.people)+' чел · '+esc(b.price)+' '+CUR+'</div>' +
         '<div class="who">'+esc(b.name||'—')+(b.phone ? ' · '+telHtml(b.phone) : '')+'</div>';
-      var acts = bkActions(b.status);
+      var acts = bkActions(b);
       if(acts.length){
         var bar = document.createElement('div'); bar.className = 'rowbtns'; bar.style.marginTop = '12px';
         acts.forEach(function(a){
@@ -2285,6 +2474,9 @@
           btn.className = 'btn small' + (a.c ? ' ' + a.c : '');
           btn.textContent = a.t;
           btn.addEventListener('click', function(){
+            // 'close' — не роут: открываем окно, где сверяют сумму и ставят
+            // оценку, оно само отправит закрытие.
+            if(a.p === 'close') return bcOpen(b);
             // qbSyncGrid — статус брони красит её прямоугольник в сетке
             // (зелёный/жёлтый), а отмена вовсе убирает занятость: без этого
             // сетка показывала бы прежний цвет до переключения даты.
@@ -2676,7 +2868,14 @@
       rows.push(['Гостей', esc(b.people != null ? b.people : '—')]);
       rows.push(['Комментарий', b.comment ? esc(b.comment) : '—']);
       rows.push(['Сумма', esc(b.price) + ' ' + CUR]);
-      rows.push(['Статус', esc(ST_LABEL[b.status] || b.status)]);
+      // У разобранной брони показываем итог: он мог отличаться от договорной
+      // из-за допродаж на съёмке, и увидеть это надо прямо здесь.
+      if(b.closedAt && b.finalPrice != null){
+        rows.push(['Итог', esc(b.finalPrice) + ' ' + CUR + (b.finalNote ? ' · ' + esc(b.finalNote) : '')]);
+      }
+      if(b.rating) rows.push(['Оценка', '★ ' + esc(b.rating)]);
+      rows.push(['Статус', esc(ST_LABEL[b.status] || b.status)
+        + (b.status === 'completed' && !b.closedAt ? ' <span class="muted">· не разобрана</span>' : '')]);
     } else if(info.kind === 'block'){
       rows.push(['Тип', 'Блокировка администратора']);
       rows.push(['Причина', info.data.note ? esc(info.data.note) : '—']);
@@ -2707,7 +2906,7 @@
     box.innerHTML = '';
     if(info.kind !== 'booking') return;
     var b = info.data;
-    var acts = bkActions(b.status).slice();
+    var acts = bkActions(b).slice();
     if(b.status === 'pending' || b.status === 'confirmed'){
       acts.unshift({ p:'reschedule', t:'Перенести', c:'ghost' });
     }
@@ -2718,6 +2917,9 @@
       btn.textContent = a.t;
       btn.addEventListener('click', function(){
         if(a.p === 'reschedule'){ qbEnterReschedule(b.hallId, b); return; }
+        // Окно закрытия — поверх деталей; детали закрываем, чтобы не остаться
+        // с двумя окнами друг на друге.
+        if(a.p === 'close'){ qbCloseDetail(); return bcOpen(b); }
         var fire = function(by){
           var url = a.p === 'cancel' ? '/bookings/' + b.id + '/cancel' : '/admin/bookings/' + b.id + '/' + a.p;
           api('POST', url, by ? { by: by } : undefined).then(function(){
@@ -2745,6 +2947,7 @@
     // Карточка клиента — не модалка, а отдельный вид секции, но Escape из неё
     // тоже уместен: это ровно тот же «назад к списку».
     if(!$('clDetailView').hidden) return clClose();
+    if(!$('bcModal').hidden) return bcClose();
     if(!$('qbFormModal').hidden) return qbCloseForm();
     if(!$('qbDetailModal').hidden) return qbCloseDetail();
   });
@@ -2761,7 +2964,8 @@
     var t = e.target;
     if(!t || !t.closest) return;
     if(t.closest('#qbGrid') || t.closest('#qbBar')
-       || t.closest('#qbFormModal') || t.closest('#qbDetailModal')) return;
+       || t.closest('#qbFormModal') || t.closest('#qbDetailModal')
+       || t.closest('#bcModal')) return;
     qbClearSel();
     qbRenderGrid();
   }, true);
@@ -3262,6 +3466,9 @@
   function load(){
     loadCalendar();
     loadClients();
+    // Очередь закрытия рисуется сама, как только придёт: она не зависит ни от
+    // залов, ни от списка броней — в строке только дата, время и имя.
+    loadCloseQueue();
     var blocksP = api('GET', '/admin/blocks').catch(function(){ return null; });
     return api('GET', '/admin/overview').then(function(ov){
       myId = String(ov.me || '');
@@ -3273,12 +3480,16 @@
       equipDraft = (ov.equipment||[]).filter(function(e){return e.active!==false;}).map(function(e){return {id:e.id,name:e.name,price:e.price,unit:e.unit};});
       ownersDraft = (ov.owners||[]).slice();
       $('stCount').textContent = ov.stats.count;
-      $('stRev').textContent = ov.stats.revenue;
+      $('stEarned').textContent = ov.stats.earned;
+      $('stUpcoming').textContent = ov.stats.upcoming;
       $('stAvg').textContent = ov.stats.avgCheck;
       dashTotal = Number.isFinite(ov.bookingsTotal) ? ov.bookingsTotal : (ov.bookings || []).length;
       dashPendingTotal = Number.isFinite(ov.pendingCount) ? ov.pendingCount : 0;
       renderHalls(); renderEquip(); renderOwners();
       renderBookings(ov.bookings || []);
+      // Ещё раз — уже с названиями залов: очередь приходит своим запросом и
+      // могла отрисоваться раньше overview, когда HALLS_BY_ID ещё пуст.
+      renderCloseQueue();
       renderBlockHallOptions();
       return blocksP.then(function(list){
         // null — запрос не удался; блокировки не критичны для загрузки
@@ -3455,6 +3666,11 @@
       + (c.lateCancelYear ? ' · ' + esc(c.lateCancelYear) + ' за год' : '') + '</div>';
     if(c.reschedules) main += '<div><b>' + esc(c.reschedules) + '</b>'
       + plural(c.reschedules, 'перенос', 'переноса', 'переносов') + '</div>';
+    // Средняя оценка — только если её хоть раз ставили. Считается по
+    // оценённым съёмкам: пропущенная оценка в среднее не идёт, иначе она
+    // молча занижала бы рейтинг человеку.
+    if(c.rating) main += '<div><b>★ ' + esc(c.rating) + '</b>оценка · '
+      + esc(c.ratingCount) + plural(c.ratingCount, ' съёмка', ' съёмки', ' съёмок') + '</div>';
     return main;
   }
   function clRenderHistory(list){
@@ -3467,7 +3683,8 @@
       var off = b.status === 'cancelled' || b.status === 'declined' || b.status === 'no_show';
       return '<div class="cl-hist" data-cancelled="' + off + '">'
         + '<span class="d">' + esc(clFmtDate(b.date)) + ' · ' + minLabel(b.start) + '–' + minLabel(b.end) + '</span>'
-        + '<span>' + esc(b.hallName || '') + ' · ' + esc(Math.round(b.price)) + ' ' + CUR + '</span>'
+        + '<span>' + esc(b.hallName || '') + ' · ' + esc(Math.round(b.price)) + ' ' + CUR
+        + (b.rating ? ' · ★' + esc(b.rating) : '') + '</span>'
         + '</div>';
     }).join('');
   }
@@ -3747,6 +3964,7 @@
         if(typeof cfg.currency === 'string' && cfg.currency) {
           CUR = cfg.currency;
           $('stRevCur').textContent = CUR;
+          $('stUpcCur').textContent = CUR;
         }
         if(cfg.verticalUi && cfg.verticalUi.hallProps) HALL_PROPS = cfg.verticalUi.hallProps;
         MAPS_KEY = typeof cfg.yandexMapsKey === 'string' ? cfg.yandexMapsKey : '';
