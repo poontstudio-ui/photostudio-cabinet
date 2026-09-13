@@ -515,9 +515,8 @@
 
   /* ---------- клиенты ---------- */
   /* Строка списка — кликабельная, но без рамок и карточек: разделяем
-     воздухом, как и всё остальное в кабинете. */
-  /* flex-wrap обязателен: на 375px имя + телефон + метки + статистика в одну
-     строку не влезают, и без переноса строка распирала документ вбок. */
+     воздухом, как и всё остальное в кабинете. Только имя и телефон — метки,
+     долг, нарушения и статистика видны в самой карточке, не в списке. */
   .cl-row{display:flex;align-items:baseline;gap:6px 10px;flex-wrap:wrap;
     width:100%;min-width:0;text-align:left;
     background:none;border:none;font:inherit;color:inherit;cursor:pointer;
@@ -525,10 +524,10 @@
   .cl-row:hover{background:var(--surface-2);}
   .cl-name{font-weight:600;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .cl-phone{font-family:var(--f-mono);font-size:var(--fs-sm);color:var(--text-3);white-space:nowrap;}
-  .cl-meta{margin-left:auto;font-size:var(--fs-sm);color:var(--text-3);white-space:nowrap;flex:none;}
+  /* Метка — в карточке клиента (редактирование тегов); в списке больше не
+     показывается. С крестиком удаления — кнопка, а не span. */
   .cl-tag{font-size:var(--fs-xs);padding:2px 8px;border-radius:var(--r-pill);background:var(--blue-bg);
     color:var(--blue-dark);white-space:nowrap;}
-  /* Метка в модалке — с крестиком удаления, поэтому кнопка, а не span. */
   .cl-tag-del{border:none;background:var(--blue-bg);color:var(--blue-dark);cursor:pointer;
     font:inherit;font-size:var(--fs-xs);padding:4px 10px;border-radius:var(--r-pill);}
   .cl-tag-del:hover{background:var(--red-bg);color:var(--red);}
@@ -536,9 +535,6 @@
   .cl-fld{flex:1 1 100%;}
   .cl-fld input{flex:1 1 auto;min-width:0;}
   .cl-fld .u{flex:none;}
-  /* нарушения — красной пометкой: в строке списка и в карточке */
-  .cl-warn{font-size:var(--fs-xs);padding:2px 8px;border-radius:var(--r-pill);background:var(--red-bg);
-    color:var(--red);white-space:nowrap;}
   .cl-stats{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:12px;font-size:var(--fs-sm);color:var(--text-2);}
   .cl-stats b{font-size:var(--fs-lg);font-weight:700;color:var(--text);display:block;letter-spacing:-.01em;}
   .cl-stats .bad,.cl-stats .bad b{color:var(--red);}
@@ -930,8 +926,12 @@
           <div class="fld-l">Задолженность</div>
           <div id="clDebtList" style="margin-bottom:10px"></div>
         </div>
-        <div class="fld-l">История броней</div>
-        <div id="clHistory" style="margin-bottom:12px"></div>
+        <!-- Сама история — в отдельном окне (clHistModal): у постоянного
+             клиента список из десятков броней растягивал карточку так, что
+             задолженность и заметка уезжали за экран. -->
+        <div class="row">
+          <button class="btn ghost small" id="clHistBtn" type="button" disabled>История броней</button>
+        </div>
         <div class="actions">
           <button class="btn ghost small danger" id="clDelete" type="button">Удалить клиента</button>
           <button class="btn small" id="clSave" type="button">Сохранить</button>
@@ -1016,6 +1016,19 @@
   </div>
 </div>
 
+<!-- История броней клиента — отдельным окном, а не в потоке карточки: у
+     постоянного клиента список из десятков строк раньше растягивал карточку
+     так, что задолженность и заметка уезжали за экран. -->
+<div class="modal-backdrop" id="clHistModal" hidden>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>История броней</h3>
+      <button class="modal-close" id="clHistClose" type="button" aria-label="Закрыть">✕</button>
+    </div>
+    <div id="clHistBody"></div>
+  </div>
+</div>
+
 <!-- Данные клиента для брони по звонку. Раньше эти поля висели в потоке под
      сеткой всегда, даже когда время ещё не выбрано; теперь открываются с
      липкой сводки по «Далее» — время уже выбрано, остаётся только клиент. -->
@@ -1088,7 +1101,16 @@
     window.scrollTo(0, 0);
   }
   folderBtns.forEach(function(b){
-    b.addEventListener('click', function(){ selectFolder(b.dataset.folder); });
+    b.addEventListener('click', function(){
+      selectFolder(b.dataset.folder);
+      // Некоторые папки — это список с карточкой внутри (Клиенты, Залы), и
+      // сама папка остаётся видимой что в списке, что в открытой карточке:
+      // клика по пункту меню тогда не хватало, чтобы вернуться к списку.
+      // Регистрируется во втором скрипте (там же живут clClose/closeHallDetail),
+      // поэтому смотрим на момент клика, а не на момент подписки.
+      var reset = window.PS_FOLDER_RESET && window.PS_FOLDER_RESET[b.dataset.folder];
+      if(reset) reset();
+    });
   });
 
   var saved = null;
@@ -2944,6 +2966,9 @@
   $('qbDetailModal').addEventListener('click', function(e){ if(e.target === e.currentTarget) qbCloseDetail(); });
   document.addEventListener('keydown', function(e){
     if(e.key !== 'Escape') return;
+    // clHistModal — поверх карточки клиента, поэтому проверяем её раньше:
+    // Escape должен сначала закрыть окно истории, а не сразу уйти к списку.
+    if(!$('clHistModal').hidden) return clCloseHistory();
     // Карточка клиента — не модалка, а отдельный вид секции, но Escape из неё
     // тоже уместен: это ровно тот же «назад к списку».
     if(!$('clDetailView').hidden) return clClose();
@@ -3504,7 +3529,7 @@
   // ---------- клиенты ----------
   // Список держим в памяти целиком: карточек у студии сотни, не тысячи, а
   // поиск по трём полям на клиенте избавляет от запроса на каждую букву.
-  var CL = { list: [], open: null, tags: [] };
+  var CL = { list: [], open: null, tags: [], history: [] };
 
   function clFmtDate(iso){
     if(!iso) return '';
@@ -3530,23 +3555,14 @@
     }
     if(!rows.length){ box.innerHTML = '<span class="muted">Никого не нашлось.</span>'; return; }
     box.innerHTML = '';
+    // Список — только имя и телефон: метки, долг, нарушения и статистика
+    // видны в самой карточке, а тут они превращали список в простыню и мешали
+    // просто найти человека. Подробности — по клику.
     rows.forEach(function(c){
       var b = document.createElement('button');
       b.type = 'button'; b.className = 'cl-row'; b.dataset.id = c.id;
-      var tags = (c.tags || []).slice(0, 3)
-        .map(function(t){ return '<span class="cl-tag">' + esc(t) + '</span>'; }).join('');
-      // Нарушения — отдельной красной пометкой в строке, чтобы их было видно
-      // не открывая карточку.
-      var warn = clFaultText(c)
-        .map(function(t){ return '<span class="cl-warn">' + esc(t) + '</span>'; }).join('');
-      // Долг — тоже красной пометкой: по нему решают, подтверждать ли бронь.
-      if(c.debtDue > 0) warn = '<span class="cl-warn">долг ' + esc(Math.round(c.debtDue)) + ' ' + CUR + '</span>' + warn;
-      var meta = c.visits
-        ? esc(c.visits) + ' ' + clVisitWord(c.visits) + ' · ' + esc(Math.round(c.spent)) + ' ' + CUR
-        : 'без броней';
       b.innerHTML = '<span class="cl-name">' + esc(c.name || 'Без имени') + '</span>'
-        + '<span class="cl-phone">' + esc(phonePretty(c.phone)) + '</span>' + tags + warn
-        + '<span class="cl-meta">' + meta + '</span>';
+        + '<span class="cl-phone">' + esc(phonePretty(c.phone)) + '</span>';
       b.addEventListener('click', function(){ clOpen(c.id); });
       box.appendChild(b);
     });
@@ -3619,11 +3635,14 @@
   // новой нет id (а значит, нет истории и кнопки удаления).
   function clOpenNew(){
     CL.open = null;
+    CL.history = [];
     $('clTitle').textContent = 'Новый клиент';
     clFill({});
     $('clPhone').value = '+375 ';
     $('clStats').innerHTML = '';
-    $('clHistory').innerHTML = '<span class="muted" style="font-size:12px">Появится после первой брони.</span>';
+    // У новой карточки истории просто ещё нет — кнопку не включаем.
+    $('clHistBtn').disabled = true;
+    $('clHistBtn').textContent = 'История броней';
     $('clDebtBox').hidden = true;
     $('clDelete').hidden = true;
     clShowDetail(true);
@@ -3631,11 +3650,15 @@
   function clOpen(id){
     var known = CL.list.find(function(x){ return x.id === id; }) || {};
     CL.open = id;
+    CL.history = [];
     $('clTitle').textContent = known.name || 'Клиент';
     clFill(known);
     $('clDelete').hidden = false;
     $('clStats').innerHTML = clStatsHtml(known);
-    $('clHistory').innerHTML = '<span class="muted" style="font-size:12px">Загрузка…</span>';
+    // Пока история грузится, кнопку выключаем — иначе открылось бы окно
+    // с пустым списком, который тут же перерисуется.
+    $('clHistBtn').disabled = true;
+    $('clHistBtn').textContent = 'История броней…';
     clShowDetail(true);
     // Историю тянем отдельным запросом: в списке её нет, а нужна она только
     // когда карточку открыли.
@@ -3647,7 +3670,9 @@
       // Счётчики из полного ответа: в списке они могли устареть.
       $('clStats').innerHTML = clStatsHtml(full);
     }).catch(function(e){
-      if(CL.open === id) $('clHistory').innerHTML = '<span class="muted" style="font-size:12px">' + esc(e.message) + '</span>';
+      if(CL.open !== id) return;
+      $('clHistBtn').textContent = 'История броней';
+      flash($('clDetailNote'), e.message);
     });
   }
   function clStatsHtml(c){
@@ -3673,13 +3698,19 @@
       + esc(c.ratingCount) + plural(c.ratingCount, ' съёмка', ' съёмки', ' съёмок') + '</div>';
     return main;
   }
+  // История сама по себе не рисуется в карточке — только копится в CL.history
+  // и включает кнопку, которая открывает отдельное окно (clOpenHistory).
+  // У постоянного клиента список из десятков броней растягивал карточку так,
+  // что задолженность и заметка уезжали за экран.
   function clRenderHistory(list){
-    var box = $('clHistory');
-    if(!list.length){
-      box.innerHTML = '<span class="muted" style="font-size:12px">Броней пока нет.</span>';
-      return;
-    }
-    box.innerHTML = list.map(function(b){
+    CL.history = Array.isArray(list) ? list : [];
+    var btn = $('clHistBtn');
+    btn.disabled = false;
+    btn.textContent = CL.history.length ? 'История броней · ' + CL.history.length : 'История броней';
+  }
+  function clHistoryHtml(list){
+    if(!list.length) return '<span class="muted" style="font-size:12px">Броней пока нет.</span>';
+    return list.map(function(b){
       var off = b.status === 'cancelled' || b.status === 'declined' || b.status === 'no_show';
       return '<div class="cl-hist" data-cancelled="' + off + '">'
         + '<span class="d">' + esc(clFmtDate(b.date)) + ' · ' + minLabel(b.start) + '–' + minLabel(b.end) + '</span>'
@@ -3688,6 +3719,14 @@
         + '</div>';
     }).join('');
   }
+  function clOpenHistory(){
+    $('clHistBody').innerHTML = clHistoryHtml(CL.history);
+    $('clHistModal').hidden = false;
+  }
+  function clCloseHistory(){ $('clHistModal').hidden = true; }
+  $('clHistBtn').addEventListener('click', clOpenHistory);
+  $('clHistClose').addEventListener('click', clCloseHistory);
+  $('clHistModal').addEventListener('click', function(e){ if(e.target === e.currentTarget) clCloseHistory(); });
   var CL_DEBT_REASON = { late_cancel:'поздняя отмена', no_show:'прогул', reschedule:'платный перенос' };
   // Начисления показываем все: непогашенные — с кнопками, погашенные — строкой
   // «оплачено/прощено». Владельцу важно видеть, что он уже простил, иначе
@@ -3776,7 +3815,12 @@
         }
       });
   }
-  function clClose(){ clShowDetail(false); CL.open = null; }
+  function clClose(){ clCloseHistory(); clShowDetail(false); CL.open = null; }
+  // Клик по пункту меню «Клиенты»/«Залы» должен возвращать к списку, даже
+  // если внутри уже открыта чья-то карточка — см. подписку в первом скрипте.
+  window.PS_FOLDER_RESET = window.PS_FOLDER_RESET || {};
+  window.PS_FOLDER_RESET.clients = clClose;
+  window.PS_FOLDER_RESET.halls = closeHallDetail;
   function clBody(){
     return {
       name: $('clName').value.trim(),
