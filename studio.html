@@ -3071,6 +3071,28 @@
   function qbRenderDetailActions(info){
     var box = $('qbDetailActions');
     box.innerHTML = '';
+    if(info.kind === 'block'){
+      // batchId, а не id одной строки: блокировка одним действием могла лечь
+      // сразу на несколько залов («все залы» в форме внизу настроек) — снять
+      // нужно всю пачку разом, тем же DELETE, что и «Снять» в том списке.
+      var blk = info.data;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn small ghost';
+      btn.textContent = 'Снять блокировку';
+      btn.addEventListener('click', function(){
+        btn.disabled = true;
+        api('DELETE', '/admin/blocks/' + encodeURIComponent(blk.batchId)).then(function(){
+          qbCloseDetail();
+          return loadBlocks().then(qbSyncGrid);
+        }).catch(function(e){
+          btn.disabled = false;
+          flash($('qbDetailNote'), e.message);
+        });
+      });
+      box.appendChild(btn);
+      return;
+    }
     if(info.kind !== 'booking') return;
     var b = info.data;
     var acts = bkActions(b).slice();
