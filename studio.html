@@ -722,9 +722,13 @@
 
       <!-- Сводка выбранного времени: раньше стояла в потоке под сеткой и на
            телефоне уезжала под экран — теперь липкая внизу, с переходом к
-           данным клиента. Поля клиента переехали в модалку #qbFormModal. -->
+           данным клиента. Поля клиента переехали в модалку #qbFormModal.
+           «Заблокировать» — тот же выбор на сетке, но не бронь: техническая
+           недоступность (уборка, подкраска, ремонт), у неё нет клиента и нет
+           минимальной длительности брони — доступна с первого же чипа. -->
       <div class="qb-bar" id="qbBar" hidden>
         <div class="qb-bar-sum" id="qbBarSum"></div>
+        <button class="btn ghost qb-bar-btn" id="qbBlock" type="button" hidden>Заблокировать</button>
         <button class="btn qb-bar-btn" id="qbNext" type="button"></button>
       </div>
     </div>
@@ -1107,6 +1111,28 @@
       <button class="modal-close" id="clStatsClose" type="button" aria-label="Закрыть">✕</button>
     </div>
     <div class="cl-stats" id="clStatsBody"></div>
+  </div>
+</div>
+
+<!-- Заблокировать выбранное на сетке время: техническая недоступность
+     (уборка, подкраска, ремонт), не бронь — ни клиента, ни цены. Причина
+     необязательна, но с готовыми чипами под частые случаи её обычно проще
+     выбрать, чем печатать. -->
+<div class="modal-backdrop" id="blkQuickModal" hidden>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Заблокировать время</h3>
+      <button class="modal-close" id="blkQuickClose" type="button" aria-label="Закрыть">✕</button>
+    </div>
+    <div class="muted" id="blkQuickSum" style="font-size:var(--fs-sm);margin-bottom:12px"></div>
+    <div class="chip-row" id="blkReasonChips"></div>
+    <div class="row">
+      <input class="name" id="blkQuickNote" maxlength="200" placeholder="Причина (необязательно)" autocomplete="off">
+    </div>
+    <div class="actions">
+      <button class="btn" id="blkQuickSubmit" type="button">Заблокировать</button>
+    </div>
+    <div class="note" id="blkQuickNoteMsg"></div>
   </div>
 </div>
 
@@ -2861,6 +2887,15 @@
     return !!hall && qbSpanFree(hall.id, QB.sel.start, QB.sel.end)
       && (QB.sel.end - QB.sel.start) < qbMinSlots(hall, QB.sel.start);
   }
+  // Годится для блокировки: свободный, непустой промежуток в одном зале — без
+  // минимальной длительности брони (у технического простоя её попросту нет,
+  // уборка может быть и на 30 минут). Ровно поэтому это отдельная проверка,
+  // а не qbSelectionValid: та требует ещё и qbMinSlots.
+  function qbSelectionUsable(){
+    if(!qbHasSel()) return false;
+    var hall = qbHall();
+    return !!hall && qbSpanFree(hall.id, QB.sel.start, QB.sel.end);
+  }
 
   // Оценка цены — зеркало server lib/rules.js priceFor/applyLastMinute (и
   // index.html baseRoomPrice/computePrice). Финальную цену всё равно считает
@@ -3084,6 +3119,7 @@
     // тоже уместен: это ровно тот же «назад к списку».
     if(!$('clDetailView').hidden) return clClose();
     if(!$('bcModal').hidden) return bcClose();
+    if(!$('blkQuickModal').hidden) return blkCloseQuick();
     if(!$('qbFormModal').hidden) return qbCloseForm();
     if(!$('qbDetailModal').hidden) return qbCloseDetail();
   });
@@ -3101,7 +3137,7 @@
     if(!t || !t.closest) return;
     if(t.closest('#qbGrid') || t.closest('#qbBar')
        || t.closest('#qbFormModal') || t.closest('#qbDetailModal')
-       || t.closest('#bcModal')) return;
+       || t.closest('#bcModal') || t.closest('#blkQuickModal')) return;
     qbClearSel();
     qbRenderGrid();
   }, true);
@@ -3117,8 +3153,11 @@
   // стал валидным, сводка уезжает в липкую панель внизу: на телефоне она
   // раньше оказывалась ниже экрана, и было не видно ни цены, ни кнопки.
   function qbRenderHint(){
-    var hint = $('qbHint'), bar = $('qbBar'), sum = $('qbBarSum'), next = $('qbNext');
-    if(!qbSelectionValid()){
+    var hint = $('qbHint'), bar = $('qbBar'), sum = $('qbBarSum'), next = $('qbNext'), block = $('qbBlock');
+    // Блокировка — не перенос: во время переноса кнопки быть не должно, это
+    // отдельный режим той же сетки без клиента и цены.
+    var canBlock = !QB.reschedule;
+    if(!qbSelectionUsable()){
       bar.hidden = true;
       bar.classList.remove('qb-bar-in');
       QB.barOn = false;
@@ -3129,26 +3168,44 @@
                : 'Выберите новое время в зале «' + QB.reschedule.hallName + '»'))
         // В обычном режиме подсказки в покое нет — сетка говорит сама за себя.
         // «Вторая точка» остаётся: это уже начатое действие, на нём без
-        // подсказки непонятно, почему бронь ещё не готова.
+        // подсказки непонятно, почему бронь ещё не готова. Сама подсказка —
+        // только про бронь: для блокировки готового чипа уже достаточно, и
+        // как только выбор станет непустым, ниже появится сводка с кнопкой.
         : (qbSelectionPending() ? 'Отметьте вторую точку промежутка' : '');
       return;
     }
     hint.textContent = '';
+    block.hidden = true;
     if(QB.reschedule){
+      // Перенос — режим без блокировки, и «Далее» тут вообще не участвует:
+      // при невалидной длине (короче пакета) выше уже вернулись раньше.
       sum.innerHTML = '<div class="qb-sum-row">Новое время для «' + esc(QB.reschedule.name) + '»</div>'
         + '<div class="qb-sum-total">' + esc(qbWhenLabel()) + ' · ' + qbDurLabel() + '</div>';
+      next.hidden = false;
+      next.disabled = false;
       next.textContent = 'Перенести';
-    } else {
+    } else if(qbSelectionValid()){
       var hall = qbHall();
       // Как сводка внизу клиентского приложения: мелко — что выбрано, крупно —
       // сколько это стоит.
       sum.innerHTML = '<div class="qb-sum-row">' + esc(hall.name) + ' · ' + esc(qbWhenLabel()) + '</div>'
         + '<div class="qb-sum-total">' + qbPrice() + ' ' + CUR + ' · ' + qbDurLabel() + '</div>';
+      next.hidden = false;
+      next.disabled = false;
       next.innerHTML = 'Далее <span class="ic" aria-hidden="true">→</span>';
       $('qbPeople').max = hall.capacity;
       if(parseInt($('qbPeople').value,10) > hall.capacity) $('qbPeople').value = hall.capacity;
+      block.hidden = !canBlock;
+    } else {
+      // Выбор есть и он свободен, но короче минимальной брони — это ещё не
+      // бронь (там нужна вторая точка), но блокировке минимум не нужен: и
+      // уборка на 30 минут — законный технический простой.
+      var h2 = qbHall();
+      sum.innerHTML = '<div class="qb-sum-row">' + esc(h2.name) + ' · ' + esc(qbWhenLabel()) + '</div>'
+        + '<div class="muted" style="font-size:var(--fs-xs);margin-top:2px">Меньше минимальной брони — доступна только блокировка</div>';
+      next.hidden = true;
+      block.hidden = !canBlock;
     }
-    next.disabled = false;
     // Анимация выезда — только когда панели не было (иначе она переигрывала бы
     // на каждом добавленном часе).
     var wasOn = QB.barOn;
@@ -3384,6 +3441,69 @@
   $('qbNext').addEventListener('click', function(){
     if(QB.reschedule) return qbConfirmReschedule();
     qbOpenForm();
+  });
+
+  // ---------- Заблокировать время (та же сетка, что и бронь по звонку) ----------
+  // Технический простой — не бронь: нет клиента, нет цены, нет минимальной
+  // длительности. Причина — готовыми чипами под частые случаи (быстрее, чем
+  // печатать) плюс свободное поле, если случай нетиповой.
+  var BLK_REASONS = ['Уборка', 'Подкраска', 'Ремонт'];
+  function blkRenderReasonChips(){
+    var box = $('blkReasonChips');
+    var cur = $('blkQuickNote').value.trim();
+    box.innerHTML = BLK_REASONS.map(function(r){
+      return '<button type="button" class="chip-tog'+(cur===r?' on':'')+'" data-reason="'+esc(r)+'">'+esc(r)+'</button>';
+    }).join('');
+    box.querySelectorAll('.chip-tog').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var r = btn.dataset.reason;
+        // Повторный клик по уже выбранной причине снимает её — как парковка
+        // в удобствах студии (один выбор из нескольких, тоггл).
+        $('blkQuickNote').value = ($('blkQuickNote').value.trim() === r) ? '' : r;
+        blkRenderReasonChips();
+      });
+    });
+  }
+  function blkOpenQuick(){
+    if(!qbSelectionUsable()) return;
+    var hall = qbHall();
+    $('blkQuickSum').textContent = hall.name + ' · ' + qbWhenLabel() + ' · ' + qbDurLabel();
+    $('blkQuickNote').value = '';
+    $('blkQuickNoteMsg').textContent = '';
+    blkRenderReasonChips();
+    $('blkQuickSubmit').disabled = false;
+    $('blkQuickSubmit').textContent = 'Заблокировать';
+    $('blkQuickModal').hidden = false;
+  }
+  function blkCloseQuick(){ $('blkQuickModal').hidden = true; }
+  $('qbBlock').addEventListener('click', blkOpenQuick);
+  $('blkQuickClose').addEventListener('click', blkCloseQuick);
+  $('blkQuickModal').addEventListener('click', function(e){
+    if(e.target === e.currentTarget) blkCloseQuick();
+  });
+  $('blkQuickNote').addEventListener('input', blkRenderReasonChips);
+  $('blkQuickSubmit').addEventListener('click', function(){
+    if(!qbSelectionUsable()) return blkCloseQuick();
+    var hall = qbHall();
+    var note = $('blkQuickNote').value.trim();
+    var btn = $('blkQuickSubmit'); btn.disabled = true; btn.textContent = 'Блокируем…';
+    api('POST', '/admin/blocks', {
+      hallId: hall.id, date: QB.date,
+      start: QB.sel.start*QB.slotMin, end: QB.sel.end*QB.slotMin,
+      note: note || undefined,
+    }).then(function(){
+      blkCloseQuick();
+      flash($('qbNote'), 'Время заблокировано', true);
+      qbClearSel();
+      // Список ручных блокировок (внизу «Заблокировать время») и сама сетка
+      // обновляются раздельно: у них разные источники (GET /admin/blocks и
+      // GET /availability) — тот же порядок, что и у формы в том разделе.
+      return loadBlocks().then(qbSyncGrid);
+    }).catch(function(e){
+      flash($('blkQuickNoteMsg'), e.message);
+      btn.textContent = 'Заблокировать';
+      btn.disabled = false;
+    });
   });
 
   $('qbSubmit').addEventListener('click', function(){
