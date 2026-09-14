@@ -213,7 +213,28 @@
   .about-f-t{font-size:var(--fs-sm);font-weight:600;color:var(--text-2);margin-bottom:4px;}
   /* Вопрос и ответ «есть/нет» в одну строку, с переносом на узком экране */
   .park-q{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:10px;font-size:var(--fs-md);}
-  .park-q .chip-row{margin-bottom:0;}
+  /* Переключатель из двух кнопок: ответ один, и видно оба варианта сразу. */
+  .seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:var(--r-sm);overflow:hidden;}
+  .seg button{font:inherit;font-size:var(--fs-md);padding:7px 18px;border:none;cursor:pointer;
+    background:var(--surface);color:var(--text-2);}
+  .seg button + button{border-left:1px solid var(--line-strong);}
+  .seg button.on{background:var(--accent);color:#fff;font-weight:600;}
+  /* «Выберите всё, что подходит» — чекбоксы, а не чипы-тоглы: невыбранный
+     вариант читается как вариант, который можно отметить, а не как
+     выключенная кнопка. */
+  .check-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:11px 18px;margin-bottom:12px;}
+  .chk{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:var(--fs-md);color:var(--text);}
+  .chk input{
+    appearance:none;-webkit-appearance:none;flex:0 0 auto;position:relative;
+    width:20px;height:20px;margin:0;border-radius:6px;
+    border:1.5px solid var(--line-strong);background:var(--surface);cursor:pointer;
+  }
+  .chk input:checked{background:var(--accent);border-color:var(--accent);}
+  .chk input:checked::after{
+    content:'';position:absolute;left:6px;top:2.5px;width:5px;height:10px;
+    border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);
+  }
+  .chk input:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
   .chip-tog{font:inherit;font-size:var(--fs-md);padding:7px 14px;border-radius:var(--r-pill);cursor:pointer;
     border:none;background:var(--bg);color:var(--text-2);transition:background .12s,color .12s;}
   .chip-tog:hover{color:var(--text);}
@@ -825,15 +846,16 @@
 
     <div class="card" id="sec-amenities" data-folder="main">
       <h2>Удобства и правила студии</h2>
-      <div class="muted" style="margin-bottom:10px">Показывается клиенту в карточке студии и в результатах поиска. Нажмите, чтобы включить.</div>
+      <div class="muted" style="margin-bottom:10px">Отметьте то, что есть у студии. Показывается клиенту в карточке студии и в результатах поиска.</div>
       <div class="amenity-group">
         <div class="amenity-group-t">Парковка</div>
         <div class="park-q">
           <span>Есть ли парковка у студии или рядом?</span>
-          <span class="chip-row" id="amParkingYesNo"></span>
+          <span class="seg" id="amParkingYesNo"></span>
         </div>
         <div id="amParkingWrap" hidden>
-          <div class="chip-row" id="amParking"></div>
+          <div class="about-f-t">Выберите всё, что подходит</div>
+          <div class="check-grid" id="amParking"></div>
           <div class="about-f-t" style="margin-top:8px">Описание парковки</div>
           <div class="muted" style="margin:-2px 0 6px">Без личных данных — это видно всем.</div>
           <div class="row"><textarea class="name" id="amParkingText" rows="2" maxlength="1000"
@@ -2347,6 +2369,13 @@
   }
   svRegister('profile', pfDraftNow, savePf);
 
+  // Один чекбокс «выберите всё, что подходит». attr — по какому атрибуту его
+  // потом находит обработчик (data-park у парковки, data-am у удобств).
+  function checkHtml(attr, field, label, on){
+    return '<label class="chk"><input type="checkbox" '+attr+'="'+esc(field)+'"'+(on?' checked':'')+'>' +
+      '<span>'+esc(label)+'</span></label>';
+  }
+
   // Варианты и описание парковки нужны, только когда на вопрос ответили
   // «есть»: у студии без парковки нечего ни выбирать, ни описывать.
   function syncParkingVisibility(){
@@ -2365,45 +2394,41 @@
     // «парковки нет» и «владелец ещё не заполнил» — разные вещи для клиента.
     var yn = $('amParkingYesNo');
     yn.innerHTML =
-      '<button type="button" class="chip-tog'+(amenitiesDraft.parkingAvailable===true?' on':'')+'" data-pa="yes">Есть</button>' +
-      '<button type="button" class="chip-tog'+(amenitiesDraft.parkingAvailable===false?' on':'')+'" data-pa="no">Нет</button>';
+      '<button type="button" class="'+(amenitiesDraft.parkingAvailable===true?'on':'')+'" data-pa="yes">Есть</button>' +
+      '<button type="button" class="'+(amenitiesDraft.parkingAvailable===false?'on':'')+'" data-pa="no">Нет</button>';
     var pk = $('amParking');
-    pk.innerHTML = PARKING_OPTS.map(function(o){
-      return '<button type="button" class="chip-tog'+(amenitiesDraft[o.f]?' on':'')+'" data-park="'+o.f+'">'+esc(o.label)+'</button>';
-    }).join('');
+    pk.innerHTML = PARKING_OPTS.map(function(o){ return checkHtml('data-park', o.f, o.label, amenitiesDraft[o.f]); }).join('');
     $('amParkingText').value = amenitiesDraft.aboutParking || '';
     syncParkingVisibility();
-    yn.querySelectorAll('.chip-tog[data-pa]').forEach(function(btn){
+    yn.querySelectorAll('button[data-pa]').forEach(function(btn){
       btn.addEventListener('click', function(){
         var yes = btn.dataset.pa === 'yes';
         // повторный клик по выбранному снимает ответ — обратно в «не указано»
         amenitiesDraft.parkingAvailable = (amenitiesDraft.parkingAvailable === yes) ? null : yes;
-        yn.querySelectorAll('.chip-tog').forEach(function(x){
+        yn.querySelectorAll('button').forEach(function(x){
           x.classList.toggle('on', amenitiesDraft.parkingAvailable === (x.dataset.pa === 'yes'));
         });
         syncParkingVisibility();
         svCheck('amenities');
       });
     });
-    pk.querySelectorAll('.chip-tog[data-park]').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        var f = btn.dataset.park;
-        amenitiesDraft[f] = !amenitiesDraft[f];
-        btn.classList.toggle('on');
+    pk.querySelectorAll('input[data-park]').forEach(function(inp){
+      inp.addEventListener('change', function(){
+        amenitiesDraft[inp.dataset.park] = inp.checked;
         svCheck('amenities');
       });
     });
-    // Удобства и правила — чипы-тоглы (как «Стиль интерьера» у зала).
+    // Удобства и правила — те же чекбоксы «выберите всё, что подходит»,
+    // что и у парковки: один блок настроек, одна механика выбора.
     $('amEd').innerHTML = STUDIO_AMENITY_GROUPS.map(function(g){
       return '<div class="amenity-group"><div class="amenity-group-t">'+esc(g.title)+'</div>' +
-        '<div class="chip-row">' + g.items.map(function(a){
-          return '<button type="button" class="chip-tog'+(amenitiesDraft[a.f]?' on':'')+'" data-am="'+a.f+'">'+esc(a.label)+'</button>';
+        '<div class="check-grid">' + g.items.map(function(a){
+          return checkHtml('data-am', a.f, a.label, amenitiesDraft[a.f]);
         }).join('') + '</div></div>';
     }).join('');
-    $('amEd').querySelectorAll('.chip-tog[data-am]').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        amenitiesDraft[btn.dataset.am] = !amenitiesDraft[btn.dataset.am];
-        btn.classList.toggle('on');
+    $('amEd').querySelectorAll('input[data-am]').forEach(function(inp){
+      inp.addEventListener('change', function(){
+        amenitiesDraft[inp.dataset.am] = inp.checked;
         svCheck('amenities');
       });
     });
