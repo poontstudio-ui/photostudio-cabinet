@@ -211,6 +211,9 @@
      плейсхолдера — владелец должен видеть тему и с уже заполненным полем. */
   .about-f{margin-bottom:8px;}
   .about-f-t{font-size:var(--fs-sm);font-weight:600;color:var(--text-2);margin-bottom:4px;}
+  /* Вопрос и ответ «есть/нет» в одну строку, с переносом на узком экране */
+  .park-q{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:10px;font-size:var(--fs-md);}
+  .park-q .chip-row{margin-bottom:0;}
   .chip-tog{font:inherit;font-size:var(--fs-md);padding:7px 14px;border-radius:var(--r-pill);cursor:pointer;
     border:none;background:var(--bg);color:var(--text-2);transition:background .12s,color .12s;}
   .chip-tog:hover{color:var(--text);}
@@ -825,7 +828,17 @@
       <div class="muted" style="margin-bottom:10px">Показывается клиенту в карточке студии и в результатах поиска. Нажмите, чтобы включить.</div>
       <div class="amenity-group">
         <div class="amenity-group-t">Парковка</div>
-        <div class="chip-row" id="amParking"></div>
+        <div class="park-q">
+          <span>Есть ли парковка у студии или рядом?</span>
+          <span class="chip-row" id="amParkingYesNo"></span>
+        </div>
+        <div id="amParkingWrap" hidden>
+          <div class="chip-row" id="amParking"></div>
+          <div class="about-f-t" style="margin-top:8px">Описание парковки</div>
+          <div class="muted" style="margin:-2px 0 6px">Без личных данных — это видно всем.</div>
+          <div class="row"><textarea class="name" id="amParkingText" rows="2" maxlength="1000"
+            placeholder="Как проехать, сколько мест, как открыть шлагбаум" style="resize:vertical"></textarea></div>
+        </div>
       </div>
       <div id="amEd"></div>
       <div class="note" id="amNote"></div>
@@ -1308,8 +1321,9 @@
   // «есть или нет», эти поля — «как именно»: где въезд на парковку, сколько
   // розеток, до скольки можно шуметь. Каждое раскрывается отдельной секцией
   // аккордеона на странице зала у клиента, порядок тот же.
+  // Парковки здесь нет намеренно: она одна на адрес и живёт в «Удобствах и
+  // правилах студии» вместе с вариантами — иначе тексты по залам разъедутся.
   var HALL_ABOUT_FIELDS = [
-    {f:'aboutParking',label:'Парковка',ph:'Где припарковаться: въезд, сколько мест, платно ли'},
     {f:'aboutLighting',label:'Свет',ph:'Какие приборы и сколько источников, что можно докупить'},
     {f:'aboutSound',label:'Звук',ph:'Колонка, микрофон, слышно ли соседей, до скольки можно шуметь'},
     {f:'aboutAccess',label:'Доступ в студию',ph:'Как попасть внутрь: домофон, ключи, лифт, как заносить реквизит'},
@@ -1337,7 +1351,16 @@
       {f:'allowSmokeMachine',label:'Дым-машина'},{f:'allowCatering',label:'Кейтеринг / еда'},
     ]},
   ];
-  var PARKING_OPTS = [['','—'],['none','Нет'],['yard','Во дворе'],['free','Бесплатная'],['paid','Платная рядом']];
+  // Варианты парковки (0041): их может быть несколько сразу — свой двор
+  // бесплатно И бесплатная улица рядом, поэтому набор, а не выбор одного.
+  var PARKING_OPTS = [
+    {f:'parkingFreeOnsite',label:'Бесплатная на территории'},
+    {f:'parkingPaidOnsite',label:'Платная на территории'},
+    {f:'parkingFreeStreet',label:'Бесплатная на улице'},
+    {f:'parkingMeteredStreet',label:'Платная уличная'},
+    {f:'parkingValet',label:'Валет-паркинг'},
+    {f:'parkingLotNearby',label:'Парковка рядом'},
+  ];
   var amenitiesDraft = {};
   var STUDIO_ID = new URLSearchParams(location.search).get('id') || '';
 
@@ -2324,19 +2347,49 @@
   }
   svRegister('profile', pfDraftNow, savePf);
 
+  // Варианты и описание парковки нужны, только когда на вопрос ответили
+  // «есть»: у студии без парковки нечего ни выбирать, ни описывать.
+  function syncParkingVisibility(){
+    $('amParkingWrap').hidden = amenitiesDraft.parkingAvailable !== true;
+  }
+  // Поле описания innerHTML не пересобирает, поэтому слушатель вешается один
+  // раз — внутри renderAmenities() он копился бы с каждой перерисовкой.
+  $('amParkingText').addEventListener('input', function(){
+    amenitiesDraft.aboutParking = this.value;
+    svCheck('amenities');
+  });
+
   function renderAmenities(){
-    // Парковка — один выбор из нескольких (чипы-тоглы, повторный клик снимает).
+    // Парковка: сперва «есть или нет», и только при «есть» — набор вариантов
+    // и описание. Без этого вопроса пустой набор был бы двусмысленным:
+    // «парковки нет» и «владелец ещё не заполнил» — разные вещи для клиента.
+    var yn = $('amParkingYesNo');
+    yn.innerHTML =
+      '<button type="button" class="chip-tog'+(amenitiesDraft.parkingAvailable===true?' on':'')+'" data-pa="yes">Есть</button>' +
+      '<button type="button" class="chip-tog'+(amenitiesDraft.parkingAvailable===false?' on':'')+'" data-pa="no">Нет</button>';
     var pk = $('amParking');
-    pk.innerHTML = PARKING_OPTS.filter(function(o){ return o[0]; }).map(function(o){
-      return '<button type="button" class="chip-tog'+((amenitiesDraft.parking||'')===o[0]?' on':'')+'" data-park="'+o[0]+'">'+esc(o[1])+'</button>';
+    pk.innerHTML = PARKING_OPTS.map(function(o){
+      return '<button type="button" class="chip-tog'+(amenitiesDraft[o.f]?' on':'')+'" data-park="'+o.f+'">'+esc(o.label)+'</button>';
     }).join('');
+    $('amParkingText').value = amenitiesDraft.aboutParking || '';
+    syncParkingVisibility();
+    yn.querySelectorAll('.chip-tog[data-pa]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var yes = btn.dataset.pa === 'yes';
+        // повторный клик по выбранному снимает ответ — обратно в «не указано»
+        amenitiesDraft.parkingAvailable = (amenitiesDraft.parkingAvailable === yes) ? null : yes;
+        yn.querySelectorAll('.chip-tog').forEach(function(x){
+          x.classList.toggle('on', amenitiesDraft.parkingAvailable === (x.dataset.pa === 'yes'));
+        });
+        syncParkingVisibility();
+        svCheck('amenities');
+      });
+    });
     pk.querySelectorAll('.chip-tog[data-park]').forEach(function(btn){
       btn.addEventListener('click', function(){
-        var v = btn.dataset.park;
-        amenitiesDraft.parking = (amenitiesDraft.parking === v) ? null : v;
-        pk.querySelectorAll('.chip-tog').forEach(function(x){
-          x.classList.toggle('on', x.dataset.park === amenitiesDraft.parking);
-        });
+        var f = btn.dataset.park;
+        amenitiesDraft[f] = !amenitiesDraft[f];
+        btn.classList.toggle('on');
         svCheck('amenities');
       });
     });
