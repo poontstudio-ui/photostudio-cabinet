@@ -1343,6 +1343,23 @@
   // «есть или нет», эти поля — «как именно»: где въезд на парковку, сколько
   // розеток, до скольки можно шуметь. Каждое раскрывается отдельной секцией
   // аккордеона на странице зала у клиента, порядок тот же.
+  // Назначения зала (0042): одно помещение сдаётся под разные цели, и у
+  // каждой свои ставка, сетка тарифов, минимум брони, вместимость и состав
+  // «что входит». Словарь фиксированный — он же в lib/rules.js на бэкенде.
+  var HALL_PURPOSE_LIST = [
+    {v:'photo',label:'Фотосъёмка'},
+    {v:'video',label:'Видеосъёмка'},
+    {v:'event',label:'Мероприятие'},
+    {v:'meeting',label:'Встреча'},
+    {v:'class',label:'Занятие'},
+    {v:'rehearsal',label:'Репетиция'},
+  ];
+  function purposeLabel(code){
+    for(var k=0;k<HALL_PURPOSE_LIST.length;k++){ if(HALL_PURPOSE_LIST[k].v === code) return HALL_PURPOSE_LIST[k].label; }
+    return code;
+  }
+  function hallPurposes(h){ return Array.isArray(h.purposes) ? h.purposes : (h.purposes = []); }
+
   // Парковки здесь нет намеренно: она одна на адрес и живёт в «Удобствах и
   // правилах студии» вместе с вариантами — иначе тексты по залам разъедутся.
   var HALL_ABOUT_FIELDS = [
@@ -1577,6 +1594,10 @@
     // с сервера, не попало в черновик и ушло обратно пустым, стерев текст.
     o.description = h.description || '';
     HALL_ABOUT_FIELDS.forEach(function(x){ o[x.f] = h[x.f] || ''; });
+    o.purposes = Array.isArray(h.purposes) ? h.purposes.map(function(p){
+      return { code:p.code, rate:p.rate, minBookingMin:p.minBookingMin, capacity:p.capacity,
+        includes:p.includes || '', priceRules:Array.isArray(p.priceRules) ? p.priceRules.slice() : null };
+    }) : [];
     // minMin (мин. бронь по окну) больше не редактируется: тарифы задаются
     // сеткой «дни × часы», минимальная длительность осталась общей по студии.
     o.priceRules = Array.isArray(h.priceRules)?h.priceRules.map(function(r){return {dow:Array.isArray(r.dow)?r.dow.slice():null,from:r.from,to:r.to,rate:r.rate};}):[];
@@ -1600,7 +1621,8 @@
   // sel: 'dow:час' -> true (выделено). Пересобирается в pgLoad при открытии.
   // val — то, что набрано в поле цены липкой панели; живёт в состоянии, т.к.
   // каждый клик по клетке перерисовывает блок и пересоздаёт поле.
-  var PG = { i:-1, hours:[], price:{}, sel:{}, dirty:false, half:false, val:'', barOn:false };
+  // code — чью сетку правим: null = базовые цены зала, иначе код назначения
+  var PG = { i:-1, code:null, hours:[], price:{}, sel:{}, dirty:false, half:false, val:'', barOn:false };
 
   function pgKey(d, hr){ return d+':'+hr; }
   function pgDayWin(d){ var w = hoursDraft[d]; return w ? {start:w.start, end:w.end} : {start:9, end:22}; }
@@ -1626,13 +1648,27 @@
     }
     return null;
   }
-  function pgLoad(i){
+  // Адресат сетки: сам зал или одно из его назначений. У назначения те же
+  // поля rate/priceRules, поэтому дальше сетка работает с ним как с залом.
+  function pgTarget(i, code){
     var h = hallsDraft[i];
-    var rules = Array.isArray(h.priceRules) ? h.priceRules : [];
-    PG = { i:i, hours:pgBuildHours(), price:{}, sel:{}, dirty:false, barOn:false,
+    if(!code) return h;
+    return hallPurposes(h).find(function(p){ return p.code === code; }) || h;
+  }
+  // Ставка-фон незакрашенных клеток: своя у назначения, иначе зальная.
+  function pgBaseRate(i, code){
+    var t = pgTarget(i, code), h = hallsDraft[i];
+    var r = (typeof t.rate === 'number' && isFinite(t.rate)) ? t.rate : h.rate;
+    return (typeof r === 'number' && isFinite(r)) ? r : 0;
+  }
+  function pgLoad(i, code){
+    var h = hallsDraft[i];
+    var t = pgTarget(i, code || null);
+    var rules = Array.isArray(t.priceRules) ? t.priceRules : [];
+    PG = { i:i, code:code || null, hours:pgBuildHours(), price:{}, sel:{}, dirty:false, barOn:false,
       // Поле цены открываем с базовой ставкой зала — чаще всего от неё и
       // пляшут, а «сбросить к базовой» рядом отдельной кнопкой.
-      val: (typeof h.rate === 'number' && isFinite(h.rate)) ? String(h.rate) : '',
+      val: String(((typeof t.rate === 'number' && isFinite(t.rate)) ? t.rate : h.rate) || ''),
       // Старые правила могли иметь получасовые границы — сетка часовая, при
       // сохранении они округлятся. Предупреждаем, а не молча меняем цену.
       half: rules.some(function(r){ return (r.from % 60) || (r.to % 60); }) };
@@ -1727,8 +1763,8 @@
     var box = document.querySelector('.hall-prules[data-i="'+i+'"]');
     if(!box) return;
     if(!h.id){ box.innerHTML = '<span class="muted">Сохраните зал, чтобы задать тарифы по времени.</span>'; return; }
-    if(PG.i !== i) pgLoad(i);
-    var base = (typeof h.rate === 'number' && isFinite(h.rate)) ? h.rate : 0;
+    if(PG.i !== i) pgLoad(i, null);
+    var base = pgBaseRate(i, PG.code);
     var nSel = pgSelCount();
     var barWasOn = PG.barOn;   // была ли панель на экране до этой перерисовки
     PG.barOn = nSel > 0;
@@ -1774,8 +1810,10 @@
     });
 
     box.innerHTML =
-      '<div class="muted" style="font-size:12px;margin-bottom:8px">Тарифы зала. Выделите часы и назначьте им цену. ' +
-        'Невыделенные часы считаются по базовой ставке ' + esc(base) + ' ' + CUR + '/ч.</div>' +
+      '<div class="muted" style="font-size:12px;margin-bottom:8px">' +
+        (PG.code ? 'Тарифы назначения «' + esc(purposeLabel(PG.code)) + '».' : 'Базовые тарифы зала.') +
+        ' Выделите часы и назначьте им цену. ' +
+        'Невыделенные часы считаются по ставке ' + esc(base) + ' ' + CUR + '/ч.</div>' +
       (PG.half ? '<div style="font-size:12px;color:var(--amber);margin-bottom:8px">Прежние тарифы были заданы с получасовыми границами — в сетке они округлены до целых часов. Проверьте цены перед сохранением.</div>' : '') +
       // Состав чипов НЕ зависит от выделения: «Снять выделение» четвёртым
       // чипом на телефоне переносилось на вторую строку, ряд вырастал с 34
@@ -1849,6 +1887,118 @@
     }
     box.querySelector('.pr-save').addEventListener('click', function(){ saveHallPriceRules(i); });
   }
+  // Назначения зала. Тот же чип, что выбран здесь, определяет и адресата
+  // сетки тарифов ниже: «Зал» правит базовые цены, назначение — свои.
+  // Пустые поля назначения означают «как у зала», поэтому плейсхолдеры в
+  // них — зальные значения, а не нули.
+  function renderHallPurposes(i){
+    var h = hallsDraft[i];
+    var box = document.querySelector('.hall-purposes[data-i="'+i+'"]');
+    if(!box) return;
+    if(!h.id){ box.innerHTML = '<div class="amenity-group-t">Назначения</div><span class="muted">Сохраните зал, чтобы задать назначения.</span>'; return; }
+    var list = hallPurposes(h);
+    var code = (PG.i === i) ? PG.code : null;
+    var cur = code ? list.find(function(p){ return p.code === code; }) : null;
+    if(code && !cur){ code = null; PG.code = null; }   // назначение удалили — падаем на зал
+
+    var tabs = '<button type="button" class="chip-tog'+(code?'':' on')+'" data-purp="">Зал (базовые)</button>' +
+      list.map(function(p){
+        return '<button type="button" class="chip-tog'+(p.code===code?' on':'')+'" data-purp="'+esc(p.code)+'">'+esc(purposeLabel(p.code))+'</button>';
+      }).join('');
+    var free = HALL_PURPOSE_LIST.filter(function(x){ return !list.some(function(p){ return p.code === x.v; }); });
+    var addSel = free.length
+      ? '<select class="purp-add" style="flex:0 0 auto"><option value="">+ Назначение…</option>' +
+        free.map(function(x){ return '<option value="'+x.v+'">'+esc(x.label)+'</option>'; }).join('') + '</select>'
+      : '';
+
+    var fields = '';
+    if(cur){
+      fields =
+        '<div class="row" style="margin-top:8px">' +
+          '<span class="unitwrap"><input class="num purp-f" type="number" min="0" step="1" data-f="rate" value="'+esc(cur.rate!=null?cur.rate:'')+'" placeholder="'+esc(h.rate)+'"><span class="u">'+CUR+'/ч</span></span>' +
+          '<span class="unitwrap"><input class="num purp-f" type="number" min="30" max="480" step="30" data-f="minBookingMin" value="'+esc(cur.minBookingMin!=null?cur.minBookingMin:'')+'" placeholder="как у студии"><span class="u">мин бронь</span></span>' +
+          '<span class="unitwrap"><input class="num purp-f" type="number" min="1" max="1000" step="1" data-f="capacity" value="'+esc(cur.capacity!=null?cur.capacity:'')+'" placeholder="'+esc(h.capacity)+'"><span class="u">чел</span></span>' +
+        '</div>' +
+        '<div class="about-f-t" style="margin-top:8px">Что входит в аренду</div>' +
+        '<div class="muted" style="margin:-2px 0 6px">По строке на пункт. Видно клиенту, когда выбрано это назначение.</div>' +
+        '<div class="row"><textarea class="name purp-includes" rows="3" maxlength="1000" ' +
+          'placeholder="Свет и штативы\nСтолы и стулья\nПроектор" style="resize:vertical">'+esc(cur.includes||'')+'</textarea></div>' +
+        '<div style="margin-top:6px;display:flex;gap:8px;align-items:center">' +
+          '<button type="button" class="btn small purp-save">Сохранить назначения</button>' +
+          '<button type="button" class="btn ghost small purp-del">Убрать назначение</button>' +
+        '</div>';
+    } else if(list.length){
+      fields = '<div class="muted" style="margin-top:8px">Выберите назначение, чтобы задать его цену и правила. Сетка тарифов ниже сейчас правит базовые цены зала.</div>';
+    }
+
+    box.innerHTML =
+      '<div class="amenity-group-t">Назначения</div>' +
+      '<div class="muted" style="margin-bottom:6px">Под какие цели сдаётся зал. У каждой свои цена, минимум брони, вместимость и состав аренды; пустое поле — как у зала.</div>' +
+      '<div class="chip-row" style="align-items:center">' + tabs + addSel + '</div>' +
+      fields + '<div class="note purp-note"></div>';
+
+    box.querySelectorAll('.chip-tog[data-purp]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        pgLoad(i, btn.dataset.purp || null);
+        renderHallPurposes(i);
+        renderHallPriceRules(i);
+      });
+    });
+    var sel = box.querySelector('.purp-add');
+    if(sel) sel.addEventListener('change', function(){
+      if(!sel.value) return;
+      list.push({ code:sel.value, rate:null, minBookingMin:null, capacity:null, includes:'', priceRules:null });
+      pgLoad(i, sel.value);
+      renderHallPurposes(i);
+      renderHallPriceRules(i);
+    });
+    box.querySelectorAll('.purp-f').forEach(function(inp){
+      inp.addEventListener('input', function(){
+        var v = parseInt(inp.value, 10);
+        cur[inp.dataset.f] = Number.isInteger(v) ? v : null;
+        // ставка назначения — фон его сетки тарифов, перерисовываем сразу
+        if(inp.dataset.f === 'rate') renderHallPriceRules(i);
+      });
+    });
+    var ta = box.querySelector('.purp-includes');
+    if(ta) ta.addEventListener('input', function(){ cur.includes = ta.value; });
+    var del = box.querySelector('.purp-del');
+    if(del) del.addEventListener('click', function(){
+      list.splice(list.indexOf(cur), 1);
+      pgLoad(i, null);
+      renderHallPurposes(i);
+      renderHallPriceRules(i);
+      saveHallPurposes(i);
+    });
+    var save = box.querySelector('.purp-save');
+    if(save) save.addEventListener('click', function(){ saveHallPurposes(i); });
+  }
+
+  // Назначения уезжают своим запросом (как тарифы и пакеты): внутри них лежат
+  // собственные сетки, и сохранение зала payload'ом без них стёрло бы цены.
+  function saveHallPurposes(i){
+    var h = hallsDraft[i];
+    var n = document.querySelector('.hall-purposes[data-i="'+i+'"] .purp-note');
+    var clean = hallPurposes(h).map(function(p){
+      var out = { code:p.code };
+      if(typeof p.rate === 'number' && isFinite(p.rate)) out.rate = p.rate;
+      if(Number.isInteger(p.minBookingMin)) out.minBookingMin = p.minBookingMin;
+      if(Number.isInteger(p.capacity)) out.capacity = p.capacity;
+      if((p.includes||'').trim()) out.includes = p.includes.trim();
+      if(Array.isArray(p.priceRules) && p.priceRules.length) out.priceRules = p.priceRules;
+      return out;
+    });
+    return api('PUT', '/admin/halls/' + encodeURIComponent(h.id) + '/purposes', clean)
+      .then(function(res){
+        h.purposes = Array.isArray(res.purposes) ? res.purposes : clean;
+        if(HALLS_BY_ID[h.id]) HALLS_BY_ID[h.id].purposes = h.purposes;
+        renderHallPurposes(i);
+        var nn = document.querySelector('.hall-purposes[data-i="'+i+'"] .purp-note');
+        if(nn) flash(nn, clean.length ? 'Назначения сохранены' : 'Назначения убраны', true);
+      })
+      .catch(function(e){ if(n) flash(n, e.message); });
+  }
+
   function renderHallPackages(i){
     var h = hallsDraft[i];
     var box = document.querySelector('.hall-packages[data-i="'+i+'"]');
@@ -1910,7 +2060,7 @@
   function saveHallPriceRules(i){
     var h = hallsDraft[i];
     var n = document.querySelector('.hall-prules[data-i="'+i+'"] .pr-note');
-    if(PG.i !== i) pgLoad(i);
+    if(PG.i !== i) pgLoad(i, null);
     var clean = pgCompile();
     // Лимит бэкенда (isValidPriceRules): не больше 30 правил. После склейки
     // упереться в него можно только «шахматной» ценой у каждого часа.
@@ -1923,11 +2073,25 @@
         if(n) flash(n, 'Цена — число от 0 до 100000'); return;
       }
     }
+    // Сетка назначения лежит внутри самого назначения, поэтому уезжает своим
+    // запросом вместе с остальными назначениями зала.
+    if(PG.code){
+      var p = pgTarget(i, PG.code);
+      p.priceRules = clean;
+      var code = PG.code;
+      saveHallPurposes(i).then(function(){
+        pgLoad(i, code);
+        renderHallPriceRules(i);
+        var nn = document.querySelector('.hall-prules[data-i="'+i+'"] .pr-note');
+        if(nn) flash(nn, clean.length ? 'Тарифы назначения сохранены' : 'Тарифы назначения сняты', true);
+      });
+      return;
+    }
     api('PUT', '/admin/halls/' + encodeURIComponent(h.id) + '/price-rules', clean)
       .then(function(res){
         h.priceRules = Array.isArray(res.priceRules) ? res.priceRules : clean;
         if(HALLS_BY_ID[h.id]) HALLS_BY_ID[h.id].priceRules = h.priceRules;
-        pgLoad(i);
+        pgLoad(i, null);
         renderHallPriceRules(i);
         var nn = document.querySelector('.hall-prules[data-i="'+i+'"] .pr-note');
         if(nn) flash(nn, clean.length ? 'Тарифы сохранены' : 'Тарифы сняты — весь день по базовой ставке', true);
@@ -2084,6 +2248,7 @@
       (numProps ? '<div class="row">' + numProps + '</div>' : '') +
       styleChips + amenityGroups + aboutFields +
       '<div class="hall-photos" data-i="'+i+'" style="margin-top:6px"></div>' +
+      '<div class="hall-purposes" data-i="'+i+'" style="margin-top:10px"></div>' +
       '<div class="hall-prules" data-i="'+i+'" style="margin-top:10px"></div>' +
       '<div class="hall-packages" data-i="'+i+'" style="margin-top:10px"></div>';
 
@@ -2123,6 +2288,7 @@
 
     $('hallDelete').hidden = hallsDraft.length <= 1;
     renderHallPhotos(i);
+    renderHallPurposes(i);
     renderHallPriceRules(i);
     renderHallPackages(i);
   }
