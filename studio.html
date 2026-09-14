@@ -1916,7 +1916,7 @@
       fields =
         '<div class="row" style="margin-top:8px">' +
           '<span class="unitwrap"><input class="num purp-f" type="number" min="0" step="1" data-f="rate" value="'+esc(cur.rate!=null?cur.rate:'')+'" placeholder="'+esc(h.rate)+'"><span class="u">'+CUR+'/ч</span></span>' +
-          '<span class="unitwrap"><input class="num purp-f" type="number" min="30" max="480" step="30" data-f="minBookingMin" value="'+esc(cur.minBookingMin!=null?cur.minBookingMin:'')+'" placeholder="как у студии"><span class="u">мин бронь</span></span>' +
+          '<span class="unitwrap"><input class="num purp-hours" type="number" min="0.5" max="8" step="0.5" data-f="minBookingMin" value="'+esc(cur.minBookingMin!=null?(cur.minBookingMin/60):'')+'" placeholder="как у студии"><span class="u">ч минимум</span></span>' +
           '<span class="unitwrap"><input class="num purp-f" type="number" min="1" max="1000" step="1" data-f="capacity" value="'+esc(cur.capacity!=null?cur.capacity:'')+'" placeholder="'+esc(h.capacity)+'"><span class="u">чел</span></span>' +
         '</div>' +
         '<div class="about-f-t" style="margin-top:8px">Что входит в аренду</div>' +
@@ -1960,6 +1960,15 @@
         if(inp.dataset.f === 'rate') renderHallPriceRules(i);
       });
     });
+    // Минимум владелец задаёт в часах (как пакеты рядом и как это читает
+    // клиент), хранится он в минутах: «3» в поле минут означало три минуты и
+    // уезжало на бэкенд неваидным, а ошибка возвращалась про код назначения.
+    box.querySelectorAll('.purp-hours').forEach(function(inp){
+      inp.addEventListener('input', function(){
+        var v = parseFloat(inp.value);
+        cur.minBookingMin = (isFinite(v) && v > 0) ? Math.round(v * 60) : null;
+      });
+    });
     var ta = box.querySelector('.purp-includes');
     if(ta) ta.addEventListener('input', function(){ cur.includes = ta.value; });
     var del = box.querySelector('.purp-del');
@@ -1968,10 +1977,10 @@
       pgLoad(i, null);
       renderHallPurposes(i);
       renderHallPriceRules(i);
-      saveHallPurposes(i);
+      saveHallPurposes(i).catch(function(){});
     });
     var save = box.querySelector('.purp-save');
-    if(save) save.addEventListener('click', function(){ saveHallPurposes(i); });
+    if(save) save.addEventListener('click', function(){ saveHallPurposes(i).catch(function(){}); });
   }
 
   // Назначения уезжают своим запросом (как тарифы и пакеты): внутри них лежат
@@ -1979,6 +1988,20 @@
   function saveHallPurposes(i){
     var h = hallsDraft[i];
     var n = document.querySelector('.hall-purposes[data-i="'+i+'"] .purp-note');
+    // Проверяем здесь, а не только на бэкенде: там ошибка приходит одной
+    // фразой на весь список, а владельцу нужно имя цели и поле, в котором он
+    // ошибся, — и до отправки, а не после.
+    var bad = null;
+    hallPurposes(h).forEach(function(p){
+      if(bad) return;
+      var at = '«' + purposeLabel(p.code) + '»';
+      if(p.rate != null && !(p.rate >= 0 && p.rate <= 100000)) bad = at + ': ставка — число от 0 до 100000';
+      else if(p.capacity != null && !(p.capacity >= 1 && p.capacity <= 1000)) bad = at + ': вместимость — целое от 1 до 1000';
+      else if(p.minBookingMin != null && !(p.minBookingMin >= 30 && p.minBookingMin <= 480 && p.minBookingMin % 30 === 0)) {
+        bad = at + ': минимальная бронь — от 0,5 до 8 часов, шагом по полчаса';
+      }
+    });
+    if(bad){ if(n) flash(n, bad); return Promise.reject(new Error(bad)); }
     var clean = hallPurposes(h).map(function(p){
       var out = { code:p.code };
       if(typeof p.rate === 'number' && isFinite(p.rate)) out.rate = p.rate;
@@ -2084,7 +2107,7 @@
         renderHallPriceRules(i);
         var nn = document.querySelector('.hall-prules[data-i="'+i+'"] .pr-note');
         if(nn) flash(nn, clean.length ? 'Тарифы назначения сохранены' : 'Тарифы назначения сняты', true);
-      });
+      }).catch(function(e){ if(n) flash(n, e.message); });
       return;
     }
     api('PUT', '/admin/halls/' + encodeURIComponent(h.id) + '/price-rules', clean)
