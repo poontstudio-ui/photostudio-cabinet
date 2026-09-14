@@ -207,6 +207,10 @@
   .amenity-group{margin:10px 0 4px;}
   .amenity-group-t{font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.05em;color:var(--text-3);margin-bottom:6px;}
   .chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+  /* Подпись темы у поля-пояснения: мельче заголовка группы, но заметнее
+     плейсхолдера — владелец должен видеть тему и с уже заполненным полем. */
+  .about-f{margin-bottom:8px;}
+  .about-f-t{font-size:var(--fs-sm);font-weight:600;color:var(--text-2);margin-bottom:4px;}
   .chip-tog{font:inherit;font-size:var(--fs-md);padding:7px 14px;border-radius:var(--r-pill);cursor:pointer;
     border:none;background:var(--bg);color:var(--text-2);transition:background .12s,color .12s;}
   .chip-tog:hover{color:var(--text);}
@@ -1300,6 +1304,18 @@
       {f:'bluetoothSpeaker',label:'Bluetooth-колонка'},
     ]},
   ];
+  // Свободные пояснения владельца (миграция 0040). Галочки выше отвечают
+  // «есть или нет», эти поля — «как именно»: где въезд на парковку, сколько
+  // розеток, до скольки можно шуметь. Каждое раскрывается отдельной секцией
+  // аккордеона на странице зала у клиента, порядок тот же.
+  var HALL_ABOUT_FIELDS = [
+    {f:'aboutParking',label:'Парковка',ph:'Где припарковаться: въезд, сколько мест, платно ли'},
+    {f:'aboutLighting',label:'Свет',ph:'Какие приборы и сколько источников, что можно докупить'},
+    {f:'aboutSound',label:'Звук',ph:'Колонка, микрофон, слышно ли соседей, до скольки можно шуметь'},
+    {f:'aboutAccess',label:'Доступ в студию',ph:'Как попасть внутрь: домофон, ключи, лифт, как заносить реквизит'},
+    {f:'aboutElectrical',label:'Электрика',ph:'Сколько розеток и где они, допустимая мощность, удлинители'},
+    {f:'aboutRules',label:'Правила',ph:'Сменная обувь, еда, уборка, что нельзя — своими словами'},
+  ];
   var HALL_STYLES = [
     {v:'loft',label:'Лофт'},{v:'scandi',label:'Скандинавский'},{v:'classic',label:'Классический'},
     {v:'minimal',label:'Минимализм'},{v:'dark',label:'Тёмный'},{v:'industrial',label:'Индустриальный'},
@@ -1512,6 +1528,10 @@
       styles:Array.isArray(h.styles)?h.styles.slice():[],
       photos:Array.isArray(h.photos)?h.photos.slice():[]};
     HALL_BOOLS.forEach(function(f){ o[f] = !!h[f]; });
+    // Описания — тоже через белый список: поле, забытое здесь, вернулось бы
+    // с сервера, не попало в черновик и ушло обратно пустым, стерев текст.
+    o.description = h.description || '';
+    HALL_ABOUT_FIELDS.forEach(function(x){ o[x.f] = h[x.f] || ''; });
     // minMin (мин. бронь по окну) больше не редактируется: тарифы задаются
     // сеткой «дни × часы», минимальная длительность осталась общей по студии.
     o.priceRules = Array.isArray(h.priceRules)?h.priceRules.map(function(r){return {dow:Array.isArray(r.dow)?r.dow.slice():null,from:r.from,to:r.to,rate:r.rate};}):[];
@@ -2000,6 +2020,16 @@
         var on = (h.styles||[]).indexOf(s.v) !== -1;
         return '<button type="button" class="chip-tog'+(on?' on':'')+'" data-style="'+s.v+'">'+esc(s.label)+'</button>';
       }).join('') + '</div></div>') : '';
+    var aboutFields = '<div class="amenity-group"><div class="amenity-group-t">Описание зала</div>' +
+      '<div class="row"><textarea class="name" data-text="description" rows="3" maxlength="2000" ' +
+        'placeholder="Пара абзацев о зале: чем он хорош, для каких съёмок, что стоит знать заранее" ' +
+        'style="resize:vertical">'+esc(h.description||'')+'</textarea></div></div>' +
+      '<div class="amenity-group"><div class="amenity-group-t">Пояснения по темам — раскрываются на странице зала</div>' +
+      HALL_ABOUT_FIELDS.map(function(x){
+        return '<div class="about-f"><div class="about-f-t">'+esc(x.label)+'</div>' +
+          '<div class="row"><textarea class="name" data-text="'+x.f+'" rows="2" maxlength="1000" ' +
+            'placeholder="'+esc(x.ph)+'" style="resize:vertical">'+esc(h[x.f]||'')+'</textarea></div></div>';
+      }).join('') + '</div>';
     body.innerHTML =
       '<div class="row"><input class="name" data-f="name" placeholder="Название зала" value="'+esc(h.name)+'"></div>' +
       '<div class="row">' +
@@ -2007,7 +2037,7 @@
         '<span class="unitwrap"><input class="num" type="number" min="0" step="1" data-f="rate" value="'+esc(h.rate)+'"><span class="u">'+CUR+'/ч</span></span>' +
       '</div>' +
       (numProps ? '<div class="row">' + numProps + '</div>' : '') +
-      styleChips + amenityGroups +
+      styleChips + amenityGroups + aboutFields +
       '<div class="hall-photos" data-i="'+i+'" style="margin-top:6px"></div>' +
       '<div class="hall-prules" data-i="'+i+'" style="margin-top:10px"></div>' +
       '<div class="hall-packages" data-i="'+i+'" style="margin-top:10px"></div>';
@@ -2024,6 +2054,11 @@
         else if(f==='rate'){ h.rate = parseFloat(inp.value); renderHallPriceRules(i); }
         else { var v = parseInt(inp.value,10); h[f] = Number.isInteger(v) ? v : null; }
       });
+    });
+    // Текстовые поля — отдельным атрибутом, а не data-f: ветка по умолчанию
+    // выше гонит значение через parseInt, и описание превратилось бы в null.
+    body.querySelectorAll('[data-text]').forEach(function(ta){
+      ta.addEventListener('input', function(){ h[ta.dataset.text] = ta.value; });
     });
     body.querySelectorAll('.chip-tog[data-style]').forEach(function(btn){
       btn.addEventListener('click', function(){
@@ -2063,8 +2098,10 @@
           floor:Number.isInteger(h.floor)?h.floor:null,
           areaM2:Number.isInteger(h.areaM2)?h.areaM2:null,
           ceilingCm:Number.isInteger(h.ceilingCm)?h.ceilingCm:null,
-          styles:Array.isArray(h.styles)?h.styles.slice():[] };
+          styles:Array.isArray(h.styles)?h.styles.slice():[],
+          description:(h.description||'').trim() };
         HALL_BOOLS.forEach(function(f){ out[f] = !!h[f]; });
+        HALL_ABOUT_FIELDS.forEach(function(x){ out[x.f] = (h[x.f]||'').trim(); });
         return out;
       }))
       .then(function(u){
