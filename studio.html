@@ -247,7 +247,7 @@
   /* Список — по одной карточке на цель (иконка, название, цена/правила,
      стрелка), клик открывает её собственный экран редактирования, а не
      разворачивает поля тут же — тот же приём «список → отдельный экран»,
-     что и у самих залов (halls-grid → визард), только на уровень глубже. */
+     что и у самих залов (halls-list → визард), только на уровень глубже. */
   .purp-list{display:flex;flex-direction:column;gap:8px;margin-bottom:8px;}
   .purp-card{
     display:flex;align-items:center;gap:12px;width:100%;text-align:left;
@@ -357,28 +357,28 @@
      (дешёвым) концом шкалы, и синее выделение читалось бы как «дёшево». */
   .pg-cell[data-sel="true"]{background:var(--text);color:#fff;font-weight:600;}
 
-  /* ---------- залы: карточки + деталь ---------- */
-  /* Залы — как у клиента по содержанию (фото, имя, цена синим), но без
-     рамок и без заглушки: нет фото — нет и серого прямоугольника на его месте. */
-  .halls-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:28px 24px;}
-  .hall-card{background:none;border:none;padding:0;cursor:pointer;text-align:left;font:inherit;color:inherit;
-    display:flex;flex-direction:column;}
-  .hall-card:hover .hall-card-name{color:var(--blue);}
-  .hall-card-photo{width:100%;aspect-ratio:4/3;border-radius:var(--r);overflow:hidden;margin-bottom:10px;}
-  .hall-card-photo img{width:100%;height:100%;object-fit:cover;display:block;}
-  .hall-card-name{font-weight:600;font-size:var(--fs-lg);line-height:1.2;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .hall-card-meta{font-size:var(--fs-sm);color:var(--text-2);margin-top:4px;}
-  .hall-card-rate{font-weight:700;font-size:var(--fs-xl);color:var(--blue);margin-top:6px;}
-  .hall-card-add{align-self:start;border:none;background:none;padding:0;text-align:left;
+  /* ---------- пространства: широкие карточки-строки (Peerspace Listings) ---------- */
+  /* Фото слева, инфо справа — как в веб-версии Listings, а не плиткой:
+     на телефоне превращается в фото сверху (media-запрос ниже). */
+  .halls-list{display:flex;flex-direction:column;gap:22px;}
+  .listing-card{border:1px solid var(--line);border-radius:var(--r-md);padding:18px;}
+  .listing-head{display:flex;gap:16px;align-items:flex-start;}
+  .listing-photo{width:180px;height:135px;flex:none;border-radius:var(--r-sm);overflow:hidden;background:var(--surface-2);}
+  .listing-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+  /* Карточка не кнопка целиком (внутри — своя кнопка «⋯», вложенные
+     интерактивные элементы в HTML невалидны): клик по фото/имени и явная
+     кнопка «Редактировать» ведут в одно и то же место. */
+  .listing-hit{background:none;border:none;padding:0;cursor:pointer;text-align:left;font:inherit;color:inherit;
+    display:flex;gap:16px;flex:1;min-width:0;}
+  .listing-hit:hover .listing-name{color:var(--blue);}
+  .listing-body{flex:1;min-width:0;align-self:center;}
+  .listing-name{font-weight:700;font-size:var(--fs-lg);line-height:1.25;}
+  .listing-meta{font-size:var(--fs-sm);color:var(--text-2);margin-top:4px;}
+  .listing-rate{font-weight:700;font-size:var(--fs-lg);color:var(--blue);margin-top:6px;}
+  .listing-actions{display:flex;gap:8px;align-items:flex-start;position:relative;flex:none;}
+  .hall-card-add{border:none;background:none;padding:0;text-align:left;
     color:var(--blue);font:inherit;font-size:var(--fs-md);font-weight:600;cursor:pointer;}
   .hall-card-add:hover{color:var(--blue-dark);}
-  /* Карточка зала теперь не кнопка целиком (внутри — своя кнопка «⋯»,
-     вложенные интерактивные элементы в HTML невалидны): клик по фото/имени
-     и явная кнопка «Редактировать» ведут в одно и то же место. */
-  .hall-card-hit{background:none;border:none;padding:0;cursor:pointer;text-align:left;font:inherit;color:inherit;
-    display:block;width:100%;}
-  .hall-card-actions{display:flex;gap:6px;align-items:center;margin-top:10px;position:relative;}
   .hall-card-menu-btn{border:none;background:var(--bg);color:var(--text-2);width:30px;height:30px;flex:none;
     border-radius:var(--r-sm);cursor:pointer;font-size:16px;line-height:1;}
   .hall-card-menu-btn:hover{background:#e7e9ed;color:var(--text);}
@@ -388,20 +388,29 @@
   .hall-card-menu button{display:block;width:100%;text-align:left;border:none;background:none;
     padding:10px 12px;font:inherit;font-size:var(--fs-sm);color:var(--red);cursor:pointer;}
   .hall-card-menu button:hover{background:var(--red-bg);}
-  .hall-card-purposes{margin-top:10px;display:flex;flex-direction:column;}
-  /* Узкие карточки (2–3 в ряд) — имя+иконка+«Редактировать» в одну строку не
-     влезают вместе с метой (цена/минимум/вместимость), поэтому мета — второй
-     строкой на всю ширину, а не втиснута рядом. */
-  .hcp-row{padding:8px 0;border-top:1px solid var(--line);font-size:var(--fs-sm);}
-  .hcp-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
-  .hcp-l{display:flex;align-items:center;gap:6px;color:var(--text-2);min-width:0;}
-  .hcp-l svg{width:14px;height:14px;flex:none;color:var(--text-3);}
-  .hcp-l b{color:var(--text);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .hcp-meta{margin:3px 0 0 20px;color:var(--text-3);overflow-wrap:anywhere;}
-  .hcp-off{color:var(--text-3);font-style:italic;}
+  /* «Customize for different activities» — назначения зала, строкой:
+     иконка в квадрате, имя + мета, действие справа. Неактивные — приглушены,
+     с быстрым «Активировать» вместо «Редактировать» (без захода в редактор). */
+  .listing-purposes-t{font-size:var(--fs-sm);font-weight:600;color:var(--text-2);margin:18px 0 4px;}
+  .hcp-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);flex-wrap:wrap;}
+  .hcp-icon{width:38px;height:38px;flex:none;border-radius:var(--r-sm);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;color:var(--text-2);}
+  .hcp-icon svg{width:18px;height:18px;}
+  .hcp-row.off .hcp-icon{color:var(--text-3);border-color:var(--line);}
+  .hcp-body{flex:1;min-width:140px;}
+  .hcp-name{font-weight:600;color:var(--text);}
+  .hcp-row.off .hcp-name{color:var(--text-3);}
+  .hcp-meta{font-size:var(--fs-sm);color:var(--text-3);margin-top:2px;overflow-wrap:anywhere;}
+  .hcp-actions{display:flex;gap:8px;align-items:center;flex:none;}
   .hcp-edit{border:none;background:none;color:var(--blue);font:inherit;font-size:var(--fs-sm);
-    cursor:pointer;padding:2px 0;flex:none;}
+    cursor:pointer;padding:2px 0;}
   .hcp-edit:hover{text-decoration:underline;}
+  @media(max-width:600px){
+    .listing-head{flex-wrap:wrap;}
+    .listing-hit{flex-direction:column;}
+    .listing-photo{width:100%;height:auto;aspect-ratio:4/3;}
+    .listing-actions{flex:1 1 100%;}
+  }
 
   /* ---------- визард пространства (0043): хаб разделов, Peerspace-стиль ---------- */
   .wizard-box{max-width:640px;}
@@ -938,7 +947,7 @@
       <div id="hallsListView">
         <h2>Пространства</h2>
         <div class="muted" style="margin-bottom:14px" id="hallsListHint">Название студии, адрес, удобства и Wi-Fi — внутри карточки: «Редактировать» → отдельные разделы.</div>
-        <div id="hallsGrid" class="halls-grid"></div>
+        <div id="hallsGrid" class="halls-list"></div>
         <div class="note" id="hallNoteList"></div>
       </div>
     </div>
@@ -2451,7 +2460,7 @@
       box.innerHTML = '<span class="muted">Сохраните зал, чтобы добавить фото.</span>';
       return;
     }
-    // Первое фото — обложка (так его уже читает клиент, см. hall-card-photo/
+    // Первое фото — обложка (так его уже читает клиент, см. listing-photo/
     // renderHalls). Перетаскивание меняет порядок и, если нужно, обложку —
     // без отдельного «сделать обложкой», сама позиция это и значит.
     var thumbs = (h.photos||[]).map(function(u, pi){
@@ -2532,36 +2541,45 @@
     var g = $('hallsGrid'); g.innerHTML = '';
     hallsDraft.forEach(function(h, i){
       var card = document.createElement('div');
-      card.className = 'hall-card';
+      card.className = 'listing-card';
       var photo = (Array.isArray(h.photos) && h.photos[0])
-        ? '<div class="hall-card-photo"><img src="'+esc(h.photos[0])+'" alt="" loading="lazy"></div>' : '';
+        ? '<div class="listing-photo"><img src="'+esc(h.photos[0])+'" alt="" loading="lazy"></div>' : '';
       var purposes = hallPurposes(h);
+      // «Customize for different activities» — назначения строкой: иконка,
+      // имя, мета/цена, действие. Неактивные приглушены и получают быстрое
+      // «Активировать» прямо тут, без захода в редактор назначения.
       var purposesHtml = purposes.length
-        ? '<div class="hall-card-purposes">' + purposes.map(function(p){
+        ? '<div class="listing-purposes-t">Назначения</div>' + purposes.map(function(p){
             var off = p.active === false;
-            return '<div class="hcp-row">' +
-              '<div class="hcp-top">' +
-                '<span class="hcp-l">' + purposeIconSvg(p.code) + '<b>'+esc(purposeLabel(p.code))+'</b></span>' +
+            return '<div class="hcp-row'+(off?' off':'')+'">' +
+              '<span class="hcp-icon">' + purposeIconSvg(p.code) + '</span>' +
+              '<div class="hcp-body">' +
+                '<div class="hcp-name">'+esc(purposeLabel(p.code))+'</div>' +
+                (off ? '<div class="hcp-meta">Деактивировано</div>'
+                     : '<div class="hcp-meta">'+esc(purposeMetaLine(h, p))+'</div>') +
+              '</div>' +
+              '<div class="hcp-actions">' +
+                (off ? '<button class="hcp-edit" type="button" data-purpose-activate="'+i+':'+esc(p.code)+'">Активировать</button>' : '') +
                 '<button class="hcp-edit" type="button" data-purpose-edit="'+i+':'+esc(p.code)+'">Редактировать</button>' +
               '</div>' +
-              (off ? '<div class="hcp-meta hcp-off">деактивировано</div>'
-                   : '<div class="hcp-meta">'+esc(purposeMetaLine(h, p))+'</div>') +
             '</div>';
-          }).join('') + '</div>'
+          }).join('')
         : '';
       card.innerHTML =
-        '<button type="button" class="hall-card-hit" data-edit="'+i+'">' + photo +
-          '<div class="hall-card-body">' +
-            '<div class="hall-card-name">'+esc(h.title || h.name || 'Без названия')+'</div>' +
-            '<div class="hall-card-meta">до '+esc(h.capacity)+' чел.'+(h.areaM2 ? ' · '+esc(h.areaM2)+' м²' : '')+'</div>' +
-            '<div class="hall-card-rate">'+esc(h.rate)+' '+CUR+'/ч</div>' +
-          '</div>' +
-        '</button>' +
-        '<div class="hall-card-actions">' +
-          '<button class="btn ghost small" type="button" data-edit="'+i+'">Редактировать</button>' +
-          '<button class="hall-card-menu-btn" type="button" data-menu="'+i+'" aria-label="Ещё">⋯</button>' +
-          '<div class="hall-card-menu" data-menu-box="'+i+'" hidden>' +
-            '<button type="button" data-delete="'+i+'">Удалить зал</button>' +
+        '<div class="listing-head">' +
+          '<button type="button" class="listing-hit" data-edit="'+i+'">' + photo +
+            '<div class="listing-body">' +
+              '<div class="listing-name">'+esc(h.title || h.name || 'Без названия')+'</div>' +
+              '<div class="listing-meta">до '+esc(h.capacity)+' чел.'+(h.areaM2 ? ' · '+esc(h.areaM2)+' м²' : '')+'</div>' +
+              '<div class="listing-rate">'+esc(h.rate)+' '+CUR+'/ч</div>' +
+            '</div>' +
+          '</button>' +
+          '<div class="listing-actions">' +
+            '<button class="btn ghost small" type="button" data-edit="'+i+'">Редактировать</button>' +
+            '<button class="hall-card-menu-btn" type="button" data-menu="'+i+'" aria-label="Ещё">⋯</button>' +
+            '<div class="hall-card-menu" data-menu-box="'+i+'" hidden>' +
+              '<button type="button" data-delete="'+i+'">Удалить зал</button>' +
+            '</div>' +
           '</div>' +
         '</div>' + purposesHtml;
       g.appendChild(card);
@@ -2579,6 +2597,17 @@
       b.addEventListener('click', function(){
         var parts = b.dataset.purposeEdit.split(':');
         wzOpen(+parts[0], { purpose: parts.slice(1).join(':') });
+      });
+    });
+    g.querySelectorAll('[data-purpose-activate]').forEach(function(b){
+      b.addEventListener('click', function(e){
+        e.stopPropagation();
+        var parts = b.dataset.purposeActivate.split(':');
+        var i = +parts[0], code = parts.slice(1).join(':');
+        var p = hallPurposes(hallsDraft[i]).filter(function(x){ return x.code === code; })[0];
+        if(!p) return;
+        p.active = true;
+        saveHallPurposes(i).then(function(){ renderHalls(); });
       });
     });
     g.querySelectorAll('[data-menu]').forEach(function(b){
