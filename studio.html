@@ -405,8 +405,20 @@
   .hcp-edit{border:none;background:none;color:var(--blue);font:inherit;font-size:var(--fs-sm);
     cursor:pointer;padding:2px 0;}
   .hcp-edit:hover{text-decoration:underline;}
-  .hcp-edit.go{color:var(--green);}
-  .hcp-edit.stop{color:var(--red);}
+  /* Тумблер «активно/деактивировано» — тот же приём переключателя, что и у
+     чекбоксов формы (.row input[type=checkbox]), но не завязан на .row:
+     здесь он живёт в строке действий рядом с «Редактировать», не в форме. */
+  .hcp-toggle{appearance:none;-webkit-appearance:none;flex:none;cursor:pointer;
+    width:36px;min-width:36px;height:22px;padding:0;margin:0;border:none;border-radius:var(--r-pill);
+    background:var(--border-strong);position:relative;transition:background .15s;}
+  .hcp-toggle::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;
+    border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(20,22,28,.25);transition:transform .15s;}
+  .hcp-toggle:checked{background:var(--green);}
+  .hcp-toggle:focus{box-shadow:none;}
+  .hcp-toggle:focus-visible{outline:2px solid var(--blue);outline-offset:2px;}
+  .hcp-toggle::after{transform:translateX(0);}
+  .hcp-toggle:checked::after{transform:translateX(14px);}
+  @media (prefers-reduced-motion:reduce){ .hcp-toggle,.hcp-toggle::after{transition:none;} }
   @media(max-width:600px){
     .listing-head{flex-wrap:wrap;}
     .listing-hit{flex-direction:column;}
@@ -2575,7 +2587,8 @@
                  : '<div class="hcp-meta">'+esc(purposeMetaLine(h, p))+'</div>') +
           '</div>' +
           '<div class="hcp-actions">' +
-            '<button class="hcp-edit '+(off?'go':'stop')+'" type="button" data-purpose-toggle="'+i+':'+esc(p.code)+'">'+(off?'Активировать':'Деактивировать')+'</button>' +
+            '<input class="hcp-toggle" type="checkbox" data-purpose-toggle="'+i+':'+esc(p.code)+'"'+(off?'':' checked')+
+              ' aria-label="'+(off?'Активировать':'Деактивировать')+' «'+esc(purposeLabel(p.code))+'»">' +
             '<button class="hcp-edit" type="button" data-purpose-edit="'+i+':'+esc(p.code)+'">Редактировать</button>' +
           '</div>' +
         '</div>';
@@ -2615,13 +2628,13 @@
       });
     });
     g.querySelectorAll('[data-purpose-toggle]').forEach(function(b){
-      b.addEventListener('click', function(e){
-        e.stopPropagation();
+      b.addEventListener('click', function(e){ e.stopPropagation(); });
+      b.addEventListener('change', function(){
         var parts = b.dataset.purposeToggle.split(':');
         var i = +parts[0], code = parts.slice(1).join(':');
         var p = hallPurposes(hallsDraft[i]).filter(function(x){ return x.code === code; })[0];
         if(!p) return;
-        p.active = p.active === false;
+        p.active = b.checked;
         saveHallPurposes(i).then(function(){ renderHalls(); });
       });
     });
