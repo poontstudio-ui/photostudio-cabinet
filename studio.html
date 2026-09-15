@@ -1388,12 +1388,9 @@
   // каждой свои ставка, сетка тарифов, минимум брони, вместимость и состав
   // «что входит». Словарь фиксированный — он же в lib/rules.js на бэкенде.
   var HALL_PURPOSE_LIST = [
-    {v:'photo',label:'Фотосъёмка'},
-    {v:'video',label:'Видеосъёмка'},
-    {v:'event',label:'Мероприятие'},
+    {v:'photo',label:'Съёмка'},
+    {v:'event',label:'Праздник'},
     {v:'meeting',label:'Встреча'},
-    {v:'class',label:'Занятие'},
-    {v:'rehearsal',label:'Репетиция'},
   ];
   function purposeLabel(code){
     for(var k=0;k<HALL_PURPOSE_LIST.length;k++){ if(HALL_PURPOSE_LIST[k].v === code) return HALL_PURPOSE_LIST[k].label; }
@@ -1405,11 +1402,8 @@
   // что видит потом в своей карточке студии.
   var HALL_PURPOSE_ICONS = {
     photo:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7l1.4-2.6A1 1 0 0 1 10.3 4h3.4a1 1 0 0 1 .9.6L16 7"/><circle cx="12" cy="13.5" r="3.4"/>',
-    video:'<rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10.2l5-3v9.6l-5-3"/>',
     event:'<path d="M3 21l7-16 11 11-16 5Z"/><path d="M13 4.2l1.3 1.4M17 3l1 2.2M20.2 6.4l2 1"/>',
     meeting:'<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9.5" r="2.3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14.6 14.3c2.8.5 5.4 2.7 5.4 5.7"/>',
-    'class':'<path d="M12 6c-2-1.3-5-2-8-2v13c3 0 6 .7 8 2 2-1.3 5-2 8-2V4c-3 0-6 .7-8 2Z"/><path d="M12 6v13"/>',
-    rehearsal:'<path d="M9 18V5l10-2v13"/><circle cx="7" cy="18" r="2.4"/><circle cx="17" cy="16" r="2.4"/>',
   };
   function purposeIconSvg(code){
     var d = HALL_PURPOSE_ICONS[code];
