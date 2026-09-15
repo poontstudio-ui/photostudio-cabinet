@@ -2545,26 +2545,39 @@
       var photo = (Array.isArray(h.photos) && h.photos[0])
         ? '<div class="listing-photo"><img src="'+esc(h.photos[0])+'" alt="" loading="lazy"></div>' : '';
       var purposes = hallPurposes(h);
-      // «Customize for different activities» — назначения строкой: иконка,
-      // имя, мета/цена, действие. Неактивные приглушены и получают быстрое
-      // «Активировать» прямо тут, без захода в редактор назначения.
-      var purposesHtml = purposes.length
-        ? '<div class="listing-purposes-t">Назначения</div>' + purposes.map(function(p){
-            var off = p.active === false;
-            return '<div class="hcp-row'+(off?' off':'')+'">' +
-              '<span class="hcp-icon">' + purposeIconSvg(p.code) + '</span>' +
-              '<div class="hcp-body">' +
-                '<div class="hcp-name">'+esc(purposeLabel(p.code))+'</div>' +
-                (off ? '<div class="hcp-meta">Деактивировано</div>'
-                     : '<div class="hcp-meta">'+esc(purposeMetaLine(h, p))+'</div>') +
-              '</div>' +
-              '<div class="hcp-actions">' +
-                (off ? '<button class="hcp-edit" type="button" data-purpose-activate="'+i+':'+esc(p.code)+'">Активировать</button>' : '') +
-                '<button class="hcp-edit" type="button" data-purpose-edit="'+i+':'+esc(p.code)+'">Редактировать</button>' +
-              '</div>' +
-            '</div>';
-          }).join('')
-        : '';
+      // «Customize for different activities» — всегда все 4 назначения, не
+      // только уже настроенные: иначе для пространства без единого
+      // назначения (или без части из четырёх) неоткуда было добавить новое —
+      // ссылка «Редактировать» жила только на уже существующих назначениях.
+      // Ненастроенное — приглушённая строка с «Добавить» вместо действий.
+      var purposesHtml = '<div class="listing-purposes-t">Назначения</div>' + HALL_PURPOSE_LIST.map(function(x){
+        var p = purposes.filter(function(y){ return y.code === x.v; })[0];
+        if(!p){
+          return '<div class="hcp-row off">' +
+            '<span class="hcp-icon">' + purposeIconSvg(x.v) + '</span>' +
+            '<div class="hcp-body">' +
+              '<div class="hcp-name">'+esc(x.label)+'</div>' +
+              '<div class="hcp-meta">Ещё не настроено</div>' +
+            '</div>' +
+            '<div class="hcp-actions">' +
+              '<button class="hcp-edit" type="button" data-purpose-add="'+i+':'+esc(x.v)+'">Добавить</button>' +
+            '</div>' +
+          '</div>';
+        }
+        var off = p.active === false;
+        return '<div class="hcp-row'+(off?' off':'')+'">' +
+          '<span class="hcp-icon">' + purposeIconSvg(p.code) + '</span>' +
+          '<div class="hcp-body">' +
+            '<div class="hcp-name">'+esc(purposeLabel(p.code))+'</div>' +
+            (off ? '<div class="hcp-meta">Деактивировано</div>'
+                 : '<div class="hcp-meta">'+esc(purposeMetaLine(h, p))+'</div>') +
+          '</div>' +
+          '<div class="hcp-actions">' +
+            '<button class="hcp-edit" type="button" data-purpose-toggle="'+i+':'+esc(p.code)+'">'+(off?'Активировать':'Деактивировать')+'</button>' +
+            '<button class="hcp-edit" type="button" data-purpose-edit="'+i+':'+esc(p.code)+'">Редактировать</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
       card.innerHTML =
         '<div class="listing-head">' +
           '<button type="button" class="listing-hit" data-edit="'+i+'">' + photo +
@@ -2599,15 +2612,31 @@
         wzOpen(+parts[0], { purpose: parts.slice(1).join(':') });
       });
     });
-    g.querySelectorAll('[data-purpose-activate]').forEach(function(b){
+    g.querySelectorAll('[data-purpose-toggle]').forEach(function(b){
       b.addEventListener('click', function(e){
         e.stopPropagation();
-        var parts = b.dataset.purposeActivate.split(':');
+        var parts = b.dataset.purposeToggle.split(':');
         var i = +parts[0], code = parts.slice(1).join(':');
         var p = hallPurposes(hallsDraft[i]).filter(function(x){ return x.code === code; })[0];
         if(!p) return;
-        p.active = true;
+        p.active = p.active === false;
         saveHallPurposes(i).then(function(){ renderHalls(); });
+      });
+    });
+    // «Добавить» на ещё не настроенном назначении — создаёт его с
+    // дефолтами (пустые поля = «как у зала», тот же принцип, что и у
+    // остальных полей назначения) и сразу открывает его редактор.
+    g.querySelectorAll('[data-purpose-add]').forEach(function(b){
+      b.addEventListener('click', function(e){
+        e.stopPropagation();
+        var parts = b.dataset.purposeAdd.split(':');
+        var i = +parts[0], code = parts.slice(1).join(':');
+        var list = hallPurposes(hallsDraft[i]);
+        if(!list.some(function(x){ return x.code === code; })){
+          list.push({ code:code, rate:null, minBookingMin:null, capacity:null, includes:'', priceRules:null });
+        }
+        saveHallPurposes(i).then(function(){ wzOpen(i, { purpose:code }); })
+          .catch(function(){ renderHalls(); });
       });
     });
     g.querySelectorAll('[data-menu]').forEach(function(b){
