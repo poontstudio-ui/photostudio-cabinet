@@ -1421,11 +1421,14 @@
     var hasRules = Array.isArray(p.priceRules) && p.priceRules.length > 0;
     var hasMin = Number.isInteger(p.minBookingMin);
     var hasCap = Number.isInteger(p.capacity);
-    if(!hasOwnRate && !hasRules && !hasMin && !hasCap && !(p.includes||'').trim()) return 'Как у зала';
+    var hasStand = Number.isInteger(p.standingCapacity), hasSeat = Number.isInteger(p.seatedCapacity);
+    if(!hasOwnRate && !hasRules && !hasMin && !hasCap && !hasStand && !hasSeat && !(p.includes||'').trim()) return 'Как у зала';
     var rate = hasOwnRate ? p.rate : h.rate;
     var parts = [(hasRules ? 'от ' : '') + rate + ' ' + CUR + '/ч'];
     if(hasMin) parts.push('мин. ' + (p.minBookingMin/60) + ' ч');
     if(hasCap) parts.push('до ' + p.capacity + ' чел.');
+    if(hasStand) parts.push('стоя ' + p.standingCapacity);
+    if(hasSeat) parts.push('сидя ' + p.seatedCapacity);
     return parts.join(' · ');
   }
 
@@ -1665,6 +1668,7 @@
     HALL_ABOUT_FIELDS.forEach(function(x){ o[x.f] = h[x.f] || ''; });
     o.purposes = Array.isArray(h.purposes) ? h.purposes.map(function(p){
       return { code:p.code, rate:p.rate, minBookingMin:p.minBookingMin, capacity:p.capacity,
+        standingCapacity:p.standingCapacity, seatedCapacity:p.seatedCapacity,
         includes:p.includes || '', priceRules:Array.isArray(p.priceRules) ? p.priceRules.slice() : null };
     }) : [];
     // minMin (мин. бронь по окну) больше не редактируется: тарифы задаются
@@ -1986,6 +1990,13 @@
           '<span class="unitwrap"><input class="num purp-hours" type="number" min="0.5" max="8" step="0.5" data-f="minBookingMin" value="'+esc(cur.minBookingMin!=null?(cur.minBookingMin/60):'')+'" placeholder="как у студии"><span class="u">ч минимум</span></span>' +
           '<span class="unitwrap"><input class="num purp-f" type="number" min="1" max="1000" step="1" data-f="capacity" value="'+esc(cur.capacity!=null?cur.capacity:'')+'" placeholder="'+esc(h.capacity)+'"><span class="u">чел</span></span>' +
         '</div>' +
+        // Вместимость стоя/сидя — только у праздника: клиент увидит их
+        // вместо площади, остальным назначениям эти цифры не нужны.
+        (cur.code === 'event' ?
+          '<div class="row" style="margin-top:8px">' +
+            '<span class="unitwrap"><input class="num purp-f" type="number" min="1" max="1000" step="1" data-f="standingCapacity" value="'+esc(cur.standingCapacity!=null?cur.standingCapacity:'')+'" placeholder="—"><span class="u">чел стоя</span></span>' +
+            '<span class="unitwrap"><input class="num purp-f" type="number" min="1" max="1000" step="1" data-f="seatedCapacity" value="'+esc(cur.seatedCapacity!=null?cur.seatedCapacity:'')+'" placeholder="—"><span class="u">чел сидя</span></span>' +
+          '</div>' : '') +
         '<div class="about-f-t" style="margin-top:10px">Что входит в аренду</div>' +
         '<div class="muted" style="margin:-2px 0 6px">По строке на пункт. Видно клиенту, когда выбрано это назначение.</div>' +
         '<div class="row"><textarea class="name purp-includes" rows="3" maxlength="1000" ' +
@@ -2087,6 +2098,8 @@
       else if(p.minBookingMin != null && !(p.minBookingMin >= 30 && p.minBookingMin <= 480 && p.minBookingMin % 30 === 0)) {
         bad = at + ': минимальная бронь — от 0,5 до 8 часов, шагом по полчаса';
       }
+      else if(p.standingCapacity != null && !(p.standingCapacity >= 1 && p.standingCapacity <= 1000)) bad = at + ': вместимость стоя — целое от 1 до 1000';
+      else if(p.seatedCapacity != null && !(p.seatedCapacity >= 1 && p.seatedCapacity <= 1000)) bad = at + ': вместимость сидя — целое от 1 до 1000';
     });
     if(bad){ if(n) flash(n, bad); return Promise.reject(new Error(bad)); }
     var clean = hallPurposes(h).map(function(p){
@@ -2094,6 +2107,8 @@
       if(typeof p.rate === 'number' && isFinite(p.rate)) out.rate = p.rate;
       if(Number.isInteger(p.minBookingMin)) out.minBookingMin = p.minBookingMin;
       if(Number.isInteger(p.capacity)) out.capacity = p.capacity;
+      if(Number.isInteger(p.standingCapacity)) out.standingCapacity = p.standingCapacity;
+      if(Number.isInteger(p.seatedCapacity)) out.seatedCapacity = p.seatedCapacity;
       if((p.includes||'').trim()) out.includes = p.includes.trim();
       if(Array.isArray(p.priceRules) && p.priceRules.length) out.priceRules = p.priceRules;
       return out;
