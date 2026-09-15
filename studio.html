@@ -256,6 +256,15 @@
     padding:11px 13px;
   }
   .purp-card:hover{border-color:var(--border-strong);}
+  /* Деактивировано — не удалено: карточка остаётся в списке, просто тусклая,
+     клик по ней всё так же открывает редактирование (в т.ч. для обратного
+     включения). */
+  .purp-card[data-active="false"]{opacity:.55;}
+  .purp-inactive-tag{
+    display:inline-block;margin-left:6px;font-size:var(--fs-xs);font-weight:400;
+    color:var(--text-3);border:1px solid var(--border-strong);border-radius:var(--r-pill);
+    padding:1px 7px;vertical-align:middle;
+  }
   .purp-icon{
     flex:0 0 auto;width:36px;height:36px;border-radius:50%;
     background:var(--blue-bg);color:var(--blue-dark);
@@ -1393,6 +1402,45 @@
     {v:'leisure',label:'Отдых'},
     {v:'meeting',label:'Встреча'},
   ];
+  // Оборудование и мебель — своё на каждое назначение (проектор и экран для
+  // встречи, стойка для одежды для съёмки), отдельно от удобств зала/студии
+  // (те про помещение целиком, а не про то, что входит именно в эту аренду).
+  // Коды — зеркало HALL_EQUIPMENT в lib/rules.js; группы — только для
+  // читаемости формы, бэкенду разбивка не нужна.
+  var HALL_EQUIPMENT_GROUPS = [
+    { title:'Мебель', items:[
+      {f:'tables',label:'Столы'},{f:'chairs',label:'Стулья'},
+      {f:'whiteboard',label:'Маркерная доска'},{f:'chalkboard',label:'Меловая доска'},
+      {f:'flipCharts',label:'Флипчарт'},{f:'wardrobeRack',label:'Стойка для одежды'},
+      {f:'sandbags',label:'Мешки с песком'},
+    ]},
+    { title:'Техника', items:[
+      {f:'wifi',label:'Wi-Fi'},{f:'projector',label:'Проектор'},{f:'screen',label:'Экран'},
+      {f:'monitor',label:'Монитор'},{f:'conferencePhone',label:'Конференц-связь'},
+      {f:'lightingEquipment',label:'Осветительное оборудование'},{f:'videoEquipment',label:'Видеооборудование'},
+      {f:'steamer',label:'Отпариватель'},
+    ]},
+    { title:'Пространство', items:[
+      {f:'kitchen',label:'Кухня / чай-кофе'},{f:'restroom',label:'Санузел'},{f:'sink',label:'Раковина'},
+      {f:'dressingRoom',label:'Гримёрная'},{f:'loungeArea',label:'Зона отдыха'},
+      {f:'rooftop',label:'Крыша / терраса'},{f:'outdoorArea',label:'Открытая площадка'},
+      {f:'naturalLight',label:'Естественный свет'},{f:'blackoutBlinds',label:'Блэкаут-шторы'},
+      {f:'skylights',label:'Мансардные окна'},{f:'whiteBackdrop',label:'Белый фон'},
+      {f:'chromakey',label:'Хромакей'},{f:'soundproof',label:'Звукоизоляция'},
+    ]},
+    { title:'Доступ', items:[
+      {f:'parking',label:'Парковка'},{f:'publicTransport',label:'Общественный транспорт рядом'},
+      {f:'wheelchairAccessible',label:'Доступ для колясок'},{f:'freightElevator',label:'Грузовой лифт'},
+      {f:'streetLevelAccess',label:'Вход с улицы'},
+    ]},
+  ];
+  function equipmentLabel(code){
+    for(var g=0;g<HALL_EQUIPMENT_GROUPS.length;g++){
+      var items = HALL_EQUIPMENT_GROUPS[g].items;
+      for(var k=0;k<items.length;k++){ if(items[k].f === code) return items[k].label; }
+    }
+    return code;
+  }
   function purposeLabel(code){
     for(var k=0;k<HALL_PURPOSE_LIST.length;k++){ if(HALL_PURPOSE_LIST[k].v === code) return HALL_PURPOSE_LIST[k].label; }
     return code;
@@ -1422,13 +1470,15 @@
     var hasMin = Number.isInteger(p.minBookingMin);
     var hasCap = Number.isInteger(p.capacity);
     var hasStand = Number.isInteger(p.standingCapacity), hasSeat = Number.isInteger(p.seatedCapacity);
-    if(!hasOwnRate && !hasRules && !hasMin && !hasCap && !hasStand && !hasSeat && !(p.includes||'').trim()) return 'Как у зала';
+    var hasEquip = Array.isArray(p.equipment) && p.equipment.length > 0;
+    if(!hasOwnRate && !hasRules && !hasMin && !hasCap && !hasStand && !hasSeat && !hasEquip && !(p.includes||'').trim()) return 'Как у зала';
     var rate = hasOwnRate ? p.rate : h.rate;
     var parts = [(hasRules ? 'от ' : '') + rate + ' ' + CUR + '/ч'];
     if(hasMin) parts.push('мин. ' + (p.minBookingMin/60) + ' ч');
     if(hasCap) parts.push('до ' + p.capacity + ' чел.');
     if(hasStand) parts.push('стоя ' + p.standingCapacity);
     if(hasSeat) parts.push('сидя ' + p.seatedCapacity);
+    if(hasEquip) parts.push('оборудование: ' + p.equipment.length);
     return parts.join(' · ');
   }
 
@@ -1669,6 +1719,8 @@
     o.purposes = Array.isArray(h.purposes) ? h.purposes.map(function(p){
       return { code:p.code, rate:p.rate, minBookingMin:p.minBookingMin, capacity:p.capacity,
         standingCapacity:p.standingCapacity, seatedCapacity:p.seatedCapacity,
+        equipment:Array.isArray(p.equipment) ? p.equipment.slice() : [],
+        active:p.active !== false,
         includes:p.includes || '', priceRules:Array.isArray(p.priceRules) ? p.priceRules.slice() : null };
     }) : [];
     // minMin (мин. бронь по окну) больше не редактируется: тарифы задаются
@@ -1979,11 +2031,20 @@
       // Тот же приём, что у самого зала (карточка → отдельный экран
       // редактирования), только на уровень глубже: список назначений
       // остаётся списком, а не разворачивается полями прямо под собой.
+      var equipHtml = HALL_EQUIPMENT_GROUPS.map(function(g){
+        return '<div class="amenity-group-t" style="margin-top:8px">'+esc(g.title)+'</div>' +
+          '<div class="check-grid">' + g.items.map(function(x){
+            return checkHtml('data-eq', x.f, x.label, Array.isArray(cur.equipment) && cur.equipment.indexOf(x.f) !== -1);
+          }).join('') + '</div>';
+      }).join('');
+
       box.innerHTML =
         '<div class="purp-detail-head">' +
           '<button type="button" class="btn ghost small purp-back">← Назначения</button>' +
           '<div class="purp-detail-title"><span class="purp-icon">'+purposeIconSvg(cur.code)+'</span>' +
-            '<span>'+esc(purposeLabel(cur.code))+'</span></div>' +
+            '<span>'+esc(purposeLabel(cur.code))+'</span>' +
+            (cur.active === false ? '<span class="purp-inactive-tag">Неактивно</span>' : '') +
+          '</div>' +
         '</div>' +
         '<div class="row" style="margin-top:10px">' +
           '<span class="unitwrap"><input class="num purp-f" type="number" min="0" step="1" data-f="rate" value="'+esc(cur.rate!=null?cur.rate:'')+'" placeholder="'+esc(h.rate)+'"><span class="u">'+CUR+'/ч</span></span>' +
@@ -1997,12 +2058,16 @@
             '<span class="unitwrap"><input class="num purp-f" type="number" min="1" max="1000" step="1" data-f="standingCapacity" value="'+esc(cur.standingCapacity!=null?cur.standingCapacity:'')+'" placeholder="—"><span class="u">чел стоя</span></span>' +
             '<span class="unitwrap"><input class="num purp-f" type="number" min="1" max="1000" step="1" data-f="seatedCapacity" value="'+esc(cur.seatedCapacity!=null?cur.seatedCapacity:'')+'" placeholder="—"><span class="u">чел сидя</span></span>' +
           '</div>' : '') +
-        '<div class="about-f-t" style="margin-top:10px">Что входит в аренду</div>' +
-        '<div class="muted" style="margin:-2px 0 6px">По строке на пункт. Видно клиенту, когда выбрано это назначение.</div>' +
+        '<div class="about-f-t" style="margin-top:12px">Оборудование и мебель</div>' +
+        '<div class="muted" style="margin:-2px 0 6px">Своё на это назначение — видно клиенту, когда оно выбрано.</div>' +
+        equipHtml +
+        '<div class="about-f-t" style="margin-top:12px">Свои пункты</div>' +
+        '<div class="muted" style="margin:-2px 0 6px">Если нужного нет в списке выше — по строке на пункт.</div>' +
         '<div class="row"><textarea class="name purp-includes" rows="3" maxlength="1000" ' +
-          'placeholder="Свет и штативы\nСтолы и стулья\nПроектор" style="resize:vertical">'+esc(cur.includes||'')+'</textarea></div>' +
-        '<div style="margin-top:8px;display:flex;gap:8px;align-items:center">' +
+          'placeholder="Особенный реквизит\nЧто-то ещё своё" style="resize:vertical">'+esc(cur.includes||'')+'</textarea></div>' +
+        '<div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
           '<button type="button" class="btn small purp-save">Сохранить назначения</button>' +
+          '<button type="button" class="btn ghost small purp-toggle-active">'+(cur.active===false?'Активировать':'Деактивировать')+'</button>' +
           '<button type="button" class="btn ghost small danger purp-del">Убрать назначение</button>' +
         '</div><div class="note purp-note"></div>';
 
@@ -2029,8 +2094,23 @@
           cur.minBookingMin = (isFinite(v) && v > 0) ? Math.round(v * 60) : null;
         });
       });
+      box.querySelectorAll('[data-eq]').forEach(function(inp){
+        inp.addEventListener('change', function(){
+          var set = Array.isArray(cur.equipment) ? cur.equipment : (cur.equipment = []);
+          var f = inp.dataset.eq, idx = set.indexOf(f);
+          if(inp.checked){ if(idx === -1) set.push(f); }
+          else if(idx !== -1){ set.splice(idx, 1); }
+        });
+      });
       var ta = box.querySelector('.purp-includes');
       if(ta) ta.addEventListener('input', function(){ cur.includes = ta.value; });
+      // Деактивировать — не удаляет назначение: цена, оборудование, сетка
+      // остаются как есть, клиент просто не может его выбрать. Как и
+      // остальные поля здесь, применяется после «Сохранить назначения».
+      box.querySelector('.purp-toggle-active').addEventListener('click', function(){
+        cur.active = cur.active === false ? true : false;
+        renderHallPurposes(i);
+      });
       box.querySelector('.purp-del').addEventListener('click', function(){
         list.splice(list.indexOf(cur), 1);
         pgLoad(i, null);
@@ -2044,10 +2124,12 @@
 
     // ---------- список назначений ----------
     var cards = list.map(function(p){
-      return '<button type="button" class="purp-card" data-purp="'+esc(p.code)+'">' +
+      var inactive = p.active === false;
+      return '<button type="button" class="purp-card" data-purp="'+esc(p.code)+'" data-active="'+(!inactive)+'">' +
         '<span class="purp-icon">'+purposeIconSvg(p.code)+'</span>' +
         '<span class="purp-card-body">' +
-          '<span class="purp-card-name">'+esc(purposeLabel(p.code))+'</span>' +
+          '<span class="purp-card-name">'+esc(purposeLabel(p.code))+
+            (inactive ? '<span class="purp-inactive-tag">Неактивно</span>' : '')+'</span>' +
           '<span class="purp-card-meta">'+esc(purposeMetaLine(h, p))+'</span>' +
         '</span>' +
         '<span class="purp-card-chev">›</span></button>';
@@ -2103,12 +2185,15 @@
     });
     if(bad){ if(n) flash(n, bad); return Promise.reject(new Error(bad)); }
     var clean = hallPurposes(h).map(function(p){
-      var out = { code:p.code };
+      // active — всегда явным true/false, не «пусто значит включено»: это
+      // переключатель, а не поле «как у зала».
+      var out = { code:p.code, active:p.active !== false };
       if(typeof p.rate === 'number' && isFinite(p.rate)) out.rate = p.rate;
       if(Number.isInteger(p.minBookingMin)) out.minBookingMin = p.minBookingMin;
       if(Number.isInteger(p.capacity)) out.capacity = p.capacity;
       if(Number.isInteger(p.standingCapacity)) out.standingCapacity = p.standingCapacity;
       if(Number.isInteger(p.seatedCapacity)) out.seatedCapacity = p.seatedCapacity;
+      if(Array.isArray(p.equipment) && p.equipment.length) out.equipment = p.equipment.slice();
       if((p.includes||'').trim()) out.includes = p.includes.trim();
       if(Array.isArray(p.priceRules) && p.priceRules.length) out.priceRules = p.priceRules;
       return out;
