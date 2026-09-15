@@ -242,6 +242,47 @@
   .del{background:var(--bg);border:none;color:var(--text-2);
        border-radius:var(--r-sm);padding:7px 10px;cursor:pointer;font-size:var(--fs-sm);line-height:1;}
   .del:hover{color:var(--red);}
+
+  /* ---------- назначения зала: список карточек + отдельный экран каждого ---------- */
+  /* Список — по одной карточке на цель (иконка, название, цена/правила,
+     стрелка), клик открывает её собственный экран редактирования, а не
+     разворачивает поля тут же — тот же приём, что уже работает для самих
+     залов (halls-grid → hallDetailView), только на уровень глубже. */
+  .purp-list{display:flex;flex-direction:column;gap:8px;margin-bottom:8px;}
+  .purp-card{
+    display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+    font:inherit;color:inherit;cursor:pointer;
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);
+    padding:11px 13px;
+  }
+  .purp-card:hover{border-color:var(--border-strong);}
+  .purp-icon{
+    flex:0 0 auto;width:36px;height:36px;border-radius:50%;
+    background:var(--blue-bg);color:var(--blue-dark);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .purp-icon svg{width:18px;height:18px;}
+  .purp-card-body{flex:1 1 auto;min-width:0;}
+  .purp-card-name{font-weight:600;font-size:var(--fs-md);display:block;}
+  .purp-card-meta{font-size:var(--fs-sm);color:var(--text-2);margin-top:2px;display:block;}
+  .purp-card-chev{flex:0 0 auto;color:var(--text-3);font-size:var(--fs-lg);}
+  /* Пунктирная рамка — та же логика, что «+ Добавить зал», только со
+     встроенным select: цель выбирают из фиксированного словаря, а не пишут
+     руками. */
+  .purp-add-row{
+    display:flex;align-items:center;gap:8px;
+    border:1px dashed var(--border-strong);border-radius:var(--r-sm);padding:2px 13px;
+  }
+  .purp-add-plus{color:var(--text-2);font-weight:700;font-size:var(--fs-lg);}
+  .purp-add-row select{
+    flex:1 1 auto;border:none;background:none;font:inherit;font-size:var(--fs-md);
+    color:var(--blue);font-weight:600;padding:10px 0;cursor:pointer;
+  }
+  .purp-add-row select:focus{outline:none;}
+  .purp-detail-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .purp-detail-title{display:flex;align-items:center;gap:10px;font-weight:700;font-size:var(--fs-lg);}
+  .purp-detail-title .purp-icon{width:32px;height:32px;}
+  .purp-detail-title .purp-icon svg{width:16px;height:16px;}
   .addr-suggest{position:absolute;left:0;right:0;top:calc(100% + 2px);z-index:20;
     background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--r-sm);
     box-shadow:var(--shadow);max-height:220px;overflow-y:auto;}
@@ -1359,6 +1400,38 @@
     return code;
   }
   function hallPurposes(h){ return Array.isArray(h.purposes) ? h.purposes : (h.purposes = []); }
+  // Иконки назначений — те же контуры, что и у клиента (index.html
+  // HALL_PURPOSE_ICONS): владелец должен узнавать цель по тому же значку,
+  // что видит потом в своей карточке студии.
+  var HALL_PURPOSE_ICONS = {
+    photo:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7l1.4-2.6A1 1 0 0 1 10.3 4h3.4a1 1 0 0 1 .9.6L16 7"/><circle cx="12" cy="13.5" r="3.4"/>',
+    video:'<rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10.2l5-3v9.6l-5-3"/>',
+    event:'<path d="M3 21l7-16 11 11-16 5Z"/><path d="M13 4.2l1.3 1.4M17 3l1 2.2M20.2 6.4l2 1"/>',
+    meeting:'<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9.5" r="2.3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14.6 14.3c2.8.5 5.4 2.7 5.4 5.7"/>',
+    'class':'<path d="M12 6c-2-1.3-5-2-8-2v13c3 0 6 .7 8 2 2-1.3 5-2 8-2V4c-3 0-6 .7-8 2Z"/><path d="M12 6v13"/>',
+    rehearsal:'<path d="M9 18V5l10-2v13"/><circle cx="7" cy="18" r="2.4"/><circle cx="17" cy="16" r="2.4"/>',
+  };
+  function purposeIconSvg(code){
+    var d = HALL_PURPOSE_ICONS[code];
+    if(!d) return '';
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" ' +
+      'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+d+'</svg>';
+  }
+  // Строка-сводка в карточке списка: цена (с «от», если есть своя сетка),
+  // минимум и вместимость — если хоть что-то настроено; иначе честное
+  // «Как у зала», а не пустая карточка без объяснения.
+  function purposeMetaLine(h, p){
+    var hasOwnRate = typeof p.rate === 'number' && isFinite(p.rate);
+    var hasRules = Array.isArray(p.priceRules) && p.priceRules.length > 0;
+    var hasMin = Number.isInteger(p.minBookingMin);
+    var hasCap = Number.isInteger(p.capacity);
+    if(!hasOwnRate && !hasRules && !hasMin && !hasCap && !(p.includes||'').trim()) return 'Как у зала';
+    var rate = hasOwnRate ? p.rate : h.rate;
+    var parts = [(hasRules ? 'от ' : '') + rate + ' ' + CUR + '/ч'];
+    if(hasMin) parts.push('мин. ' + (p.minBookingMin/60) + ' ч');
+    if(hasCap) parts.push('до ' + p.capacity + ' чел.');
+    return parts.join(' · ');
+  }
 
   // Парковки здесь нет намеренно: она одна на адрес и живёт в «Удобствах и
   // правилах студии» вместе с вариантами — иначе тексты по залам разъедутся.
@@ -1901,45 +1974,92 @@
     var cur = code ? list.find(function(p){ return p.code === code; }) : null;
     if(code && !cur){ code = null; PG.code = null; }   // назначение удалили — падаем на зал
 
-    var tabs = '<button type="button" class="chip-tog'+(code?'':' on')+'" data-purp="">Зал (базовые)</button>' +
-      list.map(function(p){
-        return '<button type="button" class="chip-tog'+(p.code===code?' on':'')+'" data-purp="'+esc(p.code)+'">'+esc(purposeLabel(p.code))+'</button>';
-      }).join('');
-    var free = HALL_PURPOSE_LIST.filter(function(x){ return !list.some(function(p){ return p.code === x.v; }); });
-    var addSel = free.length
-      ? '<select class="purp-add" style="flex:0 0 auto"><option value="">+ Назначение…</option>' +
-        free.map(function(x){ return '<option value="'+x.v+'">'+esc(x.label)+'</option>'; }).join('') + '</select>'
-      : '';
-
-    var fields = '';
     if(cur){
-      fields =
-        '<div class="row" style="margin-top:8px">' +
+      // ---------- экран одного назначения ----------
+      // Тот же приём, что у самого зала (карточка → отдельный экран
+      // редактирования), только на уровень глубже: список назначений
+      // остаётся списком, а не разворачивается полями прямо под собой.
+      box.innerHTML =
+        '<div class="purp-detail-head">' +
+          '<button type="button" class="btn ghost small purp-back">← Назначения</button>' +
+          '<div class="purp-detail-title"><span class="purp-icon">'+purposeIconSvg(cur.code)+'</span>' +
+            '<span>'+esc(purposeLabel(cur.code))+'</span></div>' +
+        '</div>' +
+        '<div class="row" style="margin-top:10px">' +
           '<span class="unitwrap"><input class="num purp-f" type="number" min="0" step="1" data-f="rate" value="'+esc(cur.rate!=null?cur.rate:'')+'" placeholder="'+esc(h.rate)+'"><span class="u">'+CUR+'/ч</span></span>' +
           '<span class="unitwrap"><input class="num purp-hours" type="number" min="0.5" max="8" step="0.5" data-f="minBookingMin" value="'+esc(cur.minBookingMin!=null?(cur.minBookingMin/60):'')+'" placeholder="как у студии"><span class="u">ч минимум</span></span>' +
           '<span class="unitwrap"><input class="num purp-f" type="number" min="1" max="1000" step="1" data-f="capacity" value="'+esc(cur.capacity!=null?cur.capacity:'')+'" placeholder="'+esc(h.capacity)+'"><span class="u">чел</span></span>' +
         '</div>' +
-        '<div class="about-f-t" style="margin-top:8px">Что входит в аренду</div>' +
+        '<div class="about-f-t" style="margin-top:10px">Что входит в аренду</div>' +
         '<div class="muted" style="margin:-2px 0 6px">По строке на пункт. Видно клиенту, когда выбрано это назначение.</div>' +
         '<div class="row"><textarea class="name purp-includes" rows="3" maxlength="1000" ' +
           'placeholder="Свет и штативы\nСтолы и стулья\nПроектор" style="resize:vertical">'+esc(cur.includes||'')+'</textarea></div>' +
-        '<div style="margin-top:6px;display:flex;gap:8px;align-items:center">' +
+        '<div style="margin-top:8px;display:flex;gap:8px;align-items:center">' +
           '<button type="button" class="btn small purp-save">Сохранить назначения</button>' +
-          '<button type="button" class="btn ghost small purp-del">Убрать назначение</button>' +
-        '</div>';
-    } else if(list.length){
-      fields = '<div class="muted" style="margin-top:8px">Выберите назначение, чтобы задать его цену и правила. Сетка тарифов ниже сейчас правит базовые цены зала.</div>';
+          '<button type="button" class="btn ghost small danger purp-del">Убрать назначение</button>' +
+        '</div><div class="note purp-note"></div>';
+
+      box.querySelector('.purp-back').addEventListener('click', function(){
+        pgLoad(i, null);
+        renderHallPurposes(i);
+        renderHallPriceRules(i);
+      });
+      box.querySelectorAll('.purp-f').forEach(function(inp){
+        inp.addEventListener('input', function(){
+          var v = parseInt(inp.value, 10);
+          cur[inp.dataset.f] = Number.isInteger(v) ? v : null;
+          // ставка назначения — фон его сетки тарифов, перерисовываем сразу
+          if(inp.dataset.f === 'rate') renderHallPriceRules(i);
+        });
+      });
+      // Минимум владелец задаёт в часах (как пакеты рядом и как это читает
+      // клиент), хранится он в минутах: «3» в поле минут означало три
+      // минуты и уезжало на бэкенд неваидным, а ошибка возвращалась про
+      // код назначения.
+      box.querySelectorAll('.purp-hours').forEach(function(inp){
+        inp.addEventListener('input', function(){
+          var v = parseFloat(inp.value);
+          cur.minBookingMin = (isFinite(v) && v > 0) ? Math.round(v * 60) : null;
+        });
+      });
+      var ta = box.querySelector('.purp-includes');
+      if(ta) ta.addEventListener('input', function(){ cur.includes = ta.value; });
+      box.querySelector('.purp-del').addEventListener('click', function(){
+        list.splice(list.indexOf(cur), 1);
+        pgLoad(i, null);
+        renderHallPurposes(i);
+        renderHallPriceRules(i);
+        saveHallPurposes(i).catch(function(){});
+      });
+      box.querySelector('.purp-save').addEventListener('click', function(){ saveHallPurposes(i).catch(function(){}); });
+      return;
     }
+
+    // ---------- список назначений ----------
+    var cards = list.map(function(p){
+      return '<button type="button" class="purp-card" data-purp="'+esc(p.code)+'">' +
+        '<span class="purp-icon">'+purposeIconSvg(p.code)+'</span>' +
+        '<span class="purp-card-body">' +
+          '<span class="purp-card-name">'+esc(purposeLabel(p.code))+'</span>' +
+          '<span class="purp-card-meta">'+esc(purposeMetaLine(h, p))+'</span>' +
+        '</span>' +
+        '<span class="purp-card-chev">›</span></button>';
+    }).join('');
+    var free = HALL_PURPOSE_LIST.filter(function(x){ return !list.some(function(p){ return p.code === x.v; }); });
+    var addRow = free.length
+      ? '<div class="purp-add-row"><span class="purp-add-plus">+</span>' +
+        '<select class="purp-add"><option value="">Добавить назначение…</option>' +
+        free.map(function(x){ return '<option value="'+x.v+'">'+esc(x.label)+'</option>'; }).join('') + '</select></div>'
+      : '';
 
     box.innerHTML =
       '<div class="amenity-group-t">Назначения</div>' +
-      '<div class="muted" style="margin-bottom:6px">Под какие цели сдаётся зал. У каждой свои цена, минимум брони, вместимость и состав аренды; пустое поле — как у зала.</div>' +
-      '<div class="chip-row" style="align-items:center">' + tabs + addSel + '</div>' +
-      fields + '<div class="note purp-note"></div>';
+      '<div class="muted" style="margin-bottom:8px">Под какие цели сдаётся зал. У каждой свои цена, минимум брони, вместимость и состав аренды; пустое поле — как у зала.</div>' +
+      '<div class="purp-list">' + cards + '</div>' + addRow + '<div class="note purp-note"></div>';
 
-    box.querySelectorAll('.chip-tog[data-purp]').forEach(function(btn){
+    box.querySelectorAll('.purp-card').forEach(function(btn){
       btn.addEventListener('click', function(){
-        pgLoad(i, btn.dataset.purp || null);
+        pgLoad(i, btn.dataset.purp);
         renderHallPurposes(i);
         renderHallPriceRules(i);
       });
@@ -1952,35 +2072,6 @@
       renderHallPurposes(i);
       renderHallPriceRules(i);
     });
-    box.querySelectorAll('.purp-f').forEach(function(inp){
-      inp.addEventListener('input', function(){
-        var v = parseInt(inp.value, 10);
-        cur[inp.dataset.f] = Number.isInteger(v) ? v : null;
-        // ставка назначения — фон его сетки тарифов, перерисовываем сразу
-        if(inp.dataset.f === 'rate') renderHallPriceRules(i);
-      });
-    });
-    // Минимум владелец задаёт в часах (как пакеты рядом и как это читает
-    // клиент), хранится он в минутах: «3» в поле минут означало три минуты и
-    // уезжало на бэкенд неваидным, а ошибка возвращалась про код назначения.
-    box.querySelectorAll('.purp-hours').forEach(function(inp){
-      inp.addEventListener('input', function(){
-        var v = parseFloat(inp.value);
-        cur.minBookingMin = (isFinite(v) && v > 0) ? Math.round(v * 60) : null;
-      });
-    });
-    var ta = box.querySelector('.purp-includes');
-    if(ta) ta.addEventListener('input', function(){ cur.includes = ta.value; });
-    var del = box.querySelector('.purp-del');
-    if(del) del.addEventListener('click', function(){
-      list.splice(list.indexOf(cur), 1);
-      pgLoad(i, null);
-      renderHallPurposes(i);
-      renderHallPriceRules(i);
-      saveHallPurposes(i).catch(function(){});
-    });
-    var save = box.querySelector('.purp-save');
-    if(save) save.addEventListener('click', function(){ saveHallPurposes(i).catch(function(){}); });
   }
 
   // Назначения уезжают своим запросом (как тарифы и пакеты): внутри них лежат
