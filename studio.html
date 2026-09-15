@@ -405,6 +405,8 @@
   .hcp-edit{border:none;background:none;color:var(--blue);font:inherit;font-size:var(--fs-sm);
     cursor:pointer;padding:2px 0;}
   .hcp-edit:hover{text-decoration:underline;}
+  .hcp-edit.go{color:var(--green);}
+  .hcp-edit.stop{color:var(--red);}
   @media(max-width:600px){
     .listing-head{flex-wrap:wrap;}
     .listing-hit{flex-direction:column;}
@@ -2573,7 +2575,7 @@
                  : '<div class="hcp-meta">'+esc(purposeMetaLine(h, p))+'</div>') +
           '</div>' +
           '<div class="hcp-actions">' +
-            '<button class="hcp-edit" type="button" data-purpose-toggle="'+i+':'+esc(p.code)+'">'+(off?'Активировать':'Деактивировать')+'</button>' +
+            '<button class="hcp-edit '+(off?'go':'stop')+'" type="button" data-purpose-toggle="'+i+':'+esc(p.code)+'">'+(off?'Активировать':'Деактивировать')+'</button>' +
             '<button class="hcp-edit" type="button" data-purpose-edit="'+i+':'+esc(p.code)+'">Редактировать</button>' +
           '</div>' +
         '</div>';
