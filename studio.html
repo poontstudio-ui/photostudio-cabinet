@@ -427,9 +427,17 @@
   }
 
   /* ---------- визард пространства (0043): хаб разделов, Peerspace-стиль ---------- */
-  .wizard-box{max-width:640px;}
+  /* Полноценная страница кабинета (list ↔ detail внутри #sec-halls — тот же
+     приём, что у clListView/clDetailView), НЕ модалка: без затемнения фона
+     и без обрезки по высоте — на длинных разделах (например, «О
+     пространстве») это раньше означало прокрутку внутри тесного окна. */
+  #wzView{max-width:640px;}
+  #wzView > .btn{margin-bottom:14px;}
   .wz-head{margin-bottom:14px;display:flex;align-items:center;gap:6px;}
-  .wz-head h3{flex:1;margin:0;font-size:var(--fs-lg);font-weight:700;letter-spacing:-.005em;
+  .wz-back-btn{border:none;background:none;color:var(--text-3);font-size:var(--fs-lg);
+    line-height:1;cursor:pointer;padding:4px;border-radius:var(--r-sm);flex:none;}
+  .wz-back-btn:hover{color:var(--text);background:var(--surface-2);}
+  .wz-head h2{flex:1;margin:0;font-size:var(--fs-xl);font-weight:700;letter-spacing:-.005em;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .wz-step-hint{font-size:var(--fs-sm);color:var(--text-2);margin:-6px 0 14px;}
   .wz-body{min-height:120px;}
@@ -957,12 +965,35 @@
       </div>
     </div>
 
+    <!-- Список и полноценная страница — два вида одной карточки-секции
+         (hallsListView/wzView), тот же приём, что у clListView/clDetailView:
+         не модалка, а обычная страница кабинета с «← Пространства» наверху. -->
     <div class="card" id="sec-halls" data-folder="halls">
       <div id="hallsListView">
         <h2>Пространства</h2>
         <div class="muted" style="margin-bottom:14px" id="hallsListHint">Название студии, адрес, удобства и Wi-Fi — внутри карточки: «Редактировать» → отдельные разделы.</div>
         <div id="hallsGrid" class="halls-list"></div>
         <div class="note" id="hallNoteList"></div>
+      </div>
+
+      <!-- Визард пространства (0043) — единый экран и для первого онбординга
+           (студия + первый зал), и для дальнейшего редактирования любого
+           зала. Peerspace-стиль: «Изменить» открывает хаб-список разделов, у
+           каждого — свой короткий экран с «Сохранить», после которого —
+           назад в хаб. Не пошаговый мастер с «Далее» через всё подряд —
+           разделы независимы, можно править только один и выйти. -->
+      <div id="wzView" hidden>
+        <button class="btn ghost small" id="wzClose" type="button">← Пространства</button>
+        <div class="wz-head">
+          <button class="wz-back-btn" id="wzBack" type="button" aria-label="Назад" hidden>←</button>
+          <h2 id="wzStepTitle">Пространство</h2>
+        </div>
+        <div class="wz-step-hint" id="wzStepHint"></div>
+        <div class="wz-body" id="wzBody"></div>
+        <div class="wz-foot" id="wzFoot" hidden>
+          <span class="wz-note" id="wzNote"></span>
+          <button class="btn" id="wzNext" type="button">Сохранить</button>
+        </div>
       </div>
     </div>
 
@@ -1320,29 +1351,6 @@
       <button class="btn" id="qbSubmit" type="button">Забронировать</button>
     </div>
     <div class="note" id="qbFormNote"></div>
-  </div>
-</div>
-
-<!-- Визард пространства (0043) — единый экран и для первого онбординга
-     (студия + первый зал), и для дальнейшего редактирования любого зала.
-     Peerspace-стиль: «Изменить» открывает хаб-список разделов, у каждого —
-     свой короткий экран с «Сохранить», после которого — назад в хаб. Не
-     пошаговый мастер с «Далее» через всё подряд — разделы независимы, можно
-     править только один и выйти. Заменяет прежние отдельные карточки
-     «Профиль студии» и «Удобства и правила студии». -->
-<div class="modal-backdrop" id="wzModal" hidden>
-  <div class="modal-box wizard-box">
-    <div class="modal-head wz-head">
-      <button class="modal-close" id="wzBack" type="button" aria-label="Назад" hidden>←</button>
-      <h3 id="wzStepTitle">Пространство</h3>
-      <button class="modal-close" id="wzClose" type="button" aria-label="Закрыть">✕</button>
-    </div>
-    <div class="wz-step-hint" id="wzStepHint"></div>
-    <div class="wz-body" id="wzBody"></div>
-    <div class="wz-foot" id="wzFoot" hidden>
-      <span class="wz-note" id="wzNote"></span>
-      <button class="btn" id="wzNext" type="button">Сохранить</button>
-    </div>
   </div>
 </div>
 
@@ -5236,7 +5244,9 @@
     // хабе и некуда возвращаться «назад» в него же.
     WZ.section = WZ.focusPurpose ? 'pricing' : null;
     WZ.open = true;
-    $('wzModal').hidden = false;
+    $('hallsListView').hidden = true;
+    $('wzView').hidden = false;
+    window.scrollTo(0, 0);
     wzRender();
   }
   function wzClose(){
@@ -5247,11 +5257,11 @@
       if(h && !h.id) hallsDraft.splice(WZ.hallIndex, 1);
     }
     WZ.open = false;
-    $('wzModal').hidden = true;
+    $('wzView').hidden = true;
+    $('hallsListView').hidden = false;
     renderHalls();
   }
   $('wzClose').addEventListener('click', wzClose);
-  $('wzModal').addEventListener('click', function(e){ if(e.target === e.currentTarget) wzClose(); });
 
   function wzRender(){
     $('wzNote').textContent = '';
