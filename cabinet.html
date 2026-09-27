@@ -142,6 +142,17 @@
       <div id="studios"><div class="empty">—</div></div>
     </div>
 
+    <div class="card">
+      <h2>Новая студия</h2>
+      <p>Заведите свою студию — остальное (адрес, часы, залы) донастроите после, в мастере.</p>
+      <div class="field">
+        <label for="newStudioName">Название студии</label>
+        <input id="newStudioName" type="text" maxlength="120" placeholder="Например, «Фотостудия Свет»">
+      </div>
+      <button class="btn full" id="newStudioBtn" type="button">Создать студию</button>
+      <div id="newStudioErr" class="err" hidden></div>
+    </div>
+
   </div>
 </div>
 
@@ -174,6 +185,35 @@
   }
 
   function roleLabel(role){ return role === 'owner' ? 'владелец' : 'админ'; }
+
+  // Слаг id новой студии — считаем на клиенте транслитерацией названия (тот
+  // же приём, что и у кастомных значений словаря в studio.html); сервер сам
+  // подбирает свободный хвост (-2, -3…), если такой id уже занят.
+  var RU_TRANSLIT = {а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'e',ж:'zh',з:'z',и:'i',й:'y',
+    к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'h',ц:'ts',ч:'ch',
+    ш:'sh',щ:'sch',ъ:'',ы:'y',ь:'',э:'e',ю:'yu',я:'ya'};
+  function slugify(text){
+    var s = String(text||'').toLowerCase();
+    s = s.split('').map(function(ch){ return RU_TRANSLIT.hasOwnProperty(ch) ? RU_TRANSLIT[ch] : ch; }).join('');
+    s = s.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    return s.slice(0, 60) || ('studio-' + Date.now().toString(36));
+  }
+
+  $('newStudioBtn').addEventListener('click', function(){
+    var err = $('newStudioErr'); hide(err);
+    var name = $('newStudioName').value.trim();
+    if(name.length < 2 || name.length > 120){
+      err.textContent = 'Название студии — от 2 до 120 символов'; show(err); return;
+    }
+    var btn = $('newStudioBtn');
+    btn.disabled = true; btn.textContent = 'Создаём…';
+    api('POST', '/api/studios', { id: slugify(name), name: name }, true).then(function(studio){
+      location.href = './studio.html?id=' + encodeURIComponent(studio.id);
+    }).catch(function(e){
+      err.textContent = e.message || 'Не удалось создать студию'; show(err);
+      btn.disabled = false; btn.textContent = 'Создать студию';
+    });
+  });
 
   function renderApp(me, user){
     hide($('loading')); hide($('loginCard')); show($('app'));
