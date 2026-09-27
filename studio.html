@@ -878,7 +878,7 @@
     <button class="nav-dashboard" id="dashboardBtn" data-folder="dashboard" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Дашборд</button>
     <nav class="nav" id="nav">
       <button class="nav-folder" data-folder="main" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Основное</button>
-      <button class="nav-folder" data-folder="halls" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>Залы</button>
+      <button class="nav-folder" data-folder="halls" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>Пространства</button>
       <button class="nav-folder" data-folder="booking" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Бронирование</button>
       <button class="nav-folder" data-folder="clients" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>Клиенты</button>
       <button class="nav-folder" data-folder="equipment" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>Оборудование</button>
@@ -5213,15 +5213,14 @@
   // (см. data-purpose-edit в renderHalls), а не пункт этого списка.
   var WZ_SECTIONS = [
     {key:'brand',    num:1,  title:'Название и бренд',            desc:'Как называется студия — видно клиентам первым'},
-    {key:'location', num:2,  title:'Локация',                      desc:'Адрес, город, телефон для связи'},
+    {key:'location', num:2,  title:'Локация',                      desc:'Адрес, город, телефон, как добраться'},
     {key:'about',    num:3,  title:'О пространстве',               desc:'Тип, описание, площадь, удобства и стиль'},
     {key:'parking',  num:4,  title:'Парковка и видеонаблюдение',   desc:'Условия по студии в целом'},
     {key:'wifi',     num:5,  title:'Wi-Fi',                        desc:'Доступ в интернет — виден только тому, кто забронировал'},
-    {key:'access',   num:6,  title:'Как добраться',                desc:'Этаж, домофон, куда звонить на входе'},
-    {key:'media',    num:7,  title:'Фото и видео',                 desc:'Фотографии, видео- и 3D-тур'},
-    {key:'hours',    num:8,  title:'Часы работы',                  desc:'Когда пространство доступно для брони'},
-    {key:'cleaning', num:9,  title:'Забота о чистоте',             desc:'Что вы делаете между бронями'},
-    {key:'cancel',   num:10, title:'Правила отмены',               desc:'Общие для всей студии'},
+    {key:'media',    num:6,  title:'Фото и видео',                 desc:'Фотографии, видео- и 3D-тур'},
+    {key:'hours',    num:7,  title:'Часы работы',                  desc:'Когда пространство доступно для брони'},
+    {key:'cleaning', num:8,  title:'Забота о чистоте',             desc:'Что вы делаете между бронями'},
+    {key:'cancel',   num:9,  title:'Правила отмены',               desc:'Общие для всей студии'},
   ];
   var WZ = { open:false, section:null, hallIndex:-1, isNew:false, focusPurpose:null };
   var WZ_RENDERERS = {}, WZ_SAVERS = {};
@@ -5274,6 +5273,7 @@
     $('wzNote').textContent = '';
     if(WZ.section === null){ wzRenderHub(); return; }
     if(WZ.section === 'pricing'){
+      $('wzClose').hidden = true;
       $('wzBack').hidden = false;
       $('wzStepTitle').textContent = 'Тарифная сетка';
       $('wzStepHint').textContent = 'Цена, минимальная бронь и состав аренды — отдельно на каждую цель.';
@@ -5283,6 +5283,7 @@
       return;
     }
     var sec = wzSection(WZ.section);
+    $('wzClose').hidden = true;
     $('wzBack').hidden = false;
     $('wzStepTitle').textContent = sec.title;
     $('wzStepHint').textContent = sec.desc;
@@ -5294,6 +5295,7 @@
   // после «Сохранить» в любом разделе (кроме тарифов — у тех свой возврат).
   function wzRenderHub(){
     var h = wzHall();
+    $('wzClose').hidden = false;
     $('wzBack').hidden = true;
     $('wzStepTitle').textContent = h.title || h.name || 'Новое пространство';
     $('wzStepHint').textContent = '';
@@ -5367,7 +5369,9 @@
         '<div class="row" style="position:relative"><input class="name" id="wzHallAddr" placeholder="Улица, дом" autocomplete="off" value="'+esc(h.address||'')+'"><div id="wzHallAddrSuggest" class="addr-suggest" hidden></div></div>' +
         '<div class="row"><input class="name" id="wzHallCity" placeholder="Город" value="'+esc(h.city||'')+'"></div>' +
         '<div id="wzHallMap" style="width:100%;height:180px;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border);background:var(--surface-2)" hidden></div>' +
-      '</div>';
+      '</div>' +
+      '<div class="about-f-t" style="margin-top:14px">Как добраться</div>' +
+      '<div class="row"><textarea class="name" id="wzAboutAccess" rows="4" maxlength="1000" placeholder="Этаж, куда поворачивать, что говорить на входе, куда звонить" style="resize:vertical">'+esc(h.aboutAccess||'')+'</textarea></div>';
     wzAddrHelper({ addr:'wzAddr', box:'wzAddrSuggest', map:'wzMap', mapHint:'wzMapHint' }, profileDraft);
     wzWirePhoneMask('wzPhone');
 
@@ -5395,6 +5399,7 @@
     if(ownLocIncomplete(h)) return Promise.reject(new Error('Укажите адрес зала на карте или из подсказок'));
     if(!$('wzOwnLocation').checked){ h.address = null; h.city = null; h.lat = null; h.lon = null; }
     else { h.city = $('wzHallCity').value.trim(); }
+    h.aboutAccess = $('wzAboutAccess').value;
     var payload = {
       city: city, address: $('wzAddr').value.trim(), phone: $('wzPhone').value.trim(),
       country: $('wzCountry').value, postalCode: $('wzPostal').value.trim(),
@@ -5558,17 +5563,6 @@
     var h = wzHall();
     h.wifiSsid = $('wzWifiSsid').value;
     h.wifiPassword = $('wzWifiPassword').value;
-    return saveHallsNow();
-  };
-
-  // ---------- Как добраться ----------
-  WZ_RENDERERS.access = function(){
-    var h = wzHall();
-    $('wzBody').innerHTML =
-      '<div class="row"><textarea class="name" id="wzAboutAccess" rows="4" maxlength="1000" placeholder="Этаж, куда поворачивать, что говорить на входе, куда звонить" style="resize:vertical">'+esc(h.aboutAccess||'')+'</textarea></div>';
-  };
-  WZ_SAVERS.access = function(){
-    wzHall().aboutAccess = $('wzAboutAccess').value;
     return saveHallsNow();
   };
 
