@@ -81,6 +81,11 @@
   .btn:disabled{opacity:.55;cursor:default;}
   /* Вход через бота — настоящие <a href>: см. prepareBotLogin. */
   a.btn{text-decoration:none;} a.btn:hover{text-decoration:none;}
+  #loginCard > h2, #loginCard > p{text-align:center;}
+  /* Второй способ входа — текстовая ссылка под главной кнопкой. */
+  .linkbtn{display:block;width:100%;margin-top:8px;padding:10px;background:none;border:none;
+    color:var(--text-2);font:inherit;font-size:13px;text-align:center;cursor:pointer;}
+  .linkbtn:hover{color:var(--text);}
   .btn[aria-disabled="true"]{opacity:.55;pointer-events:none;}
   .btn.full{width:100%;}
   .rowbtns{display:flex;gap:8px;margin-top:8px;}
@@ -96,8 +101,8 @@
 
   <!-- ВХОД -->
   <div id="loginCard" class="card" hidden>
-    <h2>Вход</h2>
-    <p>Войдите через Telegram — бот подтвердит ваш номер телефона.</p>
+    <h2>Авторизация</h2>
+    <p>Выберите удобный способ, чтобы войти в профиль</p>
 
     <div id="botStep1">
       <a class="btn full" id="botLoginBtn" href="#" aria-disabled="true" rel="noopener">Войти через Telegram</a>
@@ -112,14 +117,19 @@
     </div>
     <div id="botErr" class="err" hidden></div>
 
-    <div class="or-divider">или</div>
+    <!-- Номер спрашиваем только после тапа по «Войти по номеру телефона» -->
+    <div id="phoneLinkWrap">
+      <button class="linkbtn" id="phoneLink" type="button">Войти по номеру телефона</button>
+    </div>
 
+    <div id="phoneBox" hidden>
     <div id="phoneStep1">
       <div class="field">
         <label for="loginPhone">Номер телефона</label>
         <input id="loginPhone" type="tel" inputmode="numeric" placeholder="+375 (29) 123-45-67" value="+375 ">
       </div>
       <button class="btn full" id="phoneSendBtn" type="button" disabled>Получить код</button>
+      <button class="linkbtn" id="phoneOtherLink" type="button">Другой способ входа</button>
     </div>
     <div id="phoneStep2" hidden>
       <p class="muted" id="phoneHint" style="margin:0 0 10px"></p>
@@ -134,6 +144,7 @@
       </div>
     </div>
     <div id="phoneErr" class="err" hidden></div>
+    </div>
   </div>
 
   <!-- КАБИНЕТ -->
@@ -454,7 +465,17 @@
   function botReset(){
     botStop(); clearPersistedBotLogin(); botLogin = null;
     $('botStep1').hidden = false; $('botStep2').hidden = true;
+    $('phoneLinkWrap').hidden = false;
   }
+  // Вход по номеру — второй способ: скрыт за ссылкой, пока человек сам не выберет.
+  function showPhoneMode(on){
+    $('phoneBox').hidden = !on;
+    $('phoneLinkWrap').hidden = on;
+    $('botStep1').hidden = on;
+    if(on){ hide($('botErr')); hide($('phoneErr')); $('loginPhone').focus(); }
+  }
+  $('phoneLink').addEventListener('click', function(){ showPhoneMode(true); });
+  $('phoneOtherLink').addEventListener('click', function(){ showPhoneMode(false); });
   function botFail(msg){
     botStop(); clearPersistedBotLogin();
     $('botErr').textContent = msg; show($('botErr'));
@@ -485,6 +506,7 @@
     setTgLink($('botOpenBtn'), p.url);
     $('botDoneBtn').disabled = false;
     $('botStep1').hidden = true; $('botStep2').hidden = false;
+    $('phoneLinkWrap').hidden = true;
   }
 
   function botCheck(manual){
