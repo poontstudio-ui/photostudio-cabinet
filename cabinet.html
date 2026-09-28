@@ -95,7 +95,22 @@
   <!-- ВХОД -->
   <div id="loginCard" class="card" hidden>
     <h2>Вход</h2>
-    <p>Войдите через Telegram — тем же аккаунтом, что указан владельцем студии.</p>
+    <p>Войдите через Telegram — бот подтвердит ваш номер телефона.</p>
+
+    <div id="botStep1">
+      <button class="btn full" id="botLoginBtn" type="button">Войти через Telegram</button>
+    </div>
+    <div id="botStep2" hidden>
+      <p class="muted" style="margin:0 0 10px">Откройте бота, нажмите «Пройти авторизацию» и поделитесь номером телефона. Затем вернитесь сюда — вход завершится сам, или нажмите «Готово».</p>
+      <button class="btn full" id="botOpenBtn" type="button">Открыть Telegram</button>
+      <div class="rowbtns">
+        <button class="btn ghost" id="botDoneBtn" type="button">Готово</button>
+        <button class="btn ghost" id="botBackBtn" type="button">Назад</button>
+      </div>
+    </div>
+    <div id="botErr" class="err" hidden></div>
+
+    <div class="or-divider">или виджет Telegram</div>
     <div id="tgLogin"></div>
     <div id="loginErr" class="err" hidden></div>
 
@@ -422,6 +437,65 @@
       $('phoneVerifyBtn').textContent = 'Подтвердить';
     });
   });
+
+  // ---------- Вход через бота платформы (0047) ----------
+  // Тот же поток, что в клиентском приложении: /api/auth/bot/start даёт t.me-
+  // ссылку и секрет этой вкладки, человек делится номером в боте, а мы
+  // опрашиваем /check (раз в 2.5 с или по «Готово») и забираем сессию.
+  var botLogin = null;   // { token, secret, url, timer, checking }
+  function botStop(){
+    if(botLogin && botLogin.timer) clearInterval(botLogin.timer);
+    if(botLogin) botLogin.timer = null;
+  }
+  function botReset(){ botStop(); botLogin = null; $('botStep1').hidden = false; $('botStep2').hidden = true; }
+  function botFail(msg){
+    botStop();
+    $('botErr').textContent = msg; show($('botErr'));
+    $('botOpenBtn').disabled = true; $('botDoneBtn').disabled = true;
+  }
+  function botCheck(manual){
+    var cur = botLogin;
+    if(!cur || cur.checking) return;
+    cur.checking = true;
+    api('POST', '/api/auth/bot/check', { token: cur.token, secret: cur.secret }, false).then(function(d){
+      if(botLogin !== cur) return;
+      if(d.status === 'ok'){
+        botStop(); setToken(d.token); botReset();
+        return loadMe(null).catch(function(e){ setToken(''); botFail(e.message || 'Не удалось войти'); });
+      }
+      if(d.status === 'expired' || d.status === 'consumed') return botFail('Вход истёк — нажмите «Назад» и начните заново.');
+      if(manual){
+        $('botErr').textContent = d.status === 'awaiting_contact'
+          ? 'Бот ждёт ваш номер: нажмите в нём кнопку «Пройти авторизацию».'
+          : 'Пока не видим вход. Откройте Telegram кнопкой выше и нажмите Start.';
+        show($('botErr'));
+      }
+    }).catch(function(e){
+      if(botLogin !== cur) return;
+      if(e.status === 404) return botFail('Вход истёк — нажмите «Назад» и начните заново.');
+      if(e.status === 409) return botFail(e.message);   // номер и Telegram уже в двух разных аккаунтах
+      if(manual){ $('botErr').textContent = 'Нет связи — попробуйте ещё раз.'; show($('botErr')); }
+    }).then(function(){ cur.checking = false; });
+  }
+  $('botLoginBtn').addEventListener('click', function(){
+    hide($('botErr'));
+    // Вкладку под Telegram открываем сразу, в жесте пользователя: после
+    // запроса браузер заблокировал бы window.open.
+    var popup = window.open('about:blank', '_blank');
+    api('POST', '/api/auth/bot/start', {}, false).then(function(d){
+      botLogin = { token: d.token, secret: d.secret, url: d.url, timer: null, checking: false };
+      botLogin.timer = setInterval(function(){ botCheck(false); }, 2500);
+      $('botOpenBtn').disabled = false; $('botDoneBtn').disabled = false;
+      $('botStep1').hidden = true; $('botStep2').hidden = false;
+      if(popup) popup.location.href = d.url;
+    }).catch(function(e){
+      if(popup) popup.close();
+      $('botErr').textContent = e.message || 'Не удалось начать вход'; show($('botErr'));
+    });
+  });
+  $('botOpenBtn').addEventListener('click', function(){ if(botLogin) window.open(botLogin.url, '_blank'); });
+  $('botDoneBtn').addEventListener('click', function(){ hide($('botErr')); botCheck(true); });
+  $('botBackBtn').addEventListener('click', function(){ hide($('botErr')); $('botOpenBtn').disabled = false; $('botDoneBtn').disabled = false; botReset(); });
 
   // старт
   if(getToken()){
