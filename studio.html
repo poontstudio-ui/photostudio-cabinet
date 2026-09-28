@@ -532,6 +532,11 @@
   .bk .meta{font-family:var(--f-mono);font-size:var(--fs-sm);color:var(--text-2);margin-top:3px;}
   .bk .who{font-size:var(--fs-md);color:var(--text);margin-top:8px;}
   .bk .who a{font-weight:500;}
+  /* «Написать в Telegram» — ссылка в роли маленькой кнопки. */
+  a.tg-btn{display:inline-flex;align-items:center;gap:7px;text-decoration:none;}
+  a.tg-btn:hover{text-decoration:none;}
+  a.tg-btn svg{width:15px;height:15px;flex:none;}
+  .bk-tg{margin-top:10px;}
 
   .hours-day{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
   .hours-day .d{width:34px;font-family:var(--f-mono);font-size:var(--fs-xs);color:var(--text-3);}
@@ -1157,6 +1162,7 @@
         <div class="cl-stats" id="clFaults"></div>
         <div class="row"><input class="name" id="clName" placeholder="Имя" autocomplete="off"></div>
         <div class="row"><input class="name" id="clPhone" type="tel" inputmode="numeric" placeholder="+375 (29) 123-45-67" autocomplete="off"></div>
+        <div class="row" id="clTgRow" hidden></div>
         <!-- Instagram и Telegram заполненными выглядят одинаково («@ник»),
              поэтому подписаны — как единицы у числовых полей в других формах. -->
         <div class="row">
@@ -1658,6 +1664,28 @@
     // В базе номер канонический («+375291234567»), человеку показываем его в
     // привычном виде — набирается по клику всё равно по цифрам.
     return '<a href="tel:'+esc(String(phone).trim().replace(/[^\d+]/g,''))+'">'+esc(phonePretty(phone))+'</a>';
+  }
+  // «Написать в Telegram»: открывает личный чат владельца с клиентом. Ссылку
+  // строит сервер (b.customerTgLink / c.tgLink: публичный username, иначе
+  // подтверждённый номер аккаунта — и только если клиент точно в Telegram),
+  // клиенту при этом пишем не через бота платформы, а лично от себя. Ник,
+  // вписанный владельцем в карточку клиента, важнее: он знает человека лучше.
+  var TG_HANDLE_RE = /^[A-Za-z][A-Za-z0-9_]{4,31}$/;
+  function tgHandle(raw){
+    var v = String(raw || '').trim()
+      .replace(/^https?:\/\/(www\.)?(t|telegram)\.me\//i, '').replace(/^(t|telegram)\.me\//i, '')
+      .replace(/^@/, '').split(/[\/?#]/)[0];
+    return TG_HANDLE_RE.test(v) ? v : '';
+  }
+  function tgWriteUrl(serverLink, ownerHandle){
+    var h = tgHandle(ownerHandle);
+    return h ? 'https://t.me/' + h : (serverLink || '');
+  }
+  function tgBtnHtml(url){
+    if(!url) return '';
+    return '<a class="btn ghost small tg-btn" href="' + esc(url) + '" target="_blank" rel="noopener">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4 3 11l6 2.5L11.5 20 14 15l4 3z"/><path d="m9 13.5 12-9.5"/></svg>' +
+      'Написать в Telegram</a>';
   }
   var STUDIO_STATUS_RU = { published:'Опубликована', draft:'Черновик', suspended:'Приостановлена' };
   // Шапка страницы — название студии крупно и адрес, как шапка клиентского
@@ -3160,7 +3188,8 @@
           '<span class="st">'+esc(ST_LABEL[b.status] || b.status)+'</span></div>' +
         '<div class="hall">'+esc(hall)+'</div>' +
         '<div class="meta">'+esc(b.people)+' чел · '+esc(b.price)+' '+CUR+'</div>' +
-        '<div class="who">'+esc(b.name||'—')+(b.phone ? ' · '+telHtml(b.phone) : '')+'</div>';
+        '<div class="who">'+esc(b.name||'—')+(b.phone ? ' · '+telHtml(b.phone) : '')+'</div>' +
+        (b.customerTgLink ? '<div class="bk-tg">'+tgBtnHtml(b.customerTgLink)+'</div>' : '');
       var acts = bkActions(b);
       if(acts.length){
         var bar = document.createElement('div'); bar.className = 'rowbtns'; bar.style.marginTop = '12px';
@@ -3569,6 +3598,7 @@
       var b = info.data;
       rows.push(['Клиент', esc(b.name || '—')]);
       rows.push(['Телефон', telHtml(b.phone)]);
+      if(b.customerTgLink) rows.push(['Telegram', tgBtnHtml(b.customerTgLink)]);
       rows.push(['Гостей', esc(b.people != null ? b.people : '—')]);
       rows.push(['Комментарий', b.comment ? esc(b.comment) : '—']);
       rows.push(['Сумма', esc(b.price) + ' ' + CUR]);
@@ -4477,7 +4507,7 @@
   // ---------- клиенты ----------
   // Список держим в памяти целиком: карточек у студии сотни, не тысячи, а
   // поиск по трём полям на клиенте избавляет от запроса на каждую букву.
-  var CL = { list: [], open: null, tags: [], history: [], stats: {} };
+  var CL = { list: [], open: null, tags: [], history: [], stats: {}, tgLink: null };
 
   function clFmtDate(iso){
     if(!iso) return '';
@@ -4558,11 +4588,21 @@
       box.appendChild(b);
     });
   }
+  // Кнопка «Написать в Telegram» у карточки: ник из поля «telegram» (что
+  // вписал владелец) важнее ссылки с сервера и обновляется прямо при вводе.
+  function clRenderTg(){
+    var html = tgBtnHtml(tgWriteUrl(CL.tgLink, $('clTelegram').value));
+    $('clTgRow').innerHTML = html;
+    $('clTgRow').hidden = !html;
+  }
+  $('clTelegram').addEventListener('input', clRenderTg);
   function clFill(c){
     $('clName').value = c.name || '';
     $('clPhone').value = c.phone ? phonePretty(c.phone) : '';
     $('clInstagram').value = c.instagram || '';
     $('clTelegram').value = c.telegram || '';
+    CL.tgLink = c.tgLink || null;
+    clRenderTg();
     $('clEmail').value = c.email || '';
     $('clBirthday').value = c.birthday ? String(c.birthday).slice(0, 10) : '';
     $('clNoteField').value = c.note || '';
@@ -4627,6 +4667,8 @@
       clRenderDebts(full.debts);
       // Счётчики из полного ответа: в списке они могли устареть.
       CL.stats = full;
+      CL.tgLink = full.tgLink || CL.tgLink;
+      clRenderTg();
       clUpdateRating(full);
       $('clFaults').innerHTML = clFaultsHtml(full);
     }).catch(function(e){
