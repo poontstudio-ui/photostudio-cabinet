@@ -158,6 +158,15 @@
      список читается как одна нерасчленимая простыня, а тут у каждой темы
      свой заголовок и полоса-разделитель сверху — кроме самой первой группы,
      ей разделитель ни к чему, она и так первая под <h2>. */
+  .tm-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);}
+  .tm-row:first-child{border-top:none;}
+  .tm-who{flex:1;min-width:0;}
+  .tm-name{font-weight:600;}
+  .tm-sub{font-size:var(--fs-sm);color:var(--text-3);overflow-wrap:anywhere;}
+  .tm-row select{flex:none;width:auto;}
+  .tm-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .tm-link{margin-top:12px;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);}
+  .tm-link input{width:100%;margin-top:6px;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--text);}
   .nt-ev{display:flex;align-items:center;gap:10px;padding:7px 0;cursor:pointer;}
   .nt-ev input[type=checkbox]{width:auto;flex:none;}
   .nt-tag{font-size:var(--fs-xs);color:var(--text-3);}
@@ -1012,7 +1021,7 @@
       </div>
     </div>
 
-    <div class="card" id="sec-settings" data-folder="booking">
+    <div class="card" id="sec-settings" data-folder="booking" data-owner-only="1">
       <h2>Настройки бронирования</h2>
 
       <div class="set-group">
@@ -1103,7 +1112,7 @@
       <div class="note" id="setNote"></div>
     </div>
 
-    <div class="card" id="sec-hours" data-folder="booking">
+    <div class="card" id="sec-hours" data-folder="booking" data-owner-only="1">
       <h2>Часы работы</h2>
       <div class="muted" style="margin-bottom:8px">Целые часы, по дням недели. Пустой день = закрыто нельзя, ставьте равные значения только если день рабочий.</div>
       <div id="hoursEd"></div>
@@ -1225,13 +1234,27 @@
 
     <div class="card" id="sec-team" data-folder="team">
       <h2>Команда</h2>
-      <div class="muted" style="margin-bottom:8px">Telegram ID владельцев. Себя убрать нельзя. ID узнать: @userinfobot.</div>
-      <div id="ownersEd"></div>
-      <div class="row" style="margin-top:6px">
-        <input id="ownerNew" class="num" style="width:160px" inputmode="numeric" placeholder="Telegram ID">
-        <button class="btn ghost small" id="ownerAdd" type="button">Добавить</button>
+      <div class="muted" style="margin-bottom:10px">Владелец — полный доступ. Администратор — брони, клиенты и блокировки времени; настройки, пространства, команда и интеграции ему не видны.</div>
+      <div id="teamList"><span class="muted">Загрузка…</span></div>
+      <div class="set-group">
+        <div class="set-group-t">Пригласить в команду</div>
+        <div class="muted">Создайте ссылку и отправьте её человеку. Он откроет её, войдёт через Telegram или по номеру телефона — и появится в команде. Ссылка одноразовая и действует 7 дней.</div>
+        <div class="tm-actions">
+          <button class="btn ghost small" id="invAdmin" type="button">Ссылка для администратора</button>
+          <button class="btn ghost small" id="invOwner" type="button">Ссылка для совладельца</button>
+        </div>
+        <div class="tm-link" id="invNew" hidden>
+          <div class="muted" id="invNewLabel"></div>
+          <input id="invNewUrl" readonly>
+          <div class="tm-actions">
+            <button class="btn small" id="invCopy" type="button">Скопировать</button>
+            <a class="btn ghost small" id="invShare" href="#" target="_blank" rel="noopener">Отправить в Telegram</a>
+          </div>
+          <div class="muted">Ссылку видно только сейчас — сохраните или отправьте её.</div>
+        </div>
+        <div id="invList"></div>
       </div>
-      <div class="note" id="ownerNote"></div>
+      <div class="note" id="teamNote"></div>
     </div>
 
     <div class="card" id="sec-notify" data-folder="notify" hidden>
@@ -1409,10 +1432,17 @@
   // «Дашборд» — то, что видно первым при заходе в кабинет.
   var DEFAULT_FOLDER = 'dashboard';
 
+  // Администратору (PS_ROLE='admin') часть папок и карточек не показываем —
+  // их прячет applyRole в основном скрипте; сюда смотрим, чтобы не открыть
+  // скрытую папку из запомненной и не показать карточку «только владельцу».
+  function folderHidden(f){
+    var b = folderBtns.filter(function(x){ return x.dataset.folder === f; })[0];
+    return !b || b.hidden;
+  }
   function selectFolder(folder){
-    if(FOLDERS.indexOf(folder) < 0) folder = DEFAULT_FOLDER;
+    if(FOLDERS.indexOf(folder) < 0 || folderHidden(folder)) folder = DEFAULT_FOLDER;
     folderBtns.forEach(function(b){ b.classList.toggle('active', b.dataset.folder === folder); });
-    cards.forEach(function(c){ c.hidden = c.dataset.folder !== folder; });
+    cards.forEach(function(c){ c.hidden = c.dataset.folder !== folder || (!!c.dataset.ownerOnly && window.PS_ROLE === 'admin'); });
     try{ localStorage.setItem(FOLDER_KEY, folder); }catch(e){}
     shell.dataset.nav = '';               // на мобильном — свернуть меню после выбора
     window.scrollTo(0, 0);
@@ -1434,6 +1464,11 @@
   var saved = null;
   try{ saved = localStorage.getItem(FOLDER_KEY); }catch(e){}
   selectFolder(saved || DEFAULT_FOLDER);
+  window.PS_RESELECT_FOLDER = function(){
+    var cur = null;
+    try{ cur = localStorage.getItem(FOLDER_KEY); }catch(e){}
+    selectFolder(cur || DEFAULT_FOLDER);
+  };
 })();
 </script>
 <script>
@@ -1799,7 +1834,7 @@
   }
   $('svBarBtn').addEventListener('click', svSaveAll);
 
-  var hallsDraft = [], equipDraft = [], hoursDraft = [], ownersDraft = [], myId = '';
+  var hallsDraft = [], equipDraft = [], hoursDraft = [];
   var settingsDraft = { autoConfirm:false, bufferMin:10, minBookingMin:60, cancelFreeHours:24,
     lastminuteEnabled:false, lastminuteHours:24, lastminutePct:20,
     reminderEnabled:true, reminderMinutesBefore:60,
@@ -2873,17 +2908,6 @@
       inp.addEventListener('input', function(){ hoursDraft[+inp.dataset.i][inp.dataset.f] = parseInt(inp.value,10); svCheck('hours'); });
     });
     svSnap('hours');
-  }
-  function renderOwners(){
-    var c = $('ownersEd'); c.innerHTML = '';
-    ownersDraft.forEach(function(id, i){
-      var row = document.createElement('div'); row.className = 'row';
-      var me = id === myId;
-      row.innerHTML = '<span style="font-family:var(--f-mono);font-size:13px;flex:1">'+esc(id)+(me?' <span class="muted">— вы</span>':'')+'</span>' +
-        (me ? '' : '<button class="del" data-i="'+i+'" type="button">✕</button>');
-      c.appendChild(row);
-    });
-    c.querySelectorAll('.del').forEach(function(b){ b.addEventListener('click', function(){ ownersDraft.splice(+b.dataset.i,1); renderOwners(); }); });
   }
   var ST_LABEL = { pending:'ожидает', confirmed:'подтверждена', completed:'завершена',
                    declined:'отклонена', cancelled:'отменена', no_show:'не пришёл' };
@@ -4434,22 +4458,6 @@
   }
   svRegister('hours', function(){ return hoursDraft; }, saveHours);
 
-  $('ownerAdd').addEventListener('click', function(){
-    var v = $('ownerNew').value.trim();
-    if(!/^\d{3,}$/.test(v)) return flash($('ownerNote'),'ID — это число');
-    if(ownersDraft.indexOf(v) >= 0) return flash($('ownerNote'),'Уже в списке');
-    ownersDraft.push(v); $('ownerNew').value=''; renderOwners();
-  });
-  function saveOwners(){
-    if(ownersDraft.indexOf(myId) < 0){ flash($('ownerNote'),'Нельзя убрать себя'); return Promise.reject(new Error('validation')); }
-    return api('PUT','/admin/owners', ownersDraft)
-      .then(function(r){ ownersDraft = (r.owners||[]).slice(); renderOwners(); flash($('ownerNote'),'Команда обновлена',true); })
-      .catch(function(e){ flash($('ownerNote'), e.message); throw e; });
-  }
-  svRegister('team', function(){ return ownersDraft; }, saveOwners);
-  ['input','change','click'].forEach(function(evt){
-    $('sec-team').addEventListener(evt, function(){ svCheck('team'); });
-  });
 
   // ---------- Уведомления ----------
   // Каталог событий и текущие значения приходят с сервера (GET /admin/notifications).
@@ -4563,7 +4571,99 @@
         else $('ntBody').innerHTML = '<span class="muted">Не удалось загрузить: ' + esc(e.message) + '</span>';
       });
   }
-  loadNotify();
+
+  // ---------- Роль и команда ----------
+  // ROLE приходит из /api/session/me (membership этой студии) в boot().
+  // Администратору прячем разделы владельца; сервер их всё равно не отдаст.
+  var ROLE = 'owner';
+  var OWNER_ONLY_FOLDERS = ['main', 'halls', 'equipment', 'team', 'integrations', 'notify'];
+  function applyRole(role){
+    ROLE = role === 'admin' ? 'admin' : 'owner';
+    window.PS_ROLE = ROLE;
+    OWNER_ONLY_FOLDERS.forEach(function(f){
+      var b = document.querySelector('.nav-folder[data-folder="' + f + '"]');
+      if(b) b.hidden = ROLE !== 'owner';
+    });
+    if(window.PS_RESELECT_FOLDER) window.PS_RESELECT_FOLDER();
+    if(ROLE === 'owner'){ loadNotify(); loadTeam(); }
+  }
+
+  var TEAM_ROLE_RU = { owner:'владелец', admin:'администратор' };
+  function teamDate(v){
+    var d = new Date(v);
+    return isNaN(d) ? '' : d.toLocaleDateString('ru-RU', { day:'numeric', month:'long' });
+  }
+  function renderTeam(t){
+    var box = $('teamList');
+    box.innerHTML = t.members.map(function(m){
+      var sub = [m.username ? '@' + m.username : '', m.phone ? phonePretty(m.phone) : '',
+                 m.telegramId ? '' : 'нет Telegram — уведомления не придут'].filter(Boolean).join(' · ');
+      var ctl = m.isMe
+        ? '<span class="muted">' + TEAM_ROLE_RU[m.role] + ' · вы</span>'
+        : '<select data-role="' + esc(m.userId) + '">' +
+            '<option value="owner"' + (m.role === 'owner' ? ' selected' : '') + '>владелец</option>' +
+            '<option value="admin"' + (m.role === 'admin' ? ' selected' : '') + '>администратор</option></select>' +
+          '<button class="del" type="button" data-remove="' + esc(m.userId) + '" data-name="' + esc(m.name) + '" title="Убрать из команды">✕</button>';
+      return '<div class="tm-row"><div class="tm-who"><div class="tm-name">' + esc(m.name) + '</div>' +
+             (sub ? '<div class="tm-sub">' + esc(sub) + '</div>' : '') + '</div>' + ctl + '</div>';
+    }).join('');
+    var inv = t.invites || [];
+    $('invList').innerHTML = inv.length
+      ? '<div class="muted" style="margin-top:14px">Ждут ответа:</div>' + inv.map(function(i){
+          return '<div class="tm-row"><div class="tm-who"><div>Ссылка для ' + (i.role === 'owner' ? 'совладельца' : 'администратора') + '</div>' +
+                 '<div class="tm-sub">создана ' + esc(teamDate(i.createdAt)) + ', действует до ' + esc(teamDate(i.expiresAt)) + '</div></div>' +
+                 '<button class="btn ghost small" type="button" data-revoke="' + esc(i.id) + '">Отозвать</button></div>';
+        }).join('')
+      : '';
+  }
+  function loadTeam(){
+    return api('GET', '/admin/team').then(renderTeam)
+      .catch(function(e){ $('teamList').innerHTML = '<span class="muted">Не удалось загрузить: ' + esc(e.message) + '</span>'; });
+  }
+  function teamAct(p, okMsg){
+    return p.then(function(t){ renderTeam(t); if(okMsg) flash($('teamNote'), okMsg, true); })
+      .catch(function(e){ flash($('teamNote'), e.message); loadTeam(); });
+  }
+  $('teamList').addEventListener('change', function(e){
+    var id = e.target.dataset && e.target.dataset.role;
+    if(!id) return;
+    teamAct(api('PUT', '/admin/team/' + encodeURIComponent(id), { role: e.target.value }), 'Роль изменена');
+  });
+  $('sec-team').addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('button') : null;
+    if(!b) return;
+    if(b.dataset.remove){
+      if(!confirm('Убрать «' + b.dataset.name + '» из команды? Доступ к кабинету студии пропадёт сразу.')) return;
+      teamAct(api('DELETE', '/admin/team/' + encodeURIComponent(b.dataset.remove)), 'Убран из команды');
+    } else if(b.dataset.revoke){
+      teamAct(api('DELETE', '/admin/invites/' + encodeURIComponent(b.dataset.revoke)), 'Ссылка отозвана');
+    }
+  });
+  function createInvite(role){
+    ['invAdmin','invOwner'].forEach(function(id){ $(id).disabled = true; });
+    api('POST', '/admin/invites', { role: role }).then(function(inv){
+      $('invNewLabel').textContent = 'Ссылка для ' + (role === 'owner' ? 'совладельца' : 'администратора') + ':';
+      $('invNewUrl').value = inv.url;
+      var text = 'Приглашаю вас в команду студии «' + ($('sName').textContent || '') + '» в Poont';
+      $('invShare').href = 'https://t.me/share/url?url=' + encodeURIComponent(inv.url) + '&text=' + encodeURIComponent(text);
+      $('invNew').hidden = false;
+      $('invNewUrl').select();
+      loadTeam();
+    }).catch(function(e){ flash($('teamNote'), e.message); })
+      .then(function(){ ['invAdmin','invOwner'].forEach(function(id){ $(id).disabled = false; }); });
+  }
+  $('invAdmin').addEventListener('click', function(){ createInvite('admin'); });
+  $('invOwner').addEventListener('click', function(){
+    if(!confirm('Совладелец получит такие же права, как у вас: настройки, цены, команда — в том числе сможет убрать других владельцев. Создать ссылку?')) return;
+    createInvite('owner');
+  });
+  $('invCopy').addEventListener('click', function(){
+    var inp = $('invNewUrl');
+    var done = function(){ flash($('teamNote'), 'Ссылка скопирована', true); };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(inp.value).then(done, function(){ inp.select(); document.execCommand('copy'); done(); });
+    } else { inp.select(); document.execCommand('copy'); done(); }
+  });
 
   $('clearHist').addEventListener('click', function(){
     if(!confirm('Убрать прошедшие брони из списка? Данные не удаляются — просто не будут тут показываться. Активные и предстоящие не тронутся.')) return;
@@ -4588,7 +4688,6 @@
     loadCloseQueue();
     var blocksP = api('GET', '/admin/blocks').catch(function(){ return null; });
     return api('GET', '/admin/overview').then(function(ov){
-      myId = String(ov.me || '');
       (ov.halls||[]).forEach(function(h){ HALLS_BY_ID[h.id] = h; });
       // load() перевызывается после КАЖДОГО действия на дашборде (подтвердить
       // бронь, закрыть, создать по звонку...) — не только при заходе в
@@ -4609,17 +4708,13 @@
         equipDraft = (ov.equipment||[]).filter(function(e){return e.active!==false;}).map(function(e){return {id:e.id,name:e.name,price:e.price,unit:e.unit};});
         svSnap('equipment');
       }
-      if(!SV.dirty.team){
-        ownersDraft = (ov.owners||[]).slice();
-        svSnap('team');
-      }
       $('stCount').textContent = ov.stats.count;
       $('stEarned').textContent = ov.stats.earned;
       $('stUpcoming').textContent = ov.stats.upcoming;
       $('stAvg').textContent = ov.stats.avgCheck;
       dashTotal = Number.isFinite(ov.bookingsTotal) ? ov.bookingsTotal : (ov.bookings || []).length;
       dashPendingTotal = Number.isFinite(ov.pendingCount) ? ov.pendingCount : 0;
-      renderHalls(); renderEquip(); renderOwners();
+      renderHalls(); renderEquip();
       renderBookings(ov.bookings || []);
       // Ещё раз — уже с названиями залов: очередь приходит своим запросом и
       // могла отрисоваться раньше overview, когда HALLS_BY_ID ещё пуст.
@@ -4779,7 +4874,7 @@
     CL.stats = known;
     $('clTitle').textContent = known.name || 'Клиент';
     clFill(known);
-    $('clDelete').hidden = false;
+    $('clDelete').hidden = ROLE !== 'owner';        // удалить клиента — только владелец
     $('clStatsBtn').hidden = false;
     clUpdateRating(known);
     $('clFaults').innerHTML = clFaultsHtml(known);
@@ -5908,6 +6003,7 @@
       .then(function(me){
         (me.memberships || []).forEach(function(m){ if(m.studioId === STUDIO_ID) membership = m; });
         if(!membership){ var e = new Error('not a member'); e.status = 403; throw e; }
+        applyRole(membership.role);
         return api('GET','/config');
       })
       .then(function(cfg){
@@ -5971,7 +6067,7 @@
       .catch(function(e){
         $('loading').hidden = true; $('denied').hidden = false;
         $('deniedMsg').textContent = e.status === 403
-          ? 'Вы не владелец этой студии.'
+          ? 'У вас нет доступа к этой студии.'
           : (e.status === 401 ? 'Сессия истекла — войдите заново.' : (e.message || 'Не удалось загрузить студию.'));
         if(e.status === 401){ try{ localStorage.removeItem(TOKEN_KEY); }catch(x){} setTimeout(function(){ location.href='./cabinet.html'; }, 1200); }
       });

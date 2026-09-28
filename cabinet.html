@@ -99,6 +99,17 @@
 
   <div id="loading" class="card"><p style="margin:0">Загрузка…</p></div>
 
+  <!-- Приглашение в команду студии (?invite=…) -->
+  <div id="inviteCard" class="card" hidden>
+    <h2 id="inviteTitle">Приглашение в команду</h2>
+    <p id="inviteText" style="margin-bottom:0"></p>
+    <div id="inviteJoin" hidden>
+      <button class="btn full" id="inviteJoinBtn" type="button" style="margin-top:14px">Присоединиться</button>
+      <p class="muted" id="inviteWho" style="margin:10px 0 0"></p>
+    </div>
+    <div id="inviteErr" class="err" hidden></div>
+  </div>
+
   <!-- ВХОД -->
   <div id="loginCard" class="card" hidden>
     <h2>Авторизация</h2>
@@ -247,7 +258,7 @@
     var box = $('studios');
     var list = me.memberships || [];
     if(!list.length){
-      box.innerHTML = '<div class="empty">Вы пока не привязаны ни к одной студии. Попросите владельца добавить ваш Telegram ID.</div>';
+      box.innerHTML = '<div class="empty">Вы пока не привязаны ни к одной студии. Попросите владельца студии прислать вам ссылку-приглашение.</div>';
     } else {
       box.innerHTML = '';
       list.forEach(function(m){
@@ -266,9 +277,86 @@
     }
   }
 
-  function loadMe(user){
+
+  // ---------- Приглашение в команду (?invite=…) ----------
+  // Токен из ссылки запоминаем в localStorage: пока человек входит (через бота
+  // вкладку могут выгрузить), он не должен потеряться. После свежего входа
+  // принимаем сами — человек входил ради этого. Если уже был вошедшим —
+  // спрашиваем кнопкой: вдруг в браузере чужой аккаунт (или владелец открыл
+  // свою ссылку проверить).
+  var INVITE_KEY = 'ps_pending_invite';
+  var INVITE_MAX_AGE = 24 * 3600 * 1000;
+  var invite = null;          // { token, studioName, role }
+  function inviteRoleLabel(role){ return role === 'owner' ? 'совладельца' : 'администратора'; }
+  function readPendingInvite(){
+    var fromUrl = new URLSearchParams(location.search).get('invite');
+    if(fromUrl){
+      try{ localStorage.setItem(INVITE_KEY, JSON.stringify({ token: fromUrl, at: Date.now() })); }catch(e){}
+      try{ history.replaceState(null, '', location.pathname); }catch(e){}
+      return fromUrl;
+    }
+    var saved = null;
+    try{ saved = JSON.parse(localStorage.getItem(INVITE_KEY) || 'null'); }catch(e){}
+    if(saved && saved.token && Date.now() - saved.at < INVITE_MAX_AGE) return saved.token;
+    clearPendingInvite();
+    return null;
+  }
+  function clearPendingInvite(){ invite = null; try{ localStorage.removeItem(INVITE_KEY); }catch(e){} }
+  function inviteError(msg){
+    show($('inviteCard')); hide($('inviteJoin'));
+    $('inviteErr').textContent = msg; show($('inviteErr'));
+  }
+  function loadInvite(token){
+    return api('GET', '/api/invites/' + encodeURIComponent(token)).then(function(d){
+      if(d.status !== 'ok'){
+        clearPendingInvite();
+        var why = { used:'уже использована', expired:'устарела', revoked:'отозвана владельцем' }[d.status] || 'недействительна';
+        $('inviteText').textContent = 'Ссылка-приглашение в студию ' + d.studioName + ' ' + why + '. Попросите владельца прислать новую.';
+        show($('inviteCard'));
+        return;
+      }
+      invite = { token: token, studioName: d.studioName, role: d.role };
+      // Название студии само часто в кавычках («Фотостудия «Свет»»), поэтому без своих.
+      $('inviteTitle').textContent = 'Вас пригласили в команду студии';
+      $('inviteText').textContent = d.studioName + '. Роль — ' + (d.role === 'owner' ? 'совладелец: полный доступ к студии.' :
+        'администратор: брони, клиенты и блокировки времени. Настройки студии остаются у владельца.');
+      show($('inviteCard'));
+    }).catch(function(){
+      clearPendingInvite();
+      inviteError('Ссылка-приглашение не найдена. Проверьте, что скопировали её целиком.');
+    });
+  }
+  function acceptInvite(){
+    if(!invite) return Promise.resolve(false);
+    var btn = $('inviteJoinBtn'); btn.disabled = true; hide($('inviteErr'));
+    return api('POST', '/api/invites/' + encodeURIComponent(invite.token) + '/accept', null, true).then(function(r){
+      clearPendingInvite();
+      location.href = './studio.html?id=' + encodeURIComponent(r.studioId);
+      return true;
+    }).catch(function(e){
+      btn.disabled = false;
+      if(e.status === 401) throw e;              // сессия протухла — пусть решает общий обработчик
+      clearPendingInvite();
+      inviteError(e.message || 'Не удалось принять приглашение');
+      return false;
+    });
+  }
+  $('inviteJoinBtn').addEventListener('click', function(){ acceptInvite(); });
+  function offerInvite(me, user){
+    if(!invite) return;
+    var who = (user && (user.firstName || (user.username && '@' + user.username))) || ('id ' + me.userId);
+    $('inviteWho').textContent = 'Вы вошли как ' + who + '. Это не вы? Нажмите «Выйти» ниже и войдите под своим аккаунтом.';
+    show($('inviteJoin'));
+  }
+
+  // fresh — вход только что состоялся (по боту или коду): приглашение принимаем
+  // сразу; при уже открытой сессии — только по кнопке.
+  function loadMe(user, fresh){
     return api('GET', '/api/session/me', null, true).then(function(me){
-      renderApp(me, user || me.user || null);
+      var u = user || me.user || null;
+      if(invite && fresh) return acceptInvite().then(function(went){ if(!went) renderApp(me, u); });
+      renderApp(me, u);
+      offerInvite(me, u);
     });
   }
 
@@ -414,7 +502,7 @@
       });
     }).then(function(res){
       setToken(res.token);
-      return loadMe(null);
+      return loadMe(null, true);
     }).catch(function(e){
       var err = $('phoneErr'); err.textContent = e.message; show(err);
     }).finally(function(){
@@ -517,7 +605,7 @@
       if(botLogin !== cur) return;
       if(d.status === 'ok'){
         botStop(); setToken(d.token); botReset();
-        return loadMe(null).catch(function(e){ setToken(''); botFail(e.message || 'Не удалось войти'); });
+        return loadMe(null, true).catch(function(e){ setToken(''); botFail(e.message || 'Не удалось войти'); });
       }
       if(d.status === 'expired' || d.status === 'consumed') return botFail('Вход истёк — нажмите «Назад» и начните заново.');
       if(manual){
@@ -570,15 +658,19 @@
     if(!resumeBotLogin()) prepareBotLogin();
   }
 
-  // старт
-  if(getToken()){
-    loadMe(null).catch(function(){
-      setToken('');
+  // старт: сначала разбираемся с приглашением (если есть), чтобы кнопка
+  // «Присоединиться» не разминулась с уже открытой сессией.
+  var inviteToken = readPendingInvite();
+  (inviteToken ? loadInvite(inviteToken) : Promise.resolve()).then(function(){
+    if(getToken()){
+      loadMe(null).catch(function(){
+        setToken('');
+        showLoginCard();
+      });
+    } else {
       showLoginCard();
-    });
-  } else {
-    showLoginCard();
-  }
+    }
+  });
 })();
 </script>
 </body>
