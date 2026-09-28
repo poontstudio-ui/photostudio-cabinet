@@ -79,6 +79,9 @@
     border-radius:var(--r-sm);color:var(--text);font:inherit;font-size:13px;padding:9px 11px;}
   .field input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-bg);}
   .btn:disabled{opacity:.55;cursor:default;}
+  /* Вход через бота — настоящие <a href>: см. prepareBotLogin. */
+  a.btn{text-decoration:none;} a.btn:hover{text-decoration:none;}
+  .btn[aria-disabled="true"]{opacity:.55;pointer-events:none;}
   .btn.full{width:100%;}
   .rowbtns{display:flex;gap:8px;margin-top:8px;}
   .rowbtns .btn{flex:1;}
@@ -97,11 +100,11 @@
     <p>Войдите через Telegram — бот подтвердит ваш номер телефона.</p>
 
     <div id="botStep1">
-      <button class="btn full" id="botLoginBtn" type="button">Войти через Telegram</button>
+      <a class="btn full" id="botLoginBtn" href="#" aria-disabled="true" rel="noopener">Войти через Telegram</a>
     </div>
     <div id="botStep2" hidden>
-      <p class="muted" style="margin:0 0 10px">Откройте бота, нажмите «Пройти авторизацию» и поделитесь номером телефона. Затем вернитесь сюда — вход завершится сам, или нажмите «Готово».</p>
-      <button class="btn full" id="botOpenBtn" type="button">Открыть Telegram</button>
+      <p class="muted" style="margin:0 0 10px">Откройте бота, нажмите «Пройти авторизацию» и поделитесь номером телефона. Затем вернитесь сюда — вход завершится сам.</p>
+      <a class="btn full" id="botOpenBtn" href="#" aria-disabled="true" rel="noopener">Открыть Telegram</a>
       <div class="rowbtns">
         <button class="btn ghost" id="botDoneBtn" type="button">Готово</button>
         <button class="btn ghost" id="botBackBtn" type="button">Назад</button>
@@ -410,20 +413,80 @@
   });
 
   // ---------- Вход через бота платформы (0047) ----------
-  // Тот же поток, что в клиентском приложении: /api/auth/bot/start даёт t.me-
-  // ссылку и секрет этой вкладки, человек делится номером в боте, а мы
-  // опрашиваем /check (раз в 2.5 с или по «Готово») и забираем сессию.
-  var botLogin = null;   // { token, secret, url, timer, checking }
+  // Тот же поток, что в клиентском приложении (см. там подробный комментарий):
+  // вход заготавливается заранее, чтобы «Войти через Telegram» была настоящей
+  // ссылкой <a href="https://t.me/...">, по которой человек тапает сам. На
+  // телефоне она идёт в ЭТОЙ ЖЕ вкладке — универсальная ссылка открывает
+  // приложение Telegram, а наша вкладка остаётся; window.open('about:blank')
+  // оставлял после возврата техническую вкладку t.me. На десктопе — в новой.
+  // Возврат во вкладку проверяет вход сразу; ожидающий вход лежит в
+  // localStorage на случай, если Safari выгрузит вкладку.
+  var BOT_LOGIN_STORE = 'ps_cabinet_bot_login';
+  var BOT_LOGIN_MAX_AGE = 9 * 60 * 1000;   // сервер держит вход 10 минут
+  var botPrepared = null;   // { token, secret, url, at } — заготовлен, ждёт тапа
+  var botLogin = null;      // { token, secret, url, at, timer, checking } — идёт ожидание
+  var botPrepareSeq = 0;
+
+  function isMobileBrowser(){
+    var ua = navigator.userAgent || '';
+    return /iPhone|iPad|iPod|Android/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  }
+  function setTgLink(a, url){
+    if(url){
+      a.href = url;
+      a.target = isMobileBrowser() ? '_self' : '_blank';
+      a.setAttribute('aria-disabled', 'false');
+    } else {
+      a.href = '#';
+      a.removeAttribute('target');
+      a.setAttribute('aria-disabled', 'true');
+    }
+  }
+  function persistBotLogin(){
+    if(!botLogin) return;
+    try{ localStorage.setItem(BOT_LOGIN_STORE, JSON.stringify({ token: botLogin.token, secret: botLogin.secret, url: botLogin.url, at: botLogin.at })); }catch(e){}
+  }
+  function clearPersistedBotLogin(){ try{ localStorage.removeItem(BOT_LOGIN_STORE); }catch(e){} }
+
   function botStop(){
-    if(botLogin && botLogin.timer) clearInterval(botLogin.timer);
-    if(botLogin) botLogin.timer = null;
+    if(botLogin && botLogin.timer){ clearInterval(botLogin.timer); botLogin.timer = null; }
   }
-  function botReset(){ botStop(); botLogin = null; $('botStep1').hidden = false; $('botStep2').hidden = true; }
+  function botReset(){
+    botStop(); clearPersistedBotLogin(); botLogin = null;
+    $('botStep1').hidden = false; $('botStep2').hidden = true;
+  }
   function botFail(msg){
-    botStop();
+    botStop(); clearPersistedBotLogin();
     $('botErr').textContent = msg; show($('botErr'));
-    $('botOpenBtn').disabled = true; $('botDoneBtn').disabled = true;
+    setTgLink($('botOpenBtn'), null); $('botDoneBtn').disabled = true;
   }
+
+  function prepareBotLogin(){
+    botPrepared = null;
+    setTgLink($('botLoginBtn'), null);
+    var mine = ++botPrepareSeq;
+    return api('POST', '/api/auth/bot/start', {}, false).then(function(d){
+      if(mine !== botPrepareSeq) return;
+      botPrepared = { token: d.token, secret: d.secret, url: d.url, at: Date.now() };
+      setTgLink($('botLoginBtn'), d.url);
+    }).catch(function(e){
+      if(mine !== botPrepareSeq) return;
+      $('botErr').textContent = 'Вход через Telegram недоступен: ' + (e.message || 'не удалось подготовить вход'); show($('botErr'));
+    });
+  }
+
+  // Экран ожидания. Навигация по ссылке идёт своим ходом (нативный тап по <a>).
+  function beginBotWaiting(p){
+    botStop();
+    botLogin = { token: p.token, secret: p.secret, url: p.url, at: p.at, timer: null, checking: false };
+    persistBotLogin();
+    botLogin.timer = setInterval(function(){ botCheck(false); }, 2500);
+    hide($('botErr'));
+    setTgLink($('botOpenBtn'), p.url);
+    $('botDoneBtn').disabled = false;
+    $('botStep1').hidden = true; $('botStep2').hidden = false;
+  }
+
   function botCheck(manual){
     var cur = botLogin;
     if(!cur || cur.checking) return;
@@ -448,34 +511,51 @@
       if(manual){ $('botErr').textContent = 'Нет связи — попробуйте ещё раз.'; show($('botErr')); }
     }).then(function(){ cur.checking = false; });
   }
-  $('botLoginBtn').addEventListener('click', function(){
-    hide($('botErr'));
-    // Вкладку под Telegram открываем сразу, в жесте пользователя: после
-    // запроса браузер заблокировал бы window.open.
-    var popup = window.open('about:blank', '_blank');
-    api('POST', '/api/auth/bot/start', {}, false).then(function(d){
-      botLogin = { token: d.token, secret: d.secret, url: d.url, timer: null, checking: false };
-      botLogin.timer = setInterval(function(){ botCheck(false); }, 2500);
-      $('botOpenBtn').disabled = false; $('botDoneBtn').disabled = false;
-      $('botStep1').hidden = true; $('botStep2').hidden = false;
-      if(popup) popup.location.href = d.url;
-    }).catch(function(e){
-      if(popup) popup.close();
-      $('botErr').textContent = e.message || 'Не удалось начать вход'; show($('botErr'));
-    });
+
+  $('botLoginBtn').addEventListener('click', function(e){
+    if($('botLoginBtn').getAttribute('aria-disabled') === 'true' || !botPrepared){ e.preventDefault(); return; }
+    // Заготовка залежалась — старая ссылка уже не сработает: готовим новую, тап повторить.
+    if(Date.now() - botPrepared.at > BOT_LOGIN_MAX_AGE){ e.preventDefault(); prepareBotLogin(); return; }
+    var p = botPrepared;
+    botPrepared = null;
+    beginBotWaiting(p);
   });
-  $('botOpenBtn').addEventListener('click', function(){ if(botLogin) window.open(botLogin.url, '_blank'); });
+  $('botOpenBtn').addEventListener('click', function(e){
+    if($('botOpenBtn').getAttribute('aria-disabled') === 'true') e.preventDefault();
+  });
   $('botDoneBtn').addEventListener('click', function(){ hide($('botErr')); botCheck(true); });
-  $('botBackBtn').addEventListener('click', function(){ hide($('botErr')); $('botOpenBtn').disabled = false; $('botDoneBtn').disabled = false; botReset(); });
+  $('botBackBtn').addEventListener('click', function(){ hide($('botErr')); botReset(); prepareBotLogin(); });
+  // Вернулись во вкладку из Telegram — проверяем сразу, не дожидаясь таймера.
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'visible' && botLogin) botCheck(false);
+  });
+  window.addEventListener('pageshow', function(){ if(botLogin) botCheck(false); });
+
+  // Вкладку могли выгрузить, пока человек был в Telegram: подхватываем ожидающий вход.
+  function resumeBotLogin(){
+    var saved = null;
+    try{ saved = JSON.parse(localStorage.getItem(BOT_LOGIN_STORE) || 'null'); }catch(e){}
+    if(!saved || !saved.token || !saved.secret || Date.now() - saved.at > BOT_LOGIN_MAX_AGE || getToken()){
+      clearPersistedBotLogin();
+      return false;
+    }
+    beginBotWaiting(saved);
+    botCheck(false);
+    return true;
+  }
+  function showLoginCard(){
+    hide($('loading')); show($('loginCard'));
+    if(!resumeBotLogin()) prepareBotLogin();
+  }
 
   // старт
   if(getToken()){
     loadMe(null).catch(function(){
       setToken('');
-      hide($('loading')); show($('loginCard'));
+      showLoginCard();
     });
   } else {
-    hide($('loading')); show($('loginCard'));
+    showLoginCard();
   }
 })();
 </script>
