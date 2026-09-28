@@ -69,6 +69,38 @@
   .rowbtns{display:flex;gap:6px;flex-wrap:wrap;}
   .muted{color:var(--text-2);font-size:12px;}
   .err{color:var(--red);font-size:13px;}
+
+  .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0;}
+  .filters input[type=search],.filters select,.field,.area{font:inherit;font-size:13px;color:var(--text);
+       background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--r-sm);padding:7px 10px;}
+  .filters input[type=search]{min-width:200px;flex:1;}
+  .chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2);cursor:pointer;}
+  .badge.ok{color:var(--green);border-color:#bfe3cd;background:var(--green-bg);}
+  .badge.blocked{color:var(--red);border-color:#f0c9c9;background:var(--red-bg);}
+  .badge.sending{color:var(--blue);border-color:#b9d5f8;background:var(--blue-bg);}
+  .badge.done{color:var(--green);border-color:#bfe3cd;background:var(--green-bg);}
+  td.chkcell,th.chkcell{width:32px;padding-right:0;}
+  tr.sel td{background:var(--blue-bg);}
+  .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px;}
+  .bar .grow{flex:1;}
+  .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff;}
+  .btn.primary:hover{background:var(--blue-dark);color:#fff;}
+  .btn:disabled{opacity:.5;cursor:default;}
+  .compose{border:1px solid var(--border-strong);border-radius:var(--r-sm);padding:16px;margin-top:14px;background:var(--surface-2);}
+  .compose label{display:block;font-size:12px;color:var(--text-2);margin:12px 0 4px;}
+  .compose label:first-child{margin-top:0;}
+  .area{width:100%;min-height:120px;resize:vertical;line-height:1.45;}
+  .field{width:100%;}
+  .two{display:grid;grid-template-columns:1fr 2fr;gap:10px;}
+  .warnbox{background:var(--amber-bg);color:var(--amber);border-radius:var(--r-sm);padding:9px 12px;font-size:12px;margin-top:12px;}
+  .bc{padding:12px 0;border-bottom:1px solid var(--border);}
+  .bc:last-child{border-bottom:none;}
+  .bc-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .bc-text{margin:6px 0;white-space:pre-wrap;word-break:break-word;max-height:4.5em;overflow:hidden;}
+  .bc-stats{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--f-mono);font-size:12px;color:var(--text-2);}
+  .bc-stats b{color:var(--text);}
+  .prog{height:4px;background:var(--border);border-radius:2px;margin:8px 0 2px;overflow:hidden;}
+  .prog i{display:block;height:100%;background:var(--blue);}
 </style>
 </head>
 <body>
@@ -94,6 +126,59 @@
         <thead><tr><th>Город</th><th class="num">Студий</th><th class="num">Активных броней</th></tr></thead>
         <tbody></tbody>
       </table></div>
+    </div>
+
+    <div class="card">
+      <h2>Пользователи <span class="muted" id="userCount"></span></h2>
+      <div class="tiles" id="userTiles"></div>
+      <div class="filters">
+        <input type="search" id="uQ" placeholder="Имя, @username или телефон">
+        <select id="uSegment">
+          <option value="all">Все</option>
+          <option value="customers">Клиенты (были брони)</option>
+          <option value="staff">Владельцы и команда</option>
+        </select>
+        <select id="uCity"><option value="">Все города</option></select>
+        <label class="chk"><input type="checkbox" id="uReach"> только доступные в Telegram</label>
+      </div>
+      <div class="scroll"><table id="userTable">
+        <thead><tr>
+          <th class="chkcell"><input type="checkbox" id="uAll" title="Выбрать всех доступных на странице"></th>
+          <th>Пользователь</th><th>Телефон</th><th>Telegram</th><th class="num">Броней</th><th>Был</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <div class="bar">
+        <button class="btn" id="uMore" hidden>Показать ещё</button>
+        <span class="muted grow" id="uInfo"></span>
+        <button class="btn primary" id="uWriteSel" disabled>Написать выбранным</button>
+        <button class="btn primary" id="uWriteAll">Написать всем по фильтру</button>
+      </div>
+
+      <div class="compose" id="compose" hidden>
+        <b id="cTitle">Новая рассылка</b>
+        <div class="muted" id="cAud"></div>
+        <label for="cText">Текст</label>
+        <textarea class="area" id="cText" maxlength="3500" placeholder="Привет, {имя}! …"></textarea>
+        <div class="muted">Вместо <code>{имя}</code> подставится имя человека (или «друг»). Форматирование не поддерживается — текст уходит как есть.</div>
+        <div class="two">
+          <div><label for="cBtnText">Кнопка (необязательно)</label><input class="field" id="cBtnText" maxlength="64" placeholder="Открыть"></div>
+          <div><label for="cBtnUrl">Ссылка кнопки</label><input class="field" id="cBtnUrl" maxlength="500" placeholder="https://…"></div>
+        </div>
+        <div class="warnbox">Рассылка идёт от того же бота, что и уведомления о бронях и вход. Если получатели начнут блокировать бота, перестанут доходить и уведомления. Согласия на рассылки пока не собираются.</div>
+        <div class="bar">
+          <span class="muted grow" id="cCount"></span>
+          <button class="btn" id="cCancel">Закрыть</button>
+          <button class="btn" id="cTest">Тест мне</button>
+          <button class="btn primary" id="cSend">Отправить</button>
+        </div>
+        <div class="muted" id="cMsg" style="margin-top:8px"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Рассылки</h2>
+      <div id="bcList"><span class="muted">Пока не было</span></div>
     </div>
 
     <div class="card">
@@ -192,9 +277,207 @@
     });
   }
 
+  // ---------- Пользователи ----------
+  var PAGE = 50;
+  var selected = {};            // id -> true, сохраняется между страницами и фильтрами
+  var loaded = [];              // уже показанные строки
+  var uTotal = 0, uReachable = 0, uTimer = null, uSeq = 0;
+  function selCount(){ return Object.keys(selected).length; }
+
+  function fmtDate(v){
+    if(!v) return '—';
+    var d = new Date(v); if(isNaN(d)) return '—';
+    return d.toLocaleDateString('ru-RU', { day:'numeric', month:'short' }) + ' ' +
+           d.toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
+  }
+  function userName(u){
+    var n = [u.firstName, u.lastName].filter(Boolean).join(' ');
+    return n || (u.username ? '@' + u.username : 'без имени');
+  }
+  function tgBadge(u){
+    if(u.telegramId && u.botBlocked) return '<span class="badge blocked" title="Заблокировал бота — рассылка не дойдёт">заблокировал</span>';
+    if(u.telegramId) return '<span class="badge ok">доступен</span>';
+    return '<span class="badge" title="Вошёл по телефону — бот не может ему написать">нет</span>';
+  }
+  function reachable(u){ return !!u.telegramId && !u.botBlocked; }
+
+  function renderUserSummary(sm){
+    var tiles = [
+      { v: sm.total, l: 'Всего' },
+      { v: sm.reachable, l: 'Можно написать' },
+      { v: sm.blocked, l: 'Заблокировали бота', warn: sm.blocked > 0 },
+      { v: sm.phoneOnly, l: 'Только телефон' }
+    ];
+    $('userTiles').innerHTML = tiles.map(function(t){
+      return '<div class="tile' + (t.warn ? ' warn' : '') + '"><div class="v">' + esc(t.v) + '</div><div class="l">' + esc(t.l) + '</div></div>';
+    }).join('');
+  }
+
+  function renderUserRows(){
+    var tb = $('userTable').querySelector('tbody');
+    tb.innerHTML = loaded.map(function(u){
+      var can = reachable(u), on = !!selected[u.id];
+      return '<tr' + (on ? ' class="sel"' : '') + '>' +
+        '<td class="chkcell"><input type="checkbox" data-id="' + esc(u.id) + '"' + (on ? ' checked' : '') + (can ? '' : ' disabled') + '></td>' +
+        '<td>' + esc(userName(u)) + (u.username ? '<div class="muted">@' + esc(u.username) + '</div>' : '') +
+          (u.ownedStudios ? '<div class="muted">владелец: ' + esc(u.ownedStudios) + '</div>' : '') + '</td>' +
+        '<td>' + esc(u.phone || '—') + '</td>' +
+        '<td>' + tgBadge(u) + '</td>' +
+        '<td class="num">' + esc(u.bookings) + '</td>' +
+        '<td class="muted">' + esc(fmtDate(u.lastSeen)) + '</td></tr>';
+    }).join('') || '<tr><td colspan="6" class="muted">Никого не найдено</td></tr>';
+    $('uMore').hidden = loaded.length >= uTotal;
+    $('uInfo').textContent = 'Показано ' + loaded.length + ' из ' + uTotal + ' · доступны в Telegram: ' + uReachable;
+    $('userCount').textContent = '· ' + uTotal;
+    $('uWriteSel').textContent = 'Написать выбранным' + (selCount() ? ' (' + selCount() + ')' : '');
+    $('uWriteSel').disabled = !selCount();
+    $('uWriteAll').disabled = !uReachable;
+    $('uWriteAll').textContent = 'Написать всем по фильтру' + (uReachable ? ' (' + uReachable + ')' : '');
+  }
+
+  function userQuery(offset){
+    var qs = [];
+    var q = $('uQ').value.trim();
+    if(q) qs.push('q=' + encodeURIComponent(q));
+    qs.push('segment=' + encodeURIComponent($('uSegment').value));
+    if($('uCity').value) qs.push('city=' + encodeURIComponent($('uCity').value));
+    if($('uReach').checked) qs.push('reachable=1');
+    if(offset != null) qs.push('limit=' + PAGE, 'offset=' + offset);
+    return qs.join('&');
+  }
+  function audienceFromFilters(){
+    return { q: $('uQ').value.trim(), segment: $('uSegment').value, city: $('uCity').value, reachable: $('uReach').checked ? '1' : '' };
+  }
+
+  function loadUsers(append){
+    var seq = ++uSeq, offset = append ? loaded.length : 0;
+    return api('GET', '/api/platform/users?' + userQuery(offset)).then(function(r){
+      if(seq !== uSeq) return;                      // пришёл ответ на устаревший фильтр
+      loaded = append ? loaded.concat(r.users) : r.users;
+      uTotal = r.total; uReachable = r.reachable;
+      // при пустой выдаче total/reachable из оконных функций недоступны
+      if(!r.users.length && !append){ uTotal = 0; uReachable = 0; }
+      renderUserSummary(r.summary);
+      renderUserRows();
+    }).catch(function(e){ $('uInfo').textContent = e.message; });
+  }
+  function loadUsersSoon(){ clearTimeout(uTimer); uTimer = setTimeout(function(){ loadUsers(false); }, 300); }
+
+  function fillCities(ov){
+    var sel = $('uCity');
+    (ov.byCity || []).forEach(function(c){
+      var o = document.createElement('option'); o.value = c.city; o.textContent = c.city; sel.appendChild(o);
+    });
+  }
+
+  $('uQ').addEventListener('input', loadUsersSoon);
+  ['uSegment','uCity','uReach'].forEach(function(id){ $(id).addEventListener('change', function(){ loadUsers(false); }); });
+  $('uMore').addEventListener('click', function(){ loadUsers(true); });
+  $('userTable').addEventListener('change', function(e){
+    var t = e.target;
+    if(t.id === 'uAll'){
+      loaded.forEach(function(u){ if(reachable(u)){ if(t.checked) selected[u.id] = true; else delete selected[u.id]; } });
+      renderUserRows(); return;
+    }
+    var id = t.getAttribute && t.getAttribute('data-id');
+    if(!id) return;
+    if(t.checked) selected[id] = true; else delete selected[id];
+    renderUserRows();
+  });
+
+  // ---------- Составление рассылки ----------
+  var audience = null;   // {kind:'ids', ids:[…]} | {kind:'filter', filter:{…}}
+  function audienceBody(){
+    return audience.kind === 'ids' ? { userIds: audience.ids.map(Number) } : audience.filter;
+  }
+  function setMsg(t, isErr){ var m = $('cMsg'); m.textContent = t || ''; m.className = isErr ? 'err' : 'muted'; m.style.marginTop = '8px'; }
+
+  function openCompose(a){
+    audience = a;
+    $('compose').hidden = false;
+    $('cAud').textContent = a.kind === 'ids'
+      ? 'Получатели: выбранные вручную (' + a.ids.length + ')'
+      : 'Получатели: все по текущему фильтру, кому доступен бот';
+    $('cCount').textContent = 'Считаю получателей…';
+    setMsg('');
+    api('POST', '/api/platform/broadcasts', { text: 'x', audience: audienceBody(), dryRun: true })
+      .then(function(r){ $('cCount').textContent = 'Получателей: ' + r.recipients; audience.count = r.recipients; })
+      .catch(function(e){ $('cCount').textContent = ''; setMsg(e.message, true); });
+    $('compose').scrollIntoView({ behavior:'smooth', block:'nearest' });
+    $('cText').focus();
+  }
+  $('uWriteSel').addEventListener('click', function(){ openCompose({ kind:'ids', ids:Object.keys(selected) }); });
+  $('uWriteAll').addEventListener('click', function(){ openCompose({ kind:'filter', filter:audienceFromFilters() }); });
+  $('cCancel').addEventListener('click', function(){ $('compose').hidden = true; });
+
+  function payload(extra){
+    var b = { text: $('cText').value.trim(), buttonText: $('cBtnText').value.trim(), buttonUrl: $('cBtnUrl').value.trim(), audience: audienceBody() };
+    for(var k in extra) b[k] = extra[k];
+    return b;
+  }
+  function busy(on){ ['cSend','cTest','cCancel'].forEach(function(id){ $(id).disabled = on; }); }
+
+  $('cTest').addEventListener('click', function(){
+    busy(true); setMsg('Отправляю тест…');
+    api('POST', '/api/platform/broadcasts', payload({ test: true }))
+      .then(function(){ setMsg('Тест отправлен вам в Telegram — проверьте, как выглядит.'); loadBroadcasts(); })
+      .catch(function(e){ setMsg(e.message, true); })
+      .then(function(){ busy(false); });
+  });
+  $('cSend').addEventListener('click', function(){
+    if(!$('cText').value.trim()){ setMsg('Введите текст сообщения', true); return; }
+    busy(true); setMsg('Считаю получателей…');
+    // Число получателей считаем заново на сервере и подтверждаем именно его.
+    api('POST', '/api/platform/broadcasts', payload({ dryRun: true }))
+      .then(function(r){
+        if(!confirm('Отправить сообщение ' + r.recipients + ' получателям?\nОтменить отправку после запуска нельзя.')) { setMsg(''); return; }
+        return api('POST', '/api/platform/broadcasts', payload({ confirmCount: r.recipients }))
+          .then(function(d){
+            setMsg('Рассылка запущена: ' + d.total + ' получателей.');
+            $('cText').value = '';
+            selected = {}; renderUserRows();
+            loadBroadcasts();
+          });
+      })
+      .catch(function(e){ setMsg(e.message, true); })
+      .then(function(){ busy(false); });
+  });
+
+  // ---------- История рассылок ----------
+  var bcTimer = null;
+  function renderBroadcasts(list){
+    if(!list.length){ $('bcList').innerHTML = '<span class="muted">Пока не было</span>'; return; }
+    $('bcList').innerHTML = list.map(function(b){
+      var done = b.sent + b.blocked + b.failed;
+      var pct = b.total ? Math.round(done * 100 / b.total) : 100;
+      return '<div class="bc"><div class="bc-top">' +
+        '<span class="badge ' + esc(b.status) + '">' + (b.status === 'sending' ? 'идёт' : 'завершена') + '</span>' +
+        (b.isTest ? '<span class="badge">тест</span>' : '') +
+        '<span class="muted">' + esc(fmtDate(b.createdAt)) + '</span></div>' +
+        '<div class="bc-text">' + esc(b.text) + '</div>' +
+        (b.status === 'sending' ? '<div class="prog"><i style="width:' + pct + '%"></i></div>' : '') +
+        '<div class="bc-stats"><span>всего <b>' + esc(b.total) + '</b></span><span>доставлено <b>' + esc(b.sent) + '</b></span>' +
+        '<span>заблокировали <b>' + esc(b.blocked) + '</b></span><span>ошибок <b>' + esc(b.failed) + '</b></span>' +
+        (b.pending ? '<span>в очереди <b>' + esc(b.pending) + '</b></span>' : '') + '</div></div>';
+    }).join('');
+  }
+  function loadBroadcasts(){
+    clearTimeout(bcTimer);
+    return api('GET', '/api/platform/broadcasts').then(function(list){
+      renderBroadcasts(list);
+      // Пока идёт отправка — опрашиваем: заодно сервер (бесплатный тариф) не засыпает.
+      if(list.some(function(b){ return b.status === 'sending'; })) bcTimer = setTimeout(loadBroadcasts, 4000);
+      else loadUsers(false);                 // после завершения обновим отметки «заблокировал»
+    }).catch(function(e){ $('bcList').innerHTML = '<span class="err">' + esc(e.message) + '</span>'; });
+  }
+
   function load(){
     return Promise.all([ api('GET','/api/platform/overview'), api('GET','/api/platform/studios') ])
-      .then(function(r){ renderOverview(r[0]); renderStudios(r[1]); });
+      .then(function(r){
+        renderOverview(r[0]); renderStudios(r[1]);
+        if($('uCity').options.length === 1) fillCities(r[0]);
+        loadUsers(false); loadBroadcasts();
+      });
   }
 
   function boot(){
