@@ -67,7 +67,6 @@
   .muted{color:var(--text-2);font-size:12px;}
   .err{color:var(--red);font-size:13px;margin-top:10px;}
   .empty{color:var(--text-3);font-size:13px;padding:8px 0;}
-  #tgLogin{margin-top:6px;min-height:44px;}
 
   /* Вход по номеру телефона (план «Телефон вместо Telegram», рядом с уже
      существующим Login Widget — добавляется, не заменяет). */
@@ -109,10 +108,6 @@
       </div>
     </div>
     <div id="botErr" class="err" hidden></div>
-
-    <div class="or-divider">или виджет Telegram</div>
-    <div id="tgLogin"></div>
-    <div id="loginErr" class="err" hidden></div>
 
     <div class="or-divider">или</div>
 
@@ -174,7 +169,6 @@
 <script>
 (function(){
   var API_BASE = 'https://api.poont.space';
-  var BOT = 'poontstudio_bot';
   var TOKEN_KEY = 'ps_cabinet_token';
 
   var $ = function(id){ return document.getElementById(id); };
@@ -262,29 +256,6 @@
     return api('GET', '/api/session/me', null, true).then(function(me){
       renderApp(me, user || me.user || null);
     });
-  }
-
-  // Login Widget -> callback
-  window.onTelegramAuth = function(tgUser){
-    var err = $('loginErr'); hide(err);
-    api('POST', '/api/session', tgUser, false).then(function(res){
-      setToken(res.token);
-      return loadMe(res.user);
-    }).catch(function(e){
-      err.textContent = e.message || 'Не удалось войти';
-      show(err);
-    });
-  };
-
-  function mountLoginButton(){
-    var s = document.createElement('script');
-    s.async = true;
-    s.src = 'https://telegram.org/js/telegram-widget.js?22';
-    s.setAttribute('data-telegram-login', BOT);
-    s.setAttribute('data-size', 'large');
-    s.setAttribute('data-userpic', 'false');
-    s.setAttribute('data-onauth', 'onTelegramAuth(user)');
-    $('tgLogin').appendChild(s);
   }
 
   $('logoutBtn').addEventListener('click', function(){
@@ -501,10 +472,10 @@
   if(getToken()){
     loadMe(null).catch(function(){
       setToken('');
-      hide($('loading')); show($('loginCard')); mountLoginButton();
+      hide($('loading')); show($('loginCard'));
     });
   } else {
-    hide($('loading')); show($('loginCard')); mountLoginButton();
+    hide($('loading')); show($('loginCard'));
   }
 })();
 </script>
