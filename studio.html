@@ -6797,6 +6797,12 @@
     var h = wzHall();
     if(!$('wzOwnLocation').checked){ h.address = null; h.city = null; h.lat = null; h.lon = null; return saveHallsNow(); }
     if(h.lat == null || h.lon == null) return Promise.reject(new Error('Укажите адрес пространства из подсказок или поставьте метку на карте'));
+    // Текст адреса пишем в зал явно: подсказка/метка меняют только координаты,
+    // а клиент показывает под картой именно этот текст.
+    var addr = $('wzHallAddr').value.trim();
+    if(!addr) return Promise.reject(new Error('Впишите адрес пространства (улица, дом)'));
+    if(addr.length > 200) return Promise.reject(new Error('Адрес — до 200 символов'));
+    h.address = addr;
     h.city = $('wzHallCity').value.trim();
     return saveHallsNow();
   };
