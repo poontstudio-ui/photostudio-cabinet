@@ -249,6 +249,73 @@
   }
   @media(max-width:600px){ .nh-two{grid-template-columns:minmax(0,1fr);} .sc-kv{grid-template-columns:minmax(0,1fr);} .sc-kv dt{margin-top:6px;} .ln-step{grid-template-columns:28px minmax(0,1fr);} .ln-acts{grid-column:2;align-items:flex-start;} }
   @media (prefers-reduced-motion:reduce){ .sc-bar i{transition:none;} }
+
+  /* ---------- «Бронирование»: схемы правил ---------- */
+  .bk-line{color:var(--text-2);}
+  .bk-line b{color:var(--text);}
+  .bk-note{margin-top:8px;font-size:var(--fs-sm);color:var(--text-3);}
+  .bk-flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;}
+  .bk-flow-s{font-size:var(--fs-sm);color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-pill);padding:4px 11px;}
+  .bk-flow-s.wait{background:var(--amber-bg);border-color:#ecd9ae;color:var(--amber);}
+  .bk-flow-s.ok{background:var(--green-bg);border-color:#bfe3cd;color:var(--green);}
+  .bk-flow-a{color:var(--text-3);}
+  .bk-flow-or{flex-basis:100%;font-size:var(--fs-sm);color:var(--text-3);}
+  .bk-bar{display:flex;height:34px;border-radius:var(--r-sm);overflow:hidden;margin-top:10px;font-size:var(--fs-xs);font-weight:600;}
+  .bk-seg{display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;padding:0 6px;min-width:0;}
+  .bk-seg.work{background:var(--blue-bg);color:var(--blue-dark);}
+  .bk-seg.clean{background:repeating-linear-gradient(135deg,var(--surface-2) 0 6px,var(--bg) 6px 12px);color:var(--text-2);min-width:96px;}
+  .bk-bar-cap{font-size:var(--fs-sm);color:var(--text-3);margin-top:6px;}
+  .bk-tl-row{display:flex;align-items:stretch;gap:3px;}
+  .bk-tl-seg{flex:1 1 0;min-width:0;border-radius:var(--r-sm);padding:9px 10px;font-size:var(--fs-sm);}
+  .bk-tl-seg.full{background:var(--green-bg);}
+  .bk-tl-seg.part{background:var(--amber-bg);}
+  .bk-tl-seg.none,.bk-tl-seg.noshow{background:var(--red-bg);}
+  .bk-tl-seg.noshow{flex:0 0 22%;}
+  .bk-tl-when{font-size:var(--fs-xs);color:var(--text-2);}
+  .bk-tl-what{font-weight:700;color:var(--text);margin-top:2px;}
+  .bk-tl-seg.full .bk-tl-what{color:var(--green);} .bk-tl-seg.part .bk-tl-what{color:var(--amber);}
+  .bk-tl-seg.none .bk-tl-what,.bk-tl-seg.noshow .bk-tl-what{color:var(--red);}
+  .bk-tl-sub{font-size:var(--fs-xs);color:var(--text-2);margin-top:2px;}
+  .bk-tl-start{flex:0 0 2px;background:var(--text);position:relative;margin:0 4px;border-radius:1px;}
+  .bk-tl-start span{position:absolute;top:100%;left:50%;transform:translateX(-50%);font-size:var(--fs-xs);color:var(--text);font-weight:600;margin-top:4px;white-space:nowrap;}
+  .bk-tl-axis{display:flex;justify-content:space-between;font-size:var(--fs-xs);color:var(--text-3);margin-top:22px;}
+  .bk-prev{margin-top:16px;padding:12px 14px;border-radius:var(--r-md);background:var(--surface-2);}
+  .bk-opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .bk-opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line-strong);border-radius:var(--r-md);padding:12px 14px;cursor:pointer;}
+  .bk-opt.on{border-color:var(--blue);background:var(--blue-bg);}
+  .bk-opt input,.bk-check input{margin-top:3px;flex:none;width:auto;}
+  .bk-opt-d{display:block;font-size:var(--fs-sm);color:var(--text-2);margin-top:3px;font-weight:400;}
+  .bk-check{display:flex;gap:10px;align-items:flex-start;margin-top:14px;cursor:pointer;}
+  .bk-field{margin-top:18px;}
+  .bk-field:first-child{margin-top:0;}
+  .bk-field-t{font-weight:600;margin-bottom:8px;}
+  .bk-field .seg,.bk-field .unitwrap{vertical-align:middle;}
+  .bk-tier{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;padding:9px 0;border-top:1px solid var(--line);}
+  .bk-tier:first-child{border-top:none;}
+  .bk-tier-when{flex:1 1 220px;display:flex;align-items:center;gap:6px;}
+  .bk-tier-what{display:flex;align-items:center;gap:6px;color:var(--text-2);}
+  .bk-tier input.num,.bk-field input.num{width:74px;}
+  .bk-del{border:none;background:none;color:var(--text-3);font-size:18px;cursor:pointer;line-height:1;padding:4px 6px;}
+  .bk-del:hover{color:var(--red);}
+  #bkLmWrap,#bkRemWrap{margin-top:12px;}
+  /* закрыть время */
+  .blk-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;}
+  .blk-wide{grid-column:1 / -1;}
+  .blk-time{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .fld select.name{width:100%;}
+  .blk-time input.name{width:130px;}
+  .blk-day{font-size:var(--fs-sm);font-weight:700;margin:14px 0 4px;}
+  .blk-day:first-child{margin-top:0;}
+  .blk-row{display:flex;align-items:center;gap:14px;padding:9px 12px;border:1px solid var(--line);border-radius:var(--r-sm);margin-bottom:6px;}
+  .blk-when{font-variant-numeric:tabular-nums;font-weight:600;flex:none;min-width:98px;}
+  .blk-what{flex:1;min-width:0;display:flex;flex-direction:column;overflow-wrap:anywhere;}
+  .blk-empty{color:var(--text-3);font-size:var(--fs-sm);}
+  @media(max-width:600px){
+    .bk-opts,.blk-grid{grid-template-columns:minmax(0,1fr);}
+    .bk-tl-row{flex-direction:column;} .bk-tl-seg.noshow{flex-basis:auto;}
+    .bk-tl-start{flex:0 0 2px;height:2px;margin:10px 0 18px;} .bk-tl-start span{top:4px;}
+    .bk-tl-axis{display:none;}
+  }
   .tm-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);}
   .tm-row:first-child{border-top:none;}
   .tm-who{flex:1;min-width:0;}
@@ -278,7 +345,7 @@
   .set-sub[hidden]{display:none;}
   .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:9px;}
   .row input,.row select,.row textarea,.pg-bar input,
-  .fld input.name,.fld textarea.name,.fld input.num{
+  .fld input.name,.fld textarea.name,.fld input.num,.fld select.name{
     background:var(--bg);border:1px solid transparent;border-radius:var(--r-sm);
     color:var(--text);font:inherit;font-size:var(--fs-md);padding:11px 12px;
     transition:border-color .12s,background .12s,box-shadow .12s;
@@ -1172,95 +1239,13 @@
       </div>
     </div>
 
-    <div class="card" id="sec-settings" data-folder="booking" data-owner-only="1">
-      <h2>Настройки бронирования</h2>
-
-      <div class="set-group">
-        <div class="set-group-t">Подтверждение брони</div>
-        <label class="row" style="cursor:pointer">
-          <input type="checkbox" id="setAutoConfirm" style="width:auto;flex:none">
-          <span>Подтверждать брони автоматически</span>
-        </label>
-        <div class="muted" style="margin:2px 0 12px">Выключено — каждая заявка ждёт вашего подтверждения (до 24 ч), потом слот освобождается.</div>
-        <!-- Исключение имеет смысл только пока включено автоподтверждение —
-             без него и так каждая заявка ждёт владельца. Поэтому не отдельный
-             пункт в общем списке, а вложенный под тем самым тумблером, и виден
-             только вместе с ним (см. syncDebtBlocksVisibility). -->
-        <div class="set-sub" id="setDebtBlocksWrap">
-          <label class="row" style="cursor:pointer">
-            <input type="checkbox" id="setDebtBlocks" style="width:auto;flex:none">
-            <span>Кроме клиентов с долгом — их подтверждать вручную</span>
-          </label>
-          <div class="muted" style="margin:2px 0 0">Бронь такого клиента придёт заявкой на подтверждение, а не встанет в расписание сама. Отказа клиент не увидит — решаете вы.</div>
-        </div>
-      </div>
-
-      <div class="set-group">
-        <div class="set-group-t">Длительность брони</div>
-        <div class="row">
-          <span style="flex:1 1 100%">Буфер после брони, мин</span>
-          <input class="num" type="number" id="setBuffer" min="0" max="120" step="5">
-        </div>
-        <div class="muted" style="margin:2px 0 12px">Режется из времени клиента: бронь 180 мин при буфере 10 → съёмка 170 мин, следующая группа может начать впритык.</div>
-        <div class="row">
-          <span style="flex:1 1 100%">Шаг и минимальная длительность брони</span>
-          <select id="setMinDur">
-            <option value="30">30 минут</option>
-            <option value="60">1 час</option>
-          </select>
-        </div>
-        <div class="muted" style="margin:2px 0 0">Определяет и минимум брони, и шаг в окне выбора времени у клиента.</div>
-      </div>
-
-      <div class="set-group">
-        <div class="set-group-t">Скидка на срочные окна</div>
-        <label class="row" style="cursor:pointer">
-          <input type="checkbox" id="setLmEnabled" style="width:auto;flex:none">
-          <span>Скидка на «горящие» окна</span>
-        </label>
-        <div class="row" style="margin-top:6px">
-          <span style="flex:1 1 100%">Окно вперёд, ч · размер скидки, %</span>
-          <input class="num" type="number" id="setLmHours" min="1" max="72" step="1">
-          <input class="num" type="number" id="setLmPct" min="1" max="90" step="1">
-        </div>
-        <div class="muted" style="margin:2px 0 0">Свободный слот, до которого меньше указанных часов, клиент видит дешевле на этот процент. Пакеты не затрагиваются.</div>
-      </div>
-
-      <div class="set-group">
-        <div class="set-group-t">Напоминания</div>
-        <label class="row" style="cursor:pointer">
-          <input type="checkbox" id="setRemEnabled" style="width:auto;flex:none">
-          <span>Напоминание клиенту перед бронью</span>
-        </label>
-        <div class="row" style="margin-top:6px">
-          <span style="flex:1 1 100%">За сколько минут до брони</span>
-          <input class="num" type="number" id="setRemMinutes" min="10" max="180" step="5">
-        </div>
-        <div class="muted" style="margin:2px 0 0">Клиенту в Telegram — с кнопками «Как добраться» и «Вызвать такси». Только клиенту, владельцу не дублируем.</div>
-      </div>
-
-      <!-- Ступени возврата и штрафы за прогул/платный перенос — одна тема:
-           обе описывают, что бывает с деньгами, когда бронь не случилась как
-           договаривались. Раньше это были два отдельных подписанных блока
-           подряд — по факту одна группа с двумя половинами. -->
-      <div class="set-group">
-        <div class="set-group-t">Отмена, перенос и прогул</div>
-        <div class="muted" style="margin-bottom:8px">Возврат при отмене — по ступеням, в зависимости от того, за сколько часов до брони клиент отменяет.</div>
-        <div id="polEd" style="margin:6px 0"></div>
-        <button class="btn ghost small" id="polAdd" type="button">+ Ступень</button>
-
-        <!-- Ступени выше описывают только % возврата при отмене. Прогул — не
-             отмена, а «платный перенос» там всего лишь галочка без суммы,
-             поэтому ставки задаются здесь. -->
-        <div class="row" style="margin-top:16px">
-          <span style="flex:1 1 100%">Плата за прогул · за платный перенос, % от стоимости</span>
-          <span class="unitwrap"><input class="num" type="number" id="setNoShowPct" min="0" max="100" step="5"><span class="u">прогул</span></span>
-          <span class="unitwrap"><input class="num" type="number" id="setReschedPct" min="0" max="100" step="5"><span class="u">перенос</span></span>
-        </div>
-        <div class="muted" style="margin:2px 0 0">0 — за это событие не начислять ничего. Заносится в задолженность клиента: видно в его карточке, там же можно списать или отметить оплаченным.</div>
-      </div>
-
-      <div class="note" id="setNote"></div>
+    <!-- Правила бронирования — карточками, как «Студия» и зал (0051+):
+         сводка человеческим языком и схема у каждого правила, правка на месте. -->
+    <div class="card" id="sec-bkrules" data-folder="booking" data-owner-only="1">
+      <h2>Правила бронирования</h2>
+      <div class="muted" style="margin:-6px 0 18px">Как принимаются брони и что происходит с деньгами при отмене, переносе и прогуле.</div>
+      <div id="bkSecs"></div>
+      <div class="note" id="bkNote"></div>
     </div>
 
     <div class="card" id="sec-hours" data-folder="main" data-owner-only="1">
@@ -1271,23 +1256,23 @@
     </div>
 
     <div class="card" id="sec-block" data-folder="booking">
-      <h2>Заблокировать время</h2>
-      <div class="muted" style="margin-bottom:8px">Ремонт, корпоратив, съёмка мимо платформы. Клиенты не смогут забронировать этот интервал.</div>
-      <div class="row">
-        <select id="blkHall" style="flex:1 1 100%"></select>
+      <h2>Закрыть время</h2>
+      <div class="muted" style="margin:-6px 0 16px">Ремонт, своя съёмка, бронь мимо платформы — клиенты не смогут занять это время.</div>
+      <div class="blk-form fld">
+        <div class="blk-grid">
+          <div><label class="nh-f" for="blkHall">Зал</label><select id="blkHall" class="name"></select></div>
+          <div><label class="nh-f" for="blkDate">Дата</label><input type="date" id="blkDate" class="name"></div>
+          <div class="blk-wide"><label class="nh-f" for="blkFrom">Время</label>
+            <div class="blk-time"><input type="time" id="blkFrom" step="1800" class="name" aria-label="С"><span>–</span><input type="time" id="blkTo" step="1800" class="name" aria-label="До">
+              <button class="btn ghost small" id="blkAllDay" type="button">Весь день</button></div></div>
+          <div class="blk-wide"><label class="nh-f" for="blkNote">Причина <span class="muted">· видна только команде</span></label>
+            <input type="text" id="blkNote" class="name" maxlength="200" placeholder="Например, покраска циклорамы"></div>
+        </div>
+        <div class="actions" style="margin-top:14px"><button class="btn" id="blkAdd" type="button">Закрыть время</button></div>
       </div>
-      <div class="row">
-        <input type="date" id="blkDate">
-        <input type="time" id="blkFrom" step="1800">
-        <span>–</span>
-        <input type="time" id="blkTo" step="1800">
-      </div>
-      <div class="row">
-        <input type="text" id="blkNote" maxlength="200" placeholder="Причина (необязательно)" style="flex:1 1 100%">
-      </div>
-      <div class="actions"><button class="btn small" id="blkAdd" type="button">Заблокировать</button></div>
       <div class="note" id="blkNoteMsg"></div>
-      <div id="blkList" style="margin-top:8px"></div>
+      <div class="sc-group" style="margin-top:22px">Закрытое время</div>
+      <div id="blkList"></div>
     </div>
 
     <!-- Список и карточка — два вида одной карточки-секции (clListView/
@@ -2919,79 +2904,6 @@
   // без него оно ни на что не влияет (и так каждая заявка ждёт владельца).
   // Значение чекбокса при этом не трогаем: выключил автоподтверждение —
   // настройка спряталась, но не сбросилась, включил обратно — она на месте.
-  function syncDebtBlocksVisibility(){
-    $('setDebtBlocksWrap').hidden = !$('setAutoConfirm').checked;
-  }
-  $('setAutoConfirm').addEventListener('change', syncDebtBlocksVisibility);
-
-  function renderSettings(){
-    $('setAutoConfirm').checked = !!settingsDraft.autoConfirm;
-    $('setBuffer').value = settingsDraft.bufferMin;
-    $('setMinDur').value = String(settingsDraft.minBookingMin);
-    $('setLmEnabled').checked = !!settingsDraft.lastminuteEnabled;
-    $('setLmHours').value = settingsDraft.lastminuteHours;
-    $('setLmPct').value = settingsDraft.lastminutePct;
-    $('setRemEnabled').checked = !!settingsDraft.reminderEnabled;
-    $('setRemMinutes').value = settingsDraft.reminderMinutesBefore;
-    $('setNoShowPct').value = settingsDraft.noShowFeePct;
-    $('setReschedPct').value = settingsDraft.rescheduleFeePct;
-    $('setDebtBlocks').checked = !!settingsDraft.debtBlocksAutoconfirm;
-    syncDebtBlocksVisibility();
-    renderPolicy();
-    svSnap('settings');
-  }
-  // Сырые значения полей, а не разобранные/провалидированные — грязь должна
-  // показаться сразу по любой правке, даже пока число ещё не дописано.
-  function setDraftNow(){
-    return {
-      autoConfirm: $('setAutoConfirm').checked,
-      buffer: $('setBuffer').value, minDur: $('setMinDur').value,
-      lmEnabled: $('setLmEnabled').checked, lmHours: $('setLmHours').value, lmPct: $('setLmPct').value,
-      remEnabled: $('setRemEnabled').checked, remMinutes: $('setRemMinutes').value,
-      noShowPct: $('setNoShowPct').value, reschedPct: $('setReschedPct').value,
-      debtBlocks: $('setDebtBlocks').checked,
-      policy: policyDraft,
-    };
-  }
-  svRegister('settings', setDraftNow, saveSettings);
-  ['input','change','click'].forEach(function(evt){
-    $('sec-settings').addEventListener(evt, function(){ svCheck('settings'); });
-  });
-
-  function renderPolicy(){
-    var c = $('polEd'); c.innerHTML = '';
-    policyDraft.forEach(function(t, i){
-      var last = i === policyDraft.length - 1;
-      var row = document.createElement('div');
-      row.className = 'row';
-      row.style.cssText = 'gap:6px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:6px;flex-wrap:wrap';
-      row.innerHTML =
-        '<span style="flex:1 1 100%;font-size:12px;color:var(--muted)">' +
-          (last ? 'Позже (ловит всё остальное):'
-                : ('За <input type="number" min="1" max="720" value="' + esc(t.hoursBefore) +
-                   '" data-i="' + i + '" data-f="hoursBefore" style="width:64px"> ч и раньше:')) +
-        '</span>' +
-        'возврат <input type="number" min="0" max="100" value="' + esc(t.refundPct) +
-          '" data-i="' + i + '" data-f="refundPct" style="width:60px"> %' +
-        '<label style="display:flex;align-items:center;gap:4px;font-size:12px">' +
-          '<input type="checkbox" data-i="' + i + '" data-f="rescheduleFree"' + (t.rescheduleFree ? ' checked' : '') +
-          ' style="width:auto"> перенос бесплатный</label>' +
-        (policyDraft.length > 1 && !last
-          ? '<button class="btn ghost small del" data-i="' + i + '" type="button" style="flex:none">×</button>' : '');
-      c.appendChild(row);
-    });
-    c.querySelectorAll('input[data-f]').forEach(function(inp){
-      inp.addEventListener('change', function(){
-        var i = +inp.dataset.i, f = inp.dataset.f;
-        if(f === 'rescheduleFree') policyDraft[i][f] = inp.checked;
-        else policyDraft[i][f] = parseInt(inp.value, 10);
-      });
-    });
-    c.querySelectorAll('.del').forEach(function(b){
-      b.addEventListener('click', function(){ policyDraft.splice(+b.dataset.i, 1); renderPolicy(); });
-    });
-  }
-
   function renderHours(){
     var c = $('hoursEd'); c.innerHTML = '';
     hoursDraft.forEach(function(d, i){
@@ -4475,75 +4387,10 @@
     };
     $('blkAdd').disabled = true;
     api('POST', '/admin/blocks', payload)
-      .then(function(){ $('blkNote').value = ''; flash($('blkNoteMsg'), 'Время заблокировано', true); return loadBlocks().then(qbSyncGrid); })
+      .then(function(){ $('blkNote').value = ''; flash($('blkNoteMsg'), 'Время закрыто', true); return loadBlocks().then(qbSyncGrid); })
       .catch(function(e){ flash($('blkNoteMsg'), e.message); })
       .then(function(){ $('blkAdd').disabled = false; });
   });
-
-  $('polAdd').addEventListener('click', function(){
-    // новая ступень вставляется перед последней (последняя всегда hoursBefore 0)
-    var prev = policyDraft[policyDraft.length - 2];
-    var h = prev ? Math.max(1, prev.hoursBefore - 6) : 12;
-    policyDraft.splice(policyDraft.length - 1, 0, { hoursBefore:h, refundPct:80, rescheduleFree:true });
-    renderPolicy();
-  });
-
-  function saveSettings(){
-    var buf = parseInt($('setBuffer').value, 10);
-    var minDur = parseInt($('setMinDur').value, 10);
-    if(!Number.isInteger(buf) || buf < 0 || buf > 120){ flash($('setNote'), 'Буфер — от 0 до 120 минут'); return Promise.reject(new Error('validation')); }
-    if([30,60].indexOf(minDur) < 0){ flash($('setNote'), 'Шаг брони — 30 или 60 минут'); return Promise.reject(new Error('validation')); }
-    // политика: строго по убыванию часов, последняя — 0
-    var pol = policyDraft.map(function(t){ return {
-      hoursBefore: t.hoursBefore|0, refundPct: t.refundPct|0, rescheduleFree: !!t.rescheduleFree }; });
-    pol[pol.length - 1].hoursBefore = 0;
-    for(var i = 0; i < pol.length; i++){
-      if(pol[i].refundPct < 0 || pol[i].refundPct > 100){ flash($('setNote'), 'Возврат — 0..100 %'); return Promise.reject(new Error('validation')); }
-      if(i > 0 && pol[i].hoursBefore >= pol[i-1].hoursBefore){ flash($('setNote'), 'Часы ступеней — строго по убыванию'); return Promise.reject(new Error('validation')); }
-    }
-    var lmH = parseInt($('setLmHours').value, 10);
-    var lmP = parseInt($('setLmPct').value, 10);
-    if(!Number.isInteger(lmH) || lmH < 1 || lmH > 72){ flash($('setNote'), 'Горящее окно — от 1 до 72 часов'); return Promise.reject(new Error('validation')); }
-    if(!Number.isInteger(lmP) || lmP < 1 || lmP > 90){ flash($('setNote'), 'Скидка — от 1 до 90 %'); return Promise.reject(new Error('validation')); }
-    var remMin = parseInt($('setRemMinutes').value, 10);
-    if(!Number.isInteger(remMin) || remMin < 10 || remMin > 180){ flash($('setNote'), 'Напоминание — от 10 до 180 минут'); return Promise.reject(new Error('validation')); }
-    // 0 разрешён — это «за прогул/перенос не начислять ничего».
-    var nsPct = parseInt($('setNoShowPct').value, 10);
-    var rsPct = parseInt($('setReschedPct').value, 10);
-    if(!Number.isInteger(nsPct) || nsPct < 0 || nsPct > 100){ flash($('setNote'), 'Плата за прогул — 0..100 %'); return Promise.reject(new Error('validation')); }
-    if(!Number.isInteger(rsPct) || rsPct < 0 || rsPct > 100){ flash($('setNote'), 'Плата за перенос — 0..100 %'); return Promise.reject(new Error('validation')); }
-    var payload = {
-      autoConfirm: $('setAutoConfirm').checked,
-      bufferMin: buf, minBookingMin: minDur, cancelPolicy: pol,
-      lastminuteEnabled: $('setLmEnabled').checked,
-      lastminuteHours: lmH, lastminutePct: lmP,
-      reminderEnabled: $('setRemEnabled').checked,
-      reminderMinutesBefore: remMin,
-      noShowFeePct: nsPct, rescheduleFeePct: rsPct,
-      debtBlocksAutoconfirm: $('setDebtBlocks').checked,
-    };
-    return api('PUT', '/admin/settings', payload)
-      .then(function(u){
-        var lm = u.lastminute || {};
-        var rem = u.reminder || {};
-        settingsDraft = {
-          autoConfirm: !!u.autoConfirm, bufferMin: u.bufferMin,
-          minBookingMin: u.minBookingMin, cancelFreeHours: u.cancelFreeHours,
-          lastminuteEnabled: !!lm.enabled,
-          lastminuteHours: Number.isInteger(lm.hours) ? lm.hours : 24,
-          lastminutePct: Number.isInteger(lm.pct) ? lm.pct : 20,
-          reminderEnabled: !!rem.enabled,
-          reminderMinutesBefore: Number.isInteger(rem.minutesBefore) ? rem.minutesBefore : 60,
-          noShowFeePct: Number.isInteger(u.noShowFeePct) ? u.noShowFeePct : settingsDraft.noShowFeePct,
-          rescheduleFeePct: Number.isInteger(u.rescheduleFeePct) ? u.rescheduleFeePct : settingsDraft.rescheduleFeePct,
-          debtBlocksAutoconfirm: !!u.debtBlocksAutoconfirm,
-        };
-        if(Array.isArray(u.cancelPolicy) && u.cancelPolicy.length) policyDraft = u.cancelPolicy;
-        renderSettings();
-        flash($('setNote'), 'Настройки сохранены', true);
-      })
-      .catch(function(e){ flash($('setNote'), e.message); throw e; });
-  }
 
   function saveHours(){
     for(var i=0;i<7;i++){ var d=hoursDraft[i];
@@ -5335,37 +5182,54 @@
     }).catch(function(){ /* блокировки не критичны для загрузки страницы */ });
   }
 
+  // Закрытое время — по датам: «Сегодня / Завтра / пт, 3 окт.», внутри —
+  // интервалы с залами и причиной. Одна «пачка» (batchId) — одна строка:
+  // «все залы» закрываются одним действием и снимаются тоже одним.
+  function blkDayLabel(iso){
+    var d = new Date(iso + 'T12:00:00'), t = new Date(); t.setHours(12, 0, 0, 0);
+    var diff = Math.round((d - t) / 86400000);
+    var wd = ['вс','пн','вт','ср','чт','пт','сб'][d.getDay()];
+    var dm = d.toLocaleDateString('ru-RU', { day:'numeric', month:'short' }).replace('.', '');
+    return diff === 0 ? 'Сегодня, ' + dm : diff === 1 ? 'Завтра, ' + dm : wd + ', ' + dm;
+  }
   function renderBlocks(){
     var c = $('blkList');
-    if(!blocksList.length){ c.innerHTML = '<div class="muted">Активных блокировок нет.</div>'; return; }
-    // группируем по batchId
-    var byBatch = {};
-    blocksList.forEach(function(b){ (byBatch[b.batchId] = byBatch[b.batchId] || []).push(b); });
-    c.innerHTML = '';
-    Object.keys(byBatch).forEach(function(bid){
-      var rows = byBatch[bid];
-      var first = rows[0];
-      var names = rows.map(function(r){ return (HALLS_BY_ID[r.hallId]||{}).name || r.hallId; });
-      var totalHalls = (hallsDraft||[]).length;
+    if(!blocksList.length){ c.innerHTML = '<div class="blk-empty">Закрытого времени нет — все часы работы доступны для брони.</div>'; return; }
+    var byBatch = {}, order = [];
+    blocksList.forEach(function(b){
+      if(!byBatch[b.batchId]){ byBatch[b.batchId] = []; order.push(b.batchId); }
+      byBatch[b.batchId].push(b);
+    });
+    order.sort(function(x, y){
+      var a = byBatch[x][0], b = byBatch[y][0];
+      return a.date < b.date ? -1 : a.date > b.date ? 1 : a.start - b.start;
+    });
+    var totalHalls = (hallsDraft || []).length, html = '', lastDate = null;
+    order.forEach(function(bid){
+      var rows = byBatch[bid], first = rows[0];
+      var names = rows.map(function(r){ var h = HALLS_BY_ID[r.hallId] || {}; return h.title || h.name || r.hallId; });
       var scope = rows.length >= totalHalls && totalHalls > 0 ? 'Все залы' : names.join(', ');
-      var row = document.createElement('div');
-      row.className = 'row';
-      row.style.cssText = 'justify-content:space-between;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:6px';
-      row.innerHTML =
-        '<span style="flex:1 1 auto;min-width:0">' +
-          '<b>'+esc(dateLabel(first.date))+'</b> · '+minLabel(first.start)+'–'+minLabel(first.end)+' · '+esc(scope) +
-          (first.note ? '<br><span class="muted">'+esc(first.note)+'</span>' : '') +
-        '</span>' +
-        '<button class="btn small ghost" data-batch="'+esc(bid)+'" style="flex:none">Снять</button>';
-      row.querySelector('button').addEventListener('click', function(ev){
-        var btn = ev.currentTarget; btn.disabled = true;
-        api('DELETE', '/admin/blocks/' + encodeURIComponent(bid))
+      if(first.date !== lastDate){ html += '<div class="blk-day">' + esc(blkDayLabel(first.date)) + '</div>'; lastDate = first.date; }
+      html += '<div class="blk-row"><span class="blk-when">' + minLabel(first.start) + '–' + minLabel(first.end) + '</span>' +
+        '<span class="blk-what"><b>' + esc(scope) + '</b>' + (first.note ? '<span class="muted">' + esc(first.note) + '</span>' : '') + '</span>' +
+        '<button class="btn small ghost" type="button" data-batch="' + esc(bid) + '">Снять</button></div>';
+    });
+    c.innerHTML = html;
+    c.querySelectorAll('[data-batch]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        btn.disabled = true;
+        api('DELETE', '/admin/blocks/' + encodeURIComponent(btn.dataset.batch))
           .then(loadBlocks).then(qbSyncGrid)
+          .then(function(){ flash($('blkNoteMsg'), 'Время снова доступно для брони', true); })
           .catch(function(e){ btn.disabled = false; flash($('blkNoteMsg'), e.message); });
       });
-      c.appendChild(row);
     });
   }
+  // По умолчанию — сегодня: чаще всего закрывают ближайшие часы.
+  (function(){
+    var t = new Date(), pad = function(n){ return (n < 10 ? '0' : '') + n; };
+    if(!$('blkDate').value) $('blkDate').value = t.getFullYear() + '-' + pad(t.getMonth() + 1) + '-' + pad(t.getDate());
+  })();
 
   // ===================== Визард пространства (0043) =====================
   // Онбординг ПЕРВОГО зала и дальнейшее редактирование ЛЮБОГО зала — один и
@@ -5757,7 +5621,7 @@
   // ---------- карточка раздела и переезжающий редактор ----------
   function secCardHtml(sec, state, summary, open, extraClass){
     return '<div class="sc' + (open ? ' open' : '') + (extraClass || '') + '" data-sec="' + sec.key + '">' +
-      '<div class="sc-h"><span class="sc-t">' + esc(sec.title) + '</span>' + SC_CHIP[state] +
+      '<div class="sc-h"><span class="sc-t">' + esc(sec.title) + '</span>' + (SC_CHIP[state] || state || '') +
         (open ? '' : '<button class="btn ghost small" type="button" data-sc-edit="' + sec.key + '">Изменить</button>') + '</div>' +
       '<div class="sc-sum">' + summary + '</div>' +
       (open ? '<div class="sc-edit" data-ed-host></div>' : '') + '</div>';
@@ -5769,7 +5633,7 @@
       hall: scope === 'hall' ? clone(wzHall()) : null,
       amen: clone(amenitiesDraft), prof: clone(profileDraft) } };
     WZ.section = key;
-    if(scope === 'hall') renderHallPage(); else renderStudioPage();
+    renderScope(scope);
     var host = document.querySelector('[data-ed-host]');
     host.appendChild($('edSlot'));
     $('wzNote').textContent = '';
@@ -5784,10 +5648,16 @@
     WZ.section = null;
     PG.i = -1; PG.code = null;
     parkEditor();
-    if(scope === 'hall') renderHallPage();
-    if(scope === 'studio') renderStudioPage();
+    renderScope(scope);
     renderLaunch();
   }
+  // Страницы с карточками разделов: чем перерисовать и куда писать «Сохранено».
+  function renderScope(scope){
+    if(scope === 'hall') renderHallPage();
+    else if(scope === 'studio') renderStudioPage();
+    else if(scope === 'booking') renderBookingPage();
+  }
+  var SCOPE_NOTE = { hall:'hpNote', studio:'stNote', booking:'bkNote' };
   // «Отмена»: разделы правят черновики прямо по ходу (чипы, галочки), поэтому
   // откатываем их к снимку, сделанному при открытии.
   function edCancel(){
@@ -5809,7 +5679,7 @@
     btn.disabled = true;
     var scope = ED.scope;
     Promise.resolve().then(function(){ return saver ? saver() : null; })
-      .then(function(){ btn.disabled = false; edClose(); flash(scope === 'studio' ? $('stNote') : $('hpNote'), 'Сохранено', true); })
+      .then(function(){ btn.disabled = false; edClose(); flash($(SCOPE_NOTE[scope]), 'Сохранено', true); })
       .catch(function(e){ btn.disabled = false; flash($('wzNote'), (e && e.message) || 'Ошибка'); });
   });
 
@@ -6104,6 +5974,364 @@
   $('nhBack').addEventListener('click', function(){
     if(NH.step === 0 || NH.step === 2){ $('nhView').hidden = true; $('hallsListView').hidden = false; renderHalls(); return; }
     NH.step--; nhRender();
+  });
+
+  // ======== «Бронирование»: правила карточками ========
+  // Те же карточки разделов, что в «Студии» и в зале (secCardHtml/edOpen), но
+  // у каждой — сводка человеческим языком и схема: путь заявки, «бронь и
+  // уборка», шкала возвратов до начала брони. Раньше это была одна длинная
+  // форма с общей кнопкой сохранения и справками про «режется из времени
+  // клиента». Правило сохраняется отдельно (PUT /admin/settings принимает
+  // частичный набор полей).
+  //
+  // Редакторы работают с копией (BKE) и в черновики (settingsDraft/
+  // policyDraft) пишут только ответ сервера, поэтому «Отмена» ничего не
+  // откатывает — откатывать нечего.
+  var HOLD_HOURS_UI = 24;          // сколько держится заявка (HOLD_HOURS на сервере)
+  var BKE = null;                  // рабочая копия открытого правила
+  var BK_SECTIONS = [
+    { key:'bkConfirm',    grp:'Как принимаются брони', title:'Подтверждение заявок' },
+    { key:'bkTiming',     grp:'Как принимаются брони', title:'Длительность и уборка между бронями' },
+    { key:'bkCancel',     grp:'Отмена, перенос и прогул', title:'Возврат денег и удержания' },
+    { key:'bkLastminute', grp:'Продажи и напоминания', title:'Скидка на горящие окна' },
+    { key:'bkReminder',   grp:'Продажи и напоминания', title:'Напоминание клиенту' },
+  ];
+  function durLabel(min){
+    min = Math.max(0, Math.round(min));
+    var h = Math.floor(min / 60), m = min % 60;
+    return (h ? h + ' ч' : '') + (h && m ? ' ' : '') + (m || !h ? m + ' мин' : '');
+  }
+  function chip(cls, t){ return '<span class="sc-chip ' + cls + '">' + esc(t) + '</span>'; }
+
+  // ---------- схемы ----------
+  function confirmFlowHtml(auto, debt){
+    var step = function(t, cls){ return '<span class="bk-flow-s' + (cls ? ' ' + cls : '') + '">' + esc(t) + '</span>'; };
+    var arrow = '<span class="bk-flow-a" aria-hidden="true">→</span>';
+    return '<div class="bk-flow">' + (auto
+      ? step('Клиент бронирует') + arrow + step('Бронь сразу в расписании', 'ok')
+      : step('Клиент отправляет заявку') + arrow + step('Слот держится до ' + HOLD_HOURS_UI + ' ч', 'wait') + arrow +
+        step('Вы подтверждаете', 'ok') + '<span class="bk-flow-or">или не успели — заявка истекает, слот свободен</span>') +
+      '</div>' + (auto && debt ? '<div class="bk-note">Клиенты с долгом — через ваше подтверждение: их бронь придёт заявкой.</div>' : '');
+  }
+  // Бронь 2 ч (или минимальная, если она больше): сколько работает клиент и сколько уходит на уборку.
+  function timingBarHtml(minDur, buffer){
+    var total = Math.max(120, minDur), work = Math.max(0, total - buffer);
+    var wPct = total ? Math.round(work * 100 / total) : 100;
+    return '<div class="bk-bar" role="img" aria-label="Бронь ' + durLabel(total) + ': ' + durLabel(work) + ' у клиента и ' + durLabel(buffer) + ' на уборку">' +
+        '<span class="bk-seg work" style="flex-basis:' + wPct + '%">время клиента · ' + esc(durLabel(work)) + '</span>' +
+        (buffer ? '<span class="bk-seg clean" style="flex-basis:' + (100 - wPct) + '%">уборка · ' + esc(buffer + ' мин') + '</span>' : '') +
+      '</div><div class="bk-bar-cap">Пример: бронь на ' + esc(durLabel(total)) +
+        (buffer ? '. Последние ' + buffer + ' мин — на уборку, следующий клиент приходит ровно в своё время.' : ' — без перерыва на уборку.') + '</div>';
+  }
+  function refundTone(p){ return p >= 100 ? 'full' : p > 0 ? 'part' : 'none'; }
+  // Шкала «чем ближе к началу брони — тем меньше возврат» + прогул после начала.
+  function cancelTimelineHtml(pol, noShowPct, reschedPct){
+    var tiers = (pol || []).map(function(t, i){
+      var when = i === pol.length - 1
+        ? (pol.length > 1 ? 'позже чем за ' + pol[i - 1].hoursBefore + ' ч' : 'в любое время')
+        : 'за ' + t.hoursBefore + ' ч и раньше';
+      return { when:when, refund:t.refundPct, free:!!t.rescheduleFree };
+    });
+    var segs = tiers.map(function(t){
+      return '<div class="bk-tl-seg ' + refundTone(t.refund) + '"><div class="bk-tl-when">' + esc(t.when) + '</div>' +
+        '<div class="bk-tl-what">вернём ' + t.refund + '%</div>' +
+        '<div class="bk-tl-sub">перенос ' + (t.free ? 'бесплатно' : 'платный · ' + reschedPct + '%') + '</div></div>';
+    }).join('');
+    return '<div class="bk-tl"><div class="bk-tl-row">' + segs +
+        '<div class="bk-tl-start" aria-hidden="true"><span>начало</span></div>' +
+        '<div class="bk-tl-seg noshow"><div class="bk-tl-when">не пришёл</div><div class="bk-tl-what">удержим ' + noShowPct + '%</div>' +
+          '<div class="bk-tl-sub">без отмены</div></div>' +
+      '</div><div class="bk-tl-axis"><span>← отмена раньше</span></div></div>';
+  }
+  function exampleRate(){
+    var r = null;
+    (hallsDraft || []).forEach(function(h){ var x = hallMinRate(h); if(x != null && (r == null || x < r)) r = x; });
+    return r;
+  }
+
+  // ---------- сводки ----------
+  function bkChip(key){
+    var s = settingsDraft;
+    switch(key){
+      case 'bkConfirm': return s.autoConfirm ? chip('ok', 'автоматически') : chip('inh', 'вручную');
+      case 'bkTiming': return chip('inh', 'от ' + durLabel(s.minBookingMin));
+      case 'bkCancel': var f = (policyDraft || [])[0]; return chip('inh', f ? 'до ' + f.refundPct + '% возврата' : 'не задано');
+      case 'bkLastminute': return s.lastminuteEnabled ? chip('ok', '−' + s.lastminutePct + '%') : chip('inh', 'выключено');
+      case 'bkReminder': return s.reminderEnabled ? chip('ok', 'за ' + durLabel(s.reminderMinutesBefore)) : chip('inh', 'выключено');
+    }
+    return '';
+  }
+  function bkSummary(key){
+    var s = settingsDraft;
+    switch(key){
+      case 'bkConfirm': return confirmFlowHtml(s.autoConfirm, s.debtBlocksAutoconfirm);
+      case 'bkTiming':
+        return '<div class="bk-line">Бронь от <b>' + esc(durLabel(s.minBookingMin)) + '</b>, клиент выбирает время с шагом ' +
+          esc(durLabel(s.minBookingMin === 30 ? 30 : 60)) + ' (' + (s.minBookingMin === 30 ? '10:00, 10:30, 11:00…' : '10:00, 11:00, 12:00…') + ').</div>' +
+          timingBarHtml(s.minBookingMin, s.bufferMin);
+      case 'bkCancel': return cancelTimelineHtml(policyDraft, s.noShowFeePct, s.rescheduleFeePct) +
+        '<div class="bk-note">Удержания и платные переносы записываются клиенту в долг — он виден в карточке клиента, там же долг можно списать.</div>';
+      case 'bkLastminute':
+        if(!s.lastminuteEnabled) return '<div class="bk-line">Пустые окна продаются по обычной цене. Можно включить скидку на время, до которого осталось мало часов.</div>';
+        var r = exampleRate();
+        return '<div class="bk-line">Если до свободного окна меньше <b>' + s.lastminuteHours + ' ч</b>, клиент видит его на <b>' + s.lastminutePct + '%</b> дешевле.' +
+          (r ? ' Например, ' + r + ' → <b>' + Math.round(r * (100 - s.lastminutePct)) / 100 + ' ' + CUR + '/ч</b>.' : '') + ' Пакеты часов не дешевеют.</div>';
+      case 'bkReminder':
+        return s.reminderEnabled
+          ? '<div class="bk-line">За <b>' + esc(durLabel(s.reminderMinutesBefore)) + '</b> до начала клиент получит сообщение в Telegram с кнопками «Как добраться» и «Вызвать такси». Текст меняется в разделе <button class="linkish" type="button" data-go-notify>«Уведомления»</button>.</div>'
+          : '<div class="bk-line">Клиенты не получают напоминание перед бронью. Включите — меньше опозданий и прогулов.</div>';
+    }
+    return '';
+  }
+  function renderBookingPage(){
+    if(!$('bkSecs')) return;
+    if(ED.scope === 'booking') parkEditor();
+    var groups = [];
+    BK_SECTIONS.forEach(function(x){ if(groups.indexOf(x.grp) < 0) groups.push(x.grp); });
+    $('bkSecs').innerHTML = groups.map(function(g){
+      return '<div class="sc-group">' + esc(g) + '</div>' + BK_SECTIONS.filter(function(x){ return x.grp === g; }).map(function(x){
+        return secCardHtml(x, bkChip(x.key), bkSummary(x.key), ED.scope === 'booking' && ED.key === x.key);
+      }).join('');
+    }).join('');
+    var host = $('bkSecs').querySelector('[data-ed-host]');
+    if(host) host.appendChild($('edSlot'));
+  }
+  // Старое имя: boot/сохранения по-прежнему зовут renderSettings().
+  function renderSettings(){ if(!ED.key || ED.scope !== 'booking') renderBookingPage(); }
+  $('bkSecs').addEventListener('click', function(e){
+    var b = e.target.closest && e.target.closest('[data-sc-edit]');
+    if(b){ BKE = { s:clone(settingsDraft), pol:clone(policyDraft) }; edOpen('booking', b.dataset.scEdit); return; }
+    if(e.target.closest && e.target.closest('[data-go-notify]')) goFolder('notify');
+  });
+
+  // Ответ PUT /admin/settings → черновики. Сервер при этом отмечает правила
+  // просмотренными (0051) — шаг «Запуска студии» закрывается.
+  function saveSettingsPatch(patch){
+    return api('PUT', '/admin/settings', patch).then(function(u){
+      // Сервер отдаёт все правила целиком; если чего-то нет — оставляем прежнее,
+      // а не сбрасываем (иначе сохранение скидки «выключало» бы напоминания).
+      var prev = settingsDraft;
+      var lm = u.lastminute && typeof u.lastminute.enabled === 'boolean' ? u.lastminute
+        : { enabled:prev.lastminuteEnabled, hours:prev.lastminuteHours, pct:prev.lastminutePct };
+      var rem = u.reminder && typeof u.reminder.enabled === 'boolean' ? u.reminder
+        : { enabled:prev.reminderEnabled, minutesBefore:prev.reminderMinutesBefore };
+      settingsDraft = {
+        autoConfirm: typeof u.autoConfirm === 'boolean' ? u.autoConfirm : prev.autoConfirm,
+        bufferMin: Number.isInteger(u.bufferMin) ? u.bufferMin : prev.bufferMin,
+        minBookingMin: Number.isInteger(u.minBookingMin) ? u.minBookingMin : prev.minBookingMin,
+        cancelFreeHours: Number.isInteger(u.cancelFreeHours) ? u.cancelFreeHours : prev.cancelFreeHours,
+        lastminuteEnabled: !!lm.enabled,
+        lastminuteHours: Number.isInteger(lm.hours) ? lm.hours : 24,
+        lastminutePct: Number.isInteger(lm.pct) ? lm.pct : 20,
+        reminderEnabled: !!rem.enabled,
+        reminderMinutesBefore: Number.isInteger(rem.minutesBefore) ? rem.minutesBefore : 60,
+        noShowFeePct: Number.isInteger(u.noShowFeePct) ? u.noShowFeePct : settingsDraft.noShowFeePct,
+        rescheduleFeePct: Number.isInteger(u.rescheduleFeePct) ? u.rescheduleFeePct : settingsDraft.rescheduleFeePct,
+        debtBlocksAutoconfirm: typeof u.debtBlocksAutoconfirm === 'boolean' ? u.debtBlocksAutoconfirm : prev.debtBlocksAutoconfirm,
+      };
+      if(Array.isArray(u.cancelPolicy) && u.cancelPolicy.length) policyDraft = u.cancelPolicy;
+      if(!ONB.rulesConfirmedAt) ONB.rulesConfirmedAt = new Date().toISOString();
+    });
+  }
+  function bad(msg){ return Promise.reject(new Error(msg)); }
+  function segHtml(id, opts, cur){
+    return '<span class="seg" id="' + id + '">' + opts.map(function(o){
+      return '<button type="button" data-v="' + esc(o.v) + '" class="' + (String(o.v) === String(cur) ? 'on' : '') + '">' + esc(o.t) + '</button>';
+    }).join('') + '</span>';
+  }
+  function wireSeg(id, onPick){
+    $(id).addEventListener('click', function(e){
+      var b = e.target.closest('button[data-v]'); if(!b) return;
+      $(id).querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', x === b); });
+      onPick(b.dataset.v);
+    });
+  }
+
+  // ---------- редакторы ----------
+  WZ_RENDERERS.bkConfirm = function(){
+    var s = BKE.s;
+    function opt(v, t, d){
+      return '<label class="bk-opt' + (!!s.autoConfirm === v ? ' on' : '') + '"><input type="radio" name="bkConf" value="' + (v ? '1' : '0') + '"' + (!!s.autoConfirm === v ? ' checked' : '') + '>' +
+        '<span><b>' + esc(t) + '</b><span class="bk-opt-d">' + esc(d) + '</span></span></label>';
+    }
+    $('wzBody').innerHTML =
+      '<div class="bk-opts">' +
+        opt(false, 'Подтверждаю вручную', 'Каждая заявка ждёт вашего решения до ' + HOLD_HOURS_UI + ' ч. Удобно, если нужно уточнить детали съёмки.') +
+        opt(true, 'Автоматически', 'Бронь сразу встаёт в расписание. Клиенту не нужно ждать ответа.') +
+      '</div>' +
+      '<label class="bk-check" id="bkDebtWrap"><input type="checkbox" id="bkDebt"' + (s.debtBlocksAutoconfirm ? ' checked' : '') + '>' +
+        '<span>Клиентов с долгом подтверждать вручную<span class="bk-opt-d">Их бронь придёт заявкой. Отказа клиент не увидит — решаете вы.</span></span></label>' +
+      '<div id="bkConfPrev" class="bk-prev"></div>';
+    function sync(){
+      $('bkDebtWrap').hidden = !s.autoConfirm;
+      $('wzBody').querySelectorAll('.bk-opt').forEach(function(l){ l.classList.toggle('on', l.querySelector('input').checked); });
+      $('bkConfPrev').innerHTML = confirmFlowHtml(s.autoConfirm, s.debtBlocksAutoconfirm);
+    }
+    $('wzBody').querySelectorAll('input[name=bkConf]').forEach(function(r){ r.addEventListener('change', function(){ s.autoConfirm = r.value === '1'; sync(); }); });
+    $('bkDebt').addEventListener('change', function(){ s.debtBlocksAutoconfirm = this.checked; sync(); });
+    sync();
+  };
+  WZ_SAVERS.bkConfirm = function(){
+    return saveSettingsPatch({ autoConfirm: !!BKE.s.autoConfirm, debtBlocksAutoconfirm: !!BKE.s.debtBlocksAutoconfirm });
+  };
+
+  WZ_RENDERERS.bkTiming = function(){
+    var s = BKE.s;
+    $('wzBody').innerHTML =
+      '<div class="bk-field"><div class="bk-field-t">Минимальная бронь и шаг выбора времени</div>' +
+        segHtml('bkMinDur', [{ v:30, t:'30 минут' }, { v:60, t:'1 час' }], s.minBookingMin) +
+        '<div class="bk-opt-d">Клиент не сможет забронировать меньше, а время выбирает с этим же шагом. У отдельной цели зала минимум может быть больше — это в ценах зала.</div></div>' +
+      '<div class="bk-field"><div class="bk-field-t">Уборка после каждой брони</div>' +
+        segHtml('bkBufSeg', [{ v:0, t:'Не нужна' }, { v:10, t:'10 мин' }, { v:15, t:'15 мин' }, { v:30, t:'30 мин' }], s.bufferMin) +
+        ' <span class="unitwrap"><input class="num" type="number" id="bkBuffer" min="0" max="120" step="5" value="' + esc(s.bufferMin) + '"><span class="u">мин</span></span>' +
+        '<div class="bk-opt-d">Время уборки входит в бронь клиента: следующий клиент может занять время сразу после окончания предыдущей брони.</div></div>' +
+      '<div id="bkTimePrev" class="bk-prev"></div>';
+    function sync(){ $('bkTimePrev').innerHTML = timingBarHtml(Number(s.minBookingMin), Number(s.bufferMin) || 0); }
+    wireSeg('bkMinDur', function(v){ s.minBookingMin = Number(v); sync(); });
+    wireSeg('bkBufSeg', function(v){ s.bufferMin = Number(v); $('bkBuffer').value = v; sync(); });
+    $('bkBuffer').addEventListener('input', function(){
+      s.bufferMin = parseInt(this.value, 10) || 0;
+      $('bkBufSeg').querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', Number(x.dataset.v) === s.bufferMin); });
+      sync();
+    });
+    sync();
+  };
+  WZ_SAVERS.bkTiming = function(){
+    var buf = parseInt($('bkBuffer').value, 10), min = Number(BKE.s.minBookingMin);
+    if(!Number.isInteger(buf) || buf < 0 || buf > 120) return bad('Уборка — от 0 до 120 минут');
+    if([30, 60].indexOf(min) < 0) return bad('Минимальная бронь — 30 минут или 1 час');
+    if(buf >= min) return bad('Уборка должна быть короче минимальной брони');
+    return saveSettingsPatch({ bufferMin: buf, minBookingMin: min });
+  };
+
+  WZ_RENDERERS.bkCancel = function(){
+    var s = BKE.s, pol = BKE.pol;
+    function tierRows(){
+      return pol.map(function(t, i){
+        var last = i === pol.length - 1;
+        return '<div class="bk-tier">' +
+          '<span class="bk-tier-when">' + (last
+            ? (pol.length > 1 ? 'Отмена позже' : 'Отмена в любое время')
+            : 'Отмена за <input class="num" type="number" min="1" max="720" data-i="' + i + '" data-f="hoursBefore" value="' + esc(t.hoursBefore) + '"> ч и раньше') + '</span>' +
+          '<span class="bk-tier-what">вернуть <span class="unitwrap"><input class="num" type="number" min="0" max="100" step="5" data-i="' + i + '" data-f="refundPct" value="' + esc(t.refundPct) + '"><span class="u">%</span></span></span>' +
+          '<span class="bk-tier-what">перенос ' + segHtml('bkRf' + i, [{ v:1, t:'бесплатно' }, { v:0, t:'платно' }], t.rescheduleFree ? 1 : 0) + '</span>' +
+          (!last ? '<button class="bk-del" type="button" data-del="' + i + '" aria-label="Убрать ступень">×</button>' : '') +
+        '</div>';
+      }).join('');
+    }
+    function draw(){
+      $('bkTiers').innerHTML = tierRows();
+      pol.forEach(function(t, i){ wireSeg('bkRf' + i, function(v){ t.rescheduleFree = v === '1'; sync(); }); });
+      sync();
+    }
+    $('wzBody').innerHTML =
+      '<div class="bk-field"><div class="bk-field-t">Возврат при отмене</div>' +
+        '<div class="bk-opt-d" style="margin-bottom:8px">Чем ближе к началу брони отмена, тем меньше возврат. Ступени — от ранней отмены к поздней.</div>' +
+        '<div id="bkTiers"></div>' +
+        '<button class="linkish" type="button" id="bkTierAdd">+ Добавить ступень</button></div>' +
+      '<div class="bk-field"><div class="bk-field-t">Удержания</div>' +
+        '<div class="bk-tier"><span class="bk-tier-when">Не пришёл и не отменил</span><span class="bk-tier-what">удержать <span class="unitwrap"><input class="num" type="number" min="0" max="100" step="5" id="bkNoShow" value="' + esc(s.noShowFeePct) + '"><span class="u">% стоимости</span></span></span></div>' +
+        '<div class="bk-tier"><span class="bk-tier-when">Платный перенос</span><span class="bk-tier-what">стоит <span class="unitwrap"><input class="num" type="number" min="0" max="100" step="5" id="bkResched" value="' + esc(s.rescheduleFeePct) + '"><span class="u">% стоимости</span></span></span></div>' +
+        '<div class="bk-opt-d">0% — ничего не удерживать. Удержания записываются клиенту в долг.</div></div>' +
+      '<div id="bkCancelPrev" class="bk-prev"></div>';
+    function sync(){ $('bkCancelPrev').innerHTML = cancelTimelineHtml(pol, parseInt($('bkNoShow').value, 10) || 0, parseInt($('bkResched').value, 10) || 0); }
+    $('bkTiers').addEventListener('input', function(e){
+      var t = e.target; if(!t.dataset || t.dataset.i == null) return;
+      pol[+t.dataset.i][t.dataset.f] = parseInt(t.value, 10);
+      sync();
+    });
+    $('bkTiers').addEventListener('click', function(e){
+      var b = e.target.closest && e.target.closest('[data-del]'); if(!b) return;
+      pol.splice(+b.dataset.del, 1); draw();
+    });
+    $('bkTierAdd').addEventListener('click', function(){
+      if(pol.length >= 8) return;
+      var prev = pol[pol.length - 2];
+      var h = prev ? Math.max(1, Math.round(prev.hoursBefore / 2)) : 24;
+      pol.splice(pol.length - 1, 0, { hoursBefore:h, refundPct:80, rescheduleFree:true });
+      draw();
+    });
+    ['bkNoShow','bkResched'].forEach(function(id){ $(id).addEventListener('input', sync); });
+    draw();
+  };
+  WZ_SAVERS.bkCancel = function(){
+    var pol = BKE.pol.map(function(t){ return { hoursBefore:t.hoursBefore | 0, refundPct:t.refundPct | 0, rescheduleFree:!!t.rescheduleFree }; });
+    if(!pol.length) return bad('Нужна хотя бы одна ступень');
+    pol[pol.length - 1].hoursBefore = 0;
+    for(var i = 0; i < pol.length; i++){
+      if(pol[i].refundPct < 0 || pol[i].refundPct > 100) return bad('Возврат — от 0 до 100%');
+      if(i < pol.length - 1 && (pol[i].hoursBefore < 1 || pol[i].hoursBefore > 720)) return bad('Часы ступени — от 1 до 720');
+      if(i > 0 && i < pol.length - 1 && pol[i].hoursBefore >= pol[i - 1].hoursBefore) return bad('Ступени — от ранней отмены к поздней: часы должны уменьшаться');
+    }
+    var ns = parseInt($('bkNoShow').value, 10), rs = parseInt($('bkResched').value, 10);
+    if(!(ns >= 0 && ns <= 100)) return bad('Удержание за прогул — от 0 до 100%');
+    if(!(rs >= 0 && rs <= 100)) return bad('Платный перенос — от 0 до 100%');
+    return saveSettingsPatch({ cancelPolicy: pol, noShowFeePct: ns, rescheduleFeePct: rs });
+  };
+
+  WZ_RENDERERS.bkLastminute = function(){
+    var s = BKE.s;
+    $('wzBody').innerHTML =
+      '<label class="bk-check"><input type="checkbox" id="bkLmOn"' + (s.lastminuteEnabled ? ' checked' : '') + '><span><b>Скидка на горящие окна</b>' +
+        '<span class="bk-opt-d">Свободное время, до которого осталось мало часов, продаётся дешевле — лучше, чем пустой зал.</span></span></label>' +
+      '<div id="bkLmWrap"><div class="bk-tier"><span class="bk-tier-when">Если до окна меньше</span><span class="unitwrap"><input class="num" type="number" id="bkLmHours" min="1" max="72" value="' + esc(s.lastminuteHours) + '"><span class="u">ч</span></span></div>' +
+        '<div class="bk-tier"><span class="bk-tier-when">скидка</span><span class="unitwrap"><input class="num" type="number" id="bkLmPct" min="1" max="90" value="' + esc(s.lastminutePct) + '"><span class="u">%</span></span></div>' +
+        '<div id="bkLmPrev" class="bk-prev"></div></div>';
+    function sync(){
+      s.lastminuteEnabled = $('bkLmOn').checked;
+      $('bkLmWrap').hidden = !s.lastminuteEnabled;
+      var r = exampleRate(), p = parseInt($('bkLmPct').value, 10) || 0, hh = parseInt($('bkLmHours').value, 10) || 0;
+      $('bkLmPrev').innerHTML = '<div class="bk-line">Окно через ' + Math.max(1, hh - 1) + ' ч: ' +
+        (r ? '<s>' + r + '</s> → <b>' + Math.round(r * (100 - p)) / 100 + ' ' + CUR + '/ч</b>' : 'цена −' + p + '%') +
+        '. Окно через ' + (hh + 2) + ' ч — по обычной цене.</div>';
+    }
+    ['bkLmOn','bkLmHours','bkLmPct'].forEach(function(id){ $(id).addEventListener('input', sync); $(id).addEventListener('change', sync); });
+    sync();
+  };
+  WZ_SAVERS.bkLastminute = function(){
+    var on = $('bkLmOn').checked, h = parseInt($('bkLmHours').value, 10), p = parseInt($('bkLmPct').value, 10);
+    if(on && !(h >= 1 && h <= 72)) return bad('Горящее окно — от 1 до 72 часов');
+    if(on && !(p >= 1 && p <= 90)) return bad('Скидка — от 1 до 90%');
+    var patch = { lastminuteEnabled: on };
+    if(h >= 1 && h <= 72) patch.lastminuteHours = h;
+    if(p >= 1 && p <= 90) patch.lastminutePct = p;
+    return saveSettingsPatch(patch);
+  };
+
+  WZ_RENDERERS.bkReminder = function(){
+    var s = BKE.s;
+    $('wzBody').innerHTML =
+      '<label class="bk-check"><input type="checkbox" id="bkRemOn"' + (s.reminderEnabled ? ' checked' : '') + '><span><b>Напоминать клиенту перед бронью</b>' +
+        '<span class="bk-opt-d">Сообщение в Telegram с адресом и кнопками «Как добраться» и «Вызвать такси». Приходит только клиентам, вошедшим через Telegram.</span></span></label>' +
+      '<div id="bkRemWrap" class="bk-field"><div class="bk-field-t">Когда</div>' +
+        segHtml('bkRemSeg', [{ v:30, t:'за 30 мин' }, { v:60, t:'за 1 ч' }, { v:120, t:'за 2 ч' }, { v:180, t:'за 3 ч' }], s.reminderMinutesBefore) +
+        ' <span class="unitwrap"><input class="num" type="number" id="bkRemMin" min="10" max="180" step="5" value="' + esc(s.reminderMinutesBefore) + '"><span class="u">мин</span></span></div>';
+    function sync(){ $('bkRemWrap').hidden = !$('bkRemOn').checked; }
+    $('bkRemOn').addEventListener('change', sync);
+    wireSeg('bkRemSeg', function(v){ $('bkRemMin').value = v; });
+    $('bkRemMin').addEventListener('input', function(){
+      var v = parseInt(this.value, 10);
+      $('bkRemSeg').querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', Number(x.dataset.v) === v); });
+    });
+    sync();
+  };
+  WZ_SAVERS.bkReminder = function(){
+    var on = $('bkRemOn').checked, m = parseInt($('bkRemMin').value, 10);
+    if(on && !(m >= 10 && m <= 180)) return bad('Напоминание — от 10 до 180 минут до брони');
+    var patch = { reminderEnabled: on };
+    if(m >= 10 && m <= 180) patch.reminderMinutesBefore = m;
+    return saveSettingsPatch(patch);
+  };
+
+  // ---------- закрыть время ----------
+  // «Весь день» — от открытия до закрытия студии в выбранный день.
+  $('blkAllDay').addEventListener('click', function(){
+    var d = $('blkDate').value;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){ flash($('blkNoteMsg'), 'Сначала выберите дату'); return; }
+    var wd = new Date(d + 'T12:00:00').getDay(), h = hoursDraft[wd] || { start:9, end:21 };
+    var pad = function(n){ return (n < 10 ? '0' : '') + n + ':00'; };
+    $('blkFrom').value = pad(h.start);
+    $('blkTo').value = h.end >= 24 ? '23:30' : pad(h.end);   // поле времени не умеет 24:00
   });
 
   // ---------- Название и бренд ----------
