@@ -1635,7 +1635,9 @@
     daylight:true,constantLight:true,strobeLight:true,lightModifiers:true,ceilingRail:true,blackout:true,
     paperBackdrops:true,chromakey:true,fabricBackdrops:true,
     panoramicWindows:true,texturedWall:true,fireplace:true,mezzanine:true,balcony:true,soundproofing:true,
-    airConditioning:true,bluetoothSpeaker:true};
+    airConditioning:true,bluetoothSpeaker:true,
+    whiteBackdrop:true,sink:true,outdoorArea:true,skylights:true,
+    wheelchairAccessible:true,freightElevator:true,streetLevelAccess:true,publicTransport:true};
   // Удобства-чекбоксы зала, по группам. daylight = «дневной свет» в поиске.
   var HALL_AMENITY_GROUPS = [
     {title:'Свет', items:[
@@ -1645,8 +1647,10 @@
       {f:'lightModifiers',label:'Модификаторы (софтбоксы и пр.)'},
       {f:'ceilingRail',label:'Потолочная система'},
       {f:'blackout',label:'Блэкаут'},
+      {f:'skylights',label:'Мансардные окна'},
     ]},
     {title:'Фоны', items:[
+      {f:'whiteBackdrop',label:'Белый фон'},
       {f:'paperBackdrops',label:'Бумажные фоны'},
       {f:'chromakey',label:'Хромакей'},
       {f:'fabricBackdrops',label:'Тканевые фоны'},
@@ -1660,7 +1664,17 @@
       {f:'soundproofing',label:'Звукоизоляция'},
       {f:'airConditioning',label:'Кондиционер'},
       {f:'bluetoothSpeaker',label:'Bluetooth-колонка'},
+      {f:'sink',label:'Раковина'},
+      {f:'outdoorArea',label:'Открытая площадка'},
     ]},
+  ];
+  // Доступ — свойство помещения (0053), не цели аренды: правится в разделе
+  // зала «Доступ и Wi-Fi», рядом с текстом «как пройти».
+  var HALL_ACCESS_ITEMS = [
+    {f:'streetLevelAccess',label:'Вход с улицы'},
+    {f:'wheelchairAccessible',label:'Доступ для колясок'},
+    {f:'freightElevator',label:'Грузовой лифт'},
+    {f:'publicTransport',label:'Общественный транспорт рядом'},
   ];
   // Свободные пояснения владельца (миграция 0040). Галочки выше отвечают
   // «есть или нет», эти поля — «как именно»: где въезд на парковку, сколько
@@ -1680,6 +1694,10 @@
   // (те про помещение целиком, а не про то, что входит именно в эту аренду).
   // Коды — зеркало HALL_EQUIPMENT в lib/rules.js; группы — только для
   // читаемости формы, бэкенду разбивка не нужна.
+  // «Что входит в аренду» по цели: мебель и техника, которые студия даёт
+  // именно под эту цель (проектор для встречи, стойка для одежды для съёмки).
+  // Свойства самого помещения — доступ, кухня, естественный свет, Wi-Fi — сюда
+  // больше не входят: это поля зала и студии (миграция 0053).
   var HALL_EQUIPMENT_GROUPS = [
     { title:'Мебель', items:[
       {f:'tables',label:'Столы'},{f:'chairs',label:'Стулья'},
@@ -1688,23 +1706,10 @@
       {f:'sandbags',label:'Мешки с песком'},
     ]},
     { title:'Техника', items:[
-      {f:'wifi',label:'Wi-Fi'},{f:'projector',label:'Проектор'},{f:'screen',label:'Экран'},
+      {f:'projector',label:'Проектор'},{f:'screen',label:'Экран'},
       {f:'monitor',label:'Монитор'},{f:'conferencePhone',label:'Конференц-связь'},
       {f:'lightingEquipment',label:'Осветительное оборудование'},{f:'videoEquipment',label:'Видеооборудование'},
       {f:'steamer',label:'Отпариватель'},
-    ]},
-    { title:'Пространство', items:[
-      {f:'kitchen',label:'Кухня / чай-кофе'},{f:'restroom',label:'Санузел'},{f:'sink',label:'Раковина'},
-      {f:'dressingRoom',label:'Гримёрная'},{f:'loungeArea',label:'Зона отдыха'},
-      {f:'rooftop',label:'Крыша / терраса'},{f:'outdoorArea',label:'Открытая площадка'},
-      {f:'naturalLight',label:'Естественный свет'},{f:'blackoutBlinds',label:'Блэкаут-шторы'},
-      {f:'skylights',label:'Мансардные окна'},{f:'whiteBackdrop',label:'Белый фон'},
-      {f:'chromakey',label:'Хромакей'},{f:'soundproof',label:'Звукоизоляция'},
-    ]},
-    { title:'Доступ', items:[
-      {f:'parking',label:'Парковка'},{f:'publicTransport',label:'Общественный транспорт рядом'},
-      {f:'wheelchairAccessible',label:'Доступ для колясок'},{f:'freightElevator',label:'Грузовой лифт'},
-      {f:'streetLevelAccess',label:'Вход с улицы'},
     ]},
   ];
   function equipmentLabel(code){
@@ -1997,7 +2002,10 @@
   var HALL_BOOLS = ['daylight','blackout','airConditioning','bluetoothSpeaker',
     'constantLight','strobeLight','lightModifiers','ceilingRail',
     'paperBackdrops','chromakey','fabricBackdrops',
-    'panoramicWindows','texturedWall','fireplace','mezzanine','balcony','soundproofing'];
+    'panoramicWindows','texturedWall','fireplace','mezzanine','balcony','soundproofing',
+    // 0053 — свойства помещения, раньше отмечавшиеся в каждом назначении
+    'whiteBackdrop','sink','outdoorArea','skylights',
+    'wheelchairAccessible','freightElevator','streetLevelAccess','publicTransport'];
   function mapHall(h){
     var o = {id:h.id,name:h.name,capacity:h.capacity,rate:h.rate,
       hallType:h.hallType||null,
@@ -2403,8 +2411,8 @@
           '<span>Скидка за бронь на 8 часов</span>' +
           '<span class="unitwrap"><input class="num purp-f" type="number" min="0" max="100" step="1" data-f="fullDayDiscountPct" value="'+esc(cur.fullDayDiscountPct!=null?cur.fullDayDiscountPct:'')+'" placeholder="0"><span class="u">%</span></span>' +
         '</div>' +
-        '<div class="about-f-t" style="margin-top:12px">Оборудование и мебель</div>' +
-        '<div class="muted" style="margin:-2px 0 6px">Своё на это назначение — видно клиенту, когда оно выбрано.</div>' +
+        '<div class="about-f-t" style="margin-top:12px">Что входит в аренду</div>' +
+        '<div class="muted" style="margin:-2px 0 6px">Мебель и техника под эту цель — клиент видит их, когда выбирает её. Свойства самого зала (доступ, свет, кухня) — в карточке зала.</div>' +
         equipHtml +
         (function(){
           var extra = (Array.isArray(cur.equipment) ? cur.equipment : []).filter(function(code){
@@ -5532,6 +5540,9 @@
     HALL_AMENITY_GROUPS.forEach(function(g){ g.items.forEach(function(a){ if(h[a.f]) out.push(a.label); }); });
     return out;
   }
+  function hallAccessLabels(h){
+    return HALL_ACCESS_ITEMS.filter(function(a){ return HALL_PROPS[a.f] && h[a.f]; }).map(function(a){ return a.label; });
+  }
   function activeHallPurposes(h){ return hallPurposes(h).filter(function(p){ return p.active !== false; }); }
   // Цена зала — цены его включённых целей (0052); у зала без целей — старое h.rate.
   function hallMinRate(h){
@@ -5556,8 +5567,8 @@
       done:function(h){ return hallAmenityLabels(h).length >= 3; }},
     {key:'rules',   grp:'Описание', title:'Правила и уборка', need:'rec',
       done:function(h){ return !!((h.aboutRules || '').trim() || (h.aboutCleaning || '').trim()); }},
-    {key:'access',  grp:'Для гостя', title:'Как пройти и Wi-Fi', need:'rec',
-      done:function(h){ return !!((h.aboutAccess || '').trim() || (h.wifiSsid || '').trim()); }},
+    {key:'access',  grp:'Для гостя', title:'Доступ и Wi-Fi', need:'rec',
+      done:function(h){ return !!((h.aboutAccess || '').trim() || (h.wifiSsid || '').trim() || hallAccessLabels(h).length); }},
     {key:'hallLocation', grp:'Адрес и часы', title:'Адрес', need:'inh',
       own:function(h){ return h.lat != null; }},
     {key:'hours',   grp:'Адрес и часы', title:'Часы работы', need:'inh',
@@ -5568,7 +5579,7 @@
       done:function(){ return (profileDraft.name || '').trim().length >= 2; }},
     {key:'studioLocation', title:'Адрес и телефон', need:'req',
       done:function(){ return !!((profileDraft.city || '').trim() && (profileDraft.address || '').trim() && profileDraft.lat != null); }},
-    {key:'parking', title:'Парковка, видеонаблюдение и удобства', need:'rec',
+    {key:'parking', title:'Удобства, парковка и правила студии', need:'rec',
       done:function(){ return amenitiesDraft.parkingAvailable === true || amenitiesDraft.parkingAvailable === false; }},
   ];
   function secState(sec, obj){
@@ -5614,6 +5625,8 @@
         ['Тип', hallTypeLabel(h.hallType), 'не выбран'],
         ['Вместимость', h.capacity ? 'до ' + h.capacity + ' чел.' : ''],
         ['Площадь', h.areaM2 ? h.areaM2 + ' м²' : ''],
+        ['Потолки', h.ceilingCm ? String(h.ceilingCm / 100).replace('.', ',') + ' м' : ''],
+        ['Этаж', h.floor != null ? (h.floor <= 0 ? 'цокольный' : String(h.floor)) : ''],
         ['Описание', clip(h.description, 180), 'нет — пара фраз помогает выбрать зал'] ]);
       case 'media':
         var ph = h.photos || [];
@@ -5641,7 +5654,9 @@
         return ((h.aboutRules || '').trim() ? esc(clip(h.aboutRules, 160)) : emptyLine('Правил нет')) + '<br>' +
           ((h.aboutCleaning || '').trim() ? 'Уборка: ' + esc(clip(h.aboutCleaning, 140)) : emptyLine('Про уборку между бронями не рассказано'));
       case 'access':
-        return ((h.aboutAccess || '').trim() ? esc(clip(h.aboutAccess, 180)) : emptyLine('Как найти зал и попасть внутрь — не указано')) + '<br>' +
+        var acc = hallAccessLabels(h);
+        return (acc.length ? esc(acc.join(' · ')) + '<br>' : '') +
+          ((h.aboutAccess || '').trim() ? esc(clip(h.aboutAccess, 180)) : emptyLine('Как найти зал и попасть внутрь — не указано')) + '<br>' +
           ((h.wifiSsid || '').trim() ? 'Wi-Fi: «' + esc(h.wifiSsid) + '» · виден только после брони' : emptyLine('Wi-Fi не указан'));
       case 'hallLocation':
         return h.lat != null ? esc([h.city, h.address].filter(Boolean).join(', ') || 'своя метка на карте')
@@ -6484,6 +6499,10 @@
         '<div id="wzHallTypeSuggest" class="addr-suggest" hidden></div></div>' +
       '<div class="nh-two"><div><label class="nh-f" for="wzCap">Вместимость</label><span class="unitwrap"><input class="num" type="number" min="1" max="1000" id="wzCap" value="'+esc(h.capacity||'')+'"><span class="u">чел.</span></span></div>' +
       '<div><label class="nh-f" for="wzArea">Площадь</label><span class="unitwrap"><input class="num" type="number" min="1" id="wzArea" value="'+esc(h.areaM2!=null?h.areaM2:'')+'"><span class="u">м²</span></span></div></div>' +
+      '<div class="nh-two">' +
+        (HALL_PROPS.ceilingCm ? '<div><label class="nh-f" for="wzCeiling">Высота потолков</label><span class="unitwrap"><input class="num" type="text" inputmode="decimal" id="wzCeiling" placeholder="3,5" value="'+esc(h.ceilingCm!=null?String(h.ceilingCm/100).replace('.', ','):'')+'"><span class="u">м</span></span></div>' : '') +
+        (HALL_PROPS.floor ? '<div><label class="nh-f" for="wzFloor">Этаж</label><span class="unitwrap"><input class="num" type="number" min="-10" max="300" step="1" id="wzFloor" value="'+esc(h.floor!=null?h.floor:'')+'"><span class="u">эт.</span></span></div>' : '') +
+      '</div>' +
       '<label class="nh-f" for="wzDescription">Описание</label>' +
       '<textarea class="name" id="wzDescription" rows="4" maxlength="2000" placeholder="Пара абзацев: чем зал хорош и для чего подходит" style="resize:vertical">'+esc(h.description||'')+'</textarea>';
     wzComboHelper({ input:'wzHallType', box:'wzHallTypeSuggest' }, 'space_type', h, 'hallType');
@@ -6499,6 +6518,20 @@
     h.capacity = cap;
     var areaV = parseInt($('wzArea').value, 10);
     h.areaM2 = areaV > 0 ? areaV : null;
+    if($('wzCeiling')){
+      var cv = $('wzCeiling').value.trim();
+      if(cv === '') h.ceilingCm = null;
+      else { var cm = Math.round(parseFloat(cv.replace(',', '.')) * 100);
+        if(!(cm >= 150 && cm <= 2000)) return Promise.reject(new Error('Высота потолков — от 1,5 до 20 м'));
+        h.ceilingCm = cm; }
+    }
+    if($('wzFloor')){
+      var fv = $('wzFloor').value.trim();
+      if(fv === '') h.floor = null;
+      else { var fl = parseInt(fv, 10);
+        if(!(fl >= -10 && fl <= 300)) return Promise.reject(new Error('Этаж — от −10 до 300'));
+        h.floor = fl; }
+    }
     h.description = $('wzDescription').value;
     return wzComboResolve('wzHallType', 'space_type', h, 'hallType').then(function(){ return saveHallsNow(); });
   };
@@ -6565,13 +6598,20 @@
   // ---------- Как пройти и Wi-Fi ----------
   WZ_RENDERERS.access = function(){
     var h = wzHall();
+    var accItems = HALL_ACCESS_ITEMS.filter(function(a){ return HALL_PROPS[a.f]; });
     $('wzBody').innerHTML =
+      (accItems.length ? '<label class="nh-f">Доступ</label><div class="chip-row">' + accItems.map(function(a){
+        return '<button type="button" class="chip-tog'+(h[a.f]?' on':'')+'" data-bool="'+a.f+'">'+esc(a.label)+'</button>';
+      }).join('') + '</div>' : '') +
       '<label class="nh-f" for="wzAboutAccess">Как найти зал и попасть внутрь</label>' +
       '<textarea class="name" id="wzAboutAccess" rows="4" maxlength="1000" placeholder="Этаж, куда поворачивать, домофон, кому звонить, как заносить реквизит" style="resize:vertical">'+esc(h.aboutAccess||'')+'</textarea>' +
       '<label class="nh-f" for="wzWifiSsid">Wi-Fi</label>' +
       '<div class="nh-two"><input class="name" id="wzWifiSsid" maxlength="100" placeholder="Название сети" value="'+esc(h.wifiSsid||'')+'">' +
       '<input class="name" id="wzWifiPassword" maxlength="100" placeholder="Пароль" value="'+esc(h.wifiPassword||'')+'"></div>' +
       '<div class="wz-private"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Wi-Fi не публичный — его видит только тот, кто забронировал</div>';
+    $('wzBody').querySelectorAll('.chip-tog[data-bool]').forEach(function(btn){
+      btn.addEventListener('click', function(){ var f = btn.dataset.bool; h[f] = !h[f]; btn.classList.toggle('on'); });
+    });
   };
   WZ_SAVERS.access = function(){
     var h = wzHall();
