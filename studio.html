@@ -241,6 +241,7 @@
   .nh-foot{display:flex;align-items:center;gap:12px;margin-top:26px;padding-top:16px;border-top:1px solid var(--line);}
   .nh-foot .wz-note{flex:1;}
   .listing-photo-empty{display:grid;place-items:center;color:var(--text-3);font-size:var(--fs-sm);}
+  @media(max-width:600px){ .listing-photo.listing-photo-empty{aspect-ratio:auto;height:72px;} }
   .listing-ready{margin-top:8px;}
   .halls-empty{padding:18px;border:1px dashed var(--line-strong);border-radius:var(--r-md);color:var(--text-2);margin-bottom:12px;}
   @media(max-width:900px){
@@ -316,6 +317,16 @@
     .bk-tl-start{flex:0 0 2px;height:2px;margin:10px 0 18px;} .bk-tl-start span{top:4px;}
     .bk-tl-axis{display:none;}
   }
+  .hall-purposes{margin-top:14px;}
+  .hp-purp-t{font-size:var(--fs-sm);font-weight:600;color:var(--text-2);margin:4px 0 2px;}
+  .hall-prules:not(:empty){margin-top:12px;}
+  .hp-pk{margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:var(--fs-sm);}
+  .hp-pk .hall-packages{margin-top:8px;}
+  .hp-purp-hint{margin-top:8px;font-size:var(--fs-sm);color:var(--text-2);}
+  .purp-fields{display:flex;gap:10px 16px;flex-wrap:wrap;margin-top:12px;}
+  .purp-lbl{display:flex;flex-direction:column;gap:4px;font-size:var(--fs-sm);font-weight:600;color:var(--text-2);}
+  .purp-lbl input.num{width:110px;background:var(--bg);border:1px solid transparent;border-radius:var(--r-sm);padding:9px 10px;font:inherit;font-size:var(--fs-md);color:var(--text);}
+  .purp-lbl input.num:focus{outline:none;border-color:var(--blue);background:var(--surface);box-shadow:0 0 0 3px var(--blue-bg);}
   .tm-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);}
   .tm-row:first-child{border-top:none;}
   .tm-who{flex:1;min-width:0;}
@@ -1733,9 +1744,9 @@
     var hasCap = Number.isInteger(p.capacity);
     var hasStand = Number.isInteger(p.standingCapacity), hasSeat = Number.isInteger(p.seatedCapacity);
     var hasEquip = Array.isArray(p.equipment) && p.equipment.length > 0;
-    if(!hasOwnRate && !hasRules && !hasMin && !hasCap && !hasStand && !hasSeat && !hasEquip && !(p.includes||'').trim()) return 'Как у зала';
-    var rate = hasOwnRate ? p.rate : h.rate;
-    var parts = [(hasRules ? 'от ' : '') + rate + ' ' + CUR + '/ч'];
+    // Цена есть всегда (0052); цель без цены — только недосохранённая новая.
+    var parts = [hasOwnRate ? (hasRules ? 'от ' : '') + p.rate + ' ' + CUR + '/ч' : 'цена не указана'];
+    if(hasRules) parts.push('цены по часам');
     if(hasMin) parts.push('мин. ' + (p.minBookingMin/60) + ' ч');
     if(hasCap) parts.push('до ' + p.capacity + ' чел.');
     if(hasStand) parts.push('стоя ' + p.standingCapacity);
@@ -2207,7 +2218,8 @@
     var box = document.querySelector('.hall-prules[data-i="'+i+'"]');
     if(!box) return;
     if(!h.id){ box.innerHTML = '<span class="muted">Сохраните зал, чтобы задать тарифы по времени.</span>'; return; }
-    if(PG.i !== i) pgLoad(i, null);
+    // Сетка — только у открытой цели: цены зала «вообще» больше нет (0052).
+    if(!(PG.i === i && PG.code)){ box.innerHTML = ''; return; }
     var base = pgBaseRate(i, PG.code);
     var nSel = pgSelCount();
     var barWasOn = PG.barOn;   // была ли панель на экране до этой перерисовки
@@ -2359,17 +2371,19 @@
 
       box.innerHTML =
         '<div class="purp-detail-head">' +
-          '<button type="button" class="btn ghost small purp-back">← Назначения</button>' +
+          '<button type="button" class="btn ghost small purp-back">← Назад</button>' +
           '<div class="purp-detail-title"><span class="purp-icon">'+purposeIconSvg(cur.code)+'</span>' +
             '<span>'+esc(purposeLabel(cur.code))+'</span>' +
             (cur.active === false ? '<span class="purp-inactive-tag">Неактивно</span>' : '') +
           '</div>' +
         '</div>' +
-        '<div class="row" style="margin-top:10px">' +
-          '<span class="unitwrap"><input class="num purp-f" type="number" min="0" step="1" data-f="rate" value="'+esc(cur.rate!=null?cur.rate:'')+'" placeholder="'+esc(h.rate)+'"><span class="u">'+CUR+'/ч</span></span>' +
-          '<span class="unitwrap"><input class="num purp-hours" type="number" min="0.5" max="8" step="0.5" data-f="minBookingMin" value="'+esc(cur.minBookingMin!=null?(cur.minBookingMin/60):'')+'" placeholder="как у студии"><span class="u">ч минимум</span></span>' +
-          '<span class="unitwrap"><input class="num purp-f" type="number" min="1" max="1000" step="1" data-f="capacity" value="'+esc(cur.capacity!=null?cur.capacity:'')+'" placeholder="'+esc(h.capacity)+'"><span class="u">чел</span></span>' +
+        // Цена — только здесь: у зала своей «базовой» цены нет (0052).
+        '<div class="purp-fields">' +
+          '<label class="purp-lbl">Цена за час<span class="unitwrap"><input class="num purp-f purp-rate" type="number" min="1" step="1" data-f="rate" value="'+esc(cur.rate!=null?cur.rate:'')+'" placeholder="обязательно"><span class="u">'+CUR+'/ч</span></span></label>' +
+          '<label class="purp-lbl">Минимальная бронь<span class="unitwrap"><input class="num purp-hours" type="number" min="0.5" max="8" step="0.5" data-f="minBookingMin" value="'+esc(cur.minBookingMin!=null?(cur.minBookingMin/60):'')+'" placeholder="как у студии"><span class="u">ч</span></span></label>' +
+          '<label class="purp-lbl">Вместимость<span class="unitwrap"><input class="num purp-f" type="number" min="1" max="1000" step="1" data-f="capacity" value="'+esc(cur.capacity!=null?cur.capacity:'')+'" placeholder="'+esc(h.capacity)+'"><span class="u">чел</span></span></label>' +
         '</div>' +
+        '<div class="muted" style="margin-top:4px">Пустые минимум и вместимость — как у студии и у зала. Цены по дням и часам — в сетке ниже.</div>' +
         // Вместимость стоя/сидя — только у праздника: клиент увидит их
         // вместо площади, остальным назначениям эти цифры не нужны.
         (cur.code === 'event' ?
@@ -2415,16 +2429,13 @@
         '<div class="row"><textarea class="name purp-includes" rows="3" maxlength="1000" ' +
           'placeholder="Особенный реквизит\nЧто-то ещё своё" style="resize:vertical">'+esc(cur.includes||'')+'</textarea></div>' +
         '<div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
-          '<button type="button" class="btn small purp-save">Сохранить назначения</button>' +
-          '<button type="button" class="btn ghost small purp-toggle-active">'+(cur.active===false?'Активировать':'Деактивировать')+'</button>' +
-          '<button type="button" class="btn ghost small danger purp-del">Убрать назначение</button>' +
+          '<button type="button" class="btn small purp-save">Сохранить</button>' +
+          '<button type="button" class="btn ghost small purp-cancel">Отмена</button>' +
+          (cur._new ? '' : '<button type="button" class="btn ghost small danger purp-del">Убрать назначение</button>') +
         '</div><div class="note purp-note"></div>';
 
-      box.querySelector('.purp-back').addEventListener('click', function(){
-        pgLoad(i, null);
-        renderHallPurposes(i);
-        renderHallPriceRules(i);
-      });
+      box.querySelector('.purp-back').addEventListener('click', function(){ purpCancel(i); });
+      box.querySelector('.purp-cancel').addEventListener('click', function(){ purpCancel(i); });
       box.querySelectorAll('.purp-f').forEach(function(inp){
         inp.addEventListener('input', function(){
           var v = parseInt(inp.value, 10);
@@ -2482,63 +2493,83 @@
       });
       var ta = box.querySelector('.purp-includes');
       if(ta) ta.addEventListener('input', function(){ cur.includes = ta.value; });
-      // Деактивировать — не удаляет назначение: цена, оборудование, сетка
-      // остаются как есть, клиент просто не может его выбрать. Как и
-      // остальные поля здесь, применяется после «Сохранить назначения».
-      box.querySelector('.purp-toggle-active').addEventListener('click', function(){
-        cur.active = cur.active === false ? true : false;
-        renderHallPurposes(i);
-      });
-      box.querySelector('.purp-del').addEventListener('click', function(){
+      // Вкл/выкл — переключателем в строке назначения (renderHallPurposes,
+      // список), не здесь.
+      var del = box.querySelector('.purp-del');
+      if(del) del.addEventListener('click', function(){
+        if(!confirm('Убрать «' + purposeLabel(cur.code) + '» из зала? Цена и настройки этой цели удалятся. Чтобы временно не сдавать — просто выключите её.')) return;
         list.splice(list.indexOf(cur), 1);
-        pgLoad(i, null);
-        renderHallPurposes(i);
-        renderHallPriceRules(i);
-        saveHallPurposes(i).catch(function(){});
+        saveHallPurposes(i).then(function(){ PURP_SNAP = null; pgLoad(i, null); renderHalls(); hallFlash('Назначение убрано', true); }).catch(function(){});
       });
-      box.querySelector('.purp-save').addEventListener('click', function(){ saveHallPurposes(i).catch(function(){}); });
+      box.querySelector('.purp-save').addEventListener('click', function(){
+        saveHallPurposes(i).then(function(){ PURP_SNAP = null; pgLoad(i, null); renderHalls(); hallFlash('Сохранено', true); }).catch(function(){});
+      });
       return;
     }
 
-    // ---------- список назначений ----------
-    var cards = list.map(function(p){
-      var inactive = p.active === false;
-      return '<button type="button" class="purp-card" data-purp="'+esc(p.code)+'" data-active="'+(!inactive)+'">' +
-        '<span class="purp-icon">'+purposeIconSvg(p.code)+'</span>' +
-        '<span class="purp-card-body">' +
-          '<span class="purp-card-name">'+esc(purposeLabel(p.code))+
-            (inactive ? '<span class="purp-inactive-tag">Неактивно</span>' : '')+'</span>' +
-          '<span class="purp-card-meta">'+esc(purposeMetaLine(h, p))+'</span>' +
-        '</span>' +
-        '<span class="purp-card-chev">›</span></button>';
-    }).join('');
-    var free = HALL_PURPOSE_LIST.filter(function(x){ return !list.some(function(p){ return p.code === x.v; }); });
-    var addRow = free.length
-      ? '<div class="purp-add-row"><span class="purp-add-plus">+</span>' +
-        '<select class="purp-add"><option value="">Добавить назначение…</option>' +
-        free.map(function(x){ return '<option value="'+x.v+'">'+esc(x.label)+'</option>'; }).join('') + '</select></div>'
-      : '';
+    // ---------- список назначений: на странице «Пространства», под карточкой зала ----------
+    // Все четыре цели всегда видны: настроенная — с ценой и переключателем
+    // «сдаётся/нет», ненастроенная — с «Добавить». Цена зала — это цены его
+    // назначений, отдельной «базовой» нет (0052).
+    box.innerHTML = '<div class="hp-purp-t">Назначения и цены</div>' + HALL_PURPOSE_LIST.map(function(x){
+      var p = list.filter(function(y){ return y.code === x.v; })[0];
+      if(!p){
+        return '<div class="hcp-row off"><span class="hcp-icon">' + purposeIconSvg(x.v) + '</span>' +
+          '<div class="hcp-body"><div class="hcp-name">' + esc(x.label) + '</div><div class="hcp-meta">Не сдаётся для этого</div></div>' +
+          '<div class="hcp-actions"><button class="hcp-edit" type="button" data-purp-add="' + esc(x.v) + '">Добавить</button></div></div>';
+      }
+      var off = p.active === false;
+      return '<div class="hcp-row' + (off ? ' off' : '') + '"><span class="hcp-icon">' + purposeIconSvg(p.code) + '</span>' +
+        '<div class="hcp-body"><div class="hcp-name">' + esc(purposeLabel(p.code)) + '</div>' +
+          '<div class="hcp-meta">' + (off ? 'Выключено · ' : '') + esc(purposeMetaLine(h, p)) + '</div></div>' +
+        '<div class="hcp-actions">' +
+          '<input class="hcp-toggle" type="checkbox" data-purp-toggle="' + esc(p.code) + '"' + (off ? '' : ' checked') +
+            ' aria-label="' + (off ? 'Включить' : 'Выключить') + ' «' + esc(purposeLabel(p.code)) + '»">' +
+          '<button class="hcp-edit" type="button" data-purp-edit="' + esc(p.code) + '">Изменить</button></div></div>';
+    }).join('') + '<div class="note purp-note"></div>';
 
-    box.innerHTML =
-      '<div class="amenity-group-t">Назначения</div>' +
-      '<div class="muted" style="margin-bottom:8px">Под какие цели сдаётся зал. У каждой свои цена, минимум брони, вместимость и состав аренды; пустое поле — как у зала.</div>' +
-      '<div class="purp-list">' + cards + '</div>' + addRow + '<div class="note purp-note"></div>';
-
-    box.querySelectorAll('.purp-card').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        pgLoad(i, btn.dataset.purp);
-        renderHallPurposes(i);
-        renderHallPriceRules(i);
+    box.querySelectorAll('[data-purp-edit]').forEach(function(b){
+      b.addEventListener('click', function(){ purpOpen(i, b.dataset.purpEdit, false); });
+    });
+    box.querySelectorAll('[data-purp-add]').forEach(function(b){
+      b.addEventListener('click', function(){ purpOpen(i, b.dataset.purpAdd, true); });
+    });
+    box.querySelectorAll('[data-purp-toggle]').forEach(function(t){
+      t.addEventListener('change', function(){
+        var p = list.filter(function(y){ return y.code === t.dataset.purpToggle; })[0];
+        if(!p) return;
+        var othersOn = list.some(function(y){ return y !== p && y.active !== false; });
+        if(!t.checked && !othersOn && !confirm('Это последняя включённая цель — зал перестанет быть доступен для брони. Выключить?')){ t.checked = true; return; }
+        p.active = t.checked;
+        saveHallPurposes(i).then(function(){ renderHalls(); })
+          .catch(function(){ p.active = !t.checked; renderHalls(); });
       });
     });
-    var sel = box.querySelector('.purp-add');
-    if(sel) sel.addEventListener('change', function(){
-      if(!sel.value) return;
-      list.push({ code:sel.value, rate:null, minBookingMin:null, capacity:null, includes:'', priceRules:null });
-      pgLoad(i, sel.value);
-      renderHallPurposes(i);
-      renderHallPriceRules(i);
-    });
+  }
+
+  // Открыть цель на правку (или добавить новую). Снимок — чтобы «Отмена»
+  // вернула всё как было, в том числе убрала недосохранённую новую цель.
+  var PURP_SNAP = null;
+  function purpOpen(i, code, isNew){
+    if(PURP_SNAP && PG.i >= 0 && PG.code) purpCancel(PG.i);
+    var h = hallsDraft[i];
+    PURP_SNAP = { i:i, purposes:clone(hallPurposes(h)) };
+    if(isNew && !hallPurposes(h).some(function(p){ return p.code === code; })){
+      hallPurposes(h).push({ code:code, rate:null, minBookingMin:null, capacity:null, includes:'', priceRules:null, active:true, _new:true });
+    }
+    pgLoad(i, code);
+    renderHallPurposes(i);
+    renderHallPriceRules(i);
+    loadDict('equipment').then(function(){ if(PG.i === i && PG.code === code) renderHallPurposes(i); });
+    var box = document.querySelector('.hall-purposes[data-i="' + i + '"]');
+    if(box && box.scrollIntoView) box.scrollIntoView({ block:'start', behavior:'smooth' });
+  }
+  function purpCancel(i){
+    if(PURP_SNAP && PURP_SNAP.i === i) hallsDraft[i].purposes = PURP_SNAP.purposes;
+    PURP_SNAP = null;
+    pgLoad(i, null);
+    renderHallPurposes(i);
+    renderHallPriceRules(i);
   }
 
   // Назначения уезжают своим запросом (как тарифы и пакеты): внутри них лежат
@@ -2553,7 +2584,7 @@
     hallPurposes(h).forEach(function(p){
       if(bad) return;
       var at = '«' + purposeLabel(p.code) + '»';
-      if(p.rate != null && !(p.rate >= 0 && p.rate <= 100000)) bad = at + ': ставка — число от 0 до 100000';
+      if(!(typeof p.rate === 'number' && p.rate > 0 && p.rate <= 100000)) bad = at + ': укажите цену за час';
       else if(p.capacity != null && !(p.capacity >= 1 && p.capacity <= 1000)) bad = at + ': вместимость — целое от 1 до 1000';
       else if(p.minBookingMin != null && !(p.minBookingMin >= 30 && p.minBookingMin <= 480 && p.minBookingMin % 30 === 0)) {
         bad = at + ': минимальная бронь — от 0,5 до 8 часов, шагом по полчаса';
@@ -2561,7 +2592,7 @@
       else if(p.standingCapacity != null && !(p.standingCapacity >= 1 && p.standingCapacity <= 1000)) bad = at + ': вместимость стоя — целое от 1 до 1000';
       else if(p.seatedCapacity != null && !(p.seatedCapacity >= 1 && p.seatedCapacity <= 1000)) bad = at + ': вместимость сидя — целое от 1 до 1000';
     });
-    if(bad){ if(n) flash(n, bad); return Promise.reject(new Error(bad)); }
+    if(bad){ n = document.querySelector('.hall-purposes[data-i="'+i+'"] .purp-note'); if(n) flash(n, bad); return Promise.reject(new Error(bad)); }
     var clean = hallPurposes(h).map(function(p){
       // active — всегда явным true/false, не «пусто значит включено»: это
       // переключатель, а не поле «как у зала».
@@ -2583,12 +2614,13 @@
     return api('PUT', '/admin/halls/' + encodeURIComponent(h.id) + '/purposes', clean)
       .then(function(res){
         h.purposes = Array.isArray(res.purposes) ? res.purposes : clean;
-        if(HALLS_BY_ID[h.id]) HALLS_BY_ID[h.id].purposes = h.purposes;
+        // Цена зала на сервере пересчиталась из целей (0052) — так же и здесь.
+        var mr = hallMinRate(h); if(mr != null) h.rate = mr;
+        if(HALLS_BY_ID[h.id]){ HALLS_BY_ID[h.id].purposes = h.purposes; HALLS_BY_ID[h.id].rate = h.rate; }
+        if(PURP_SNAP && PURP_SNAP.i === i) PURP_SNAP.purposes = clone(h.purposes);
         renderHallPurposes(i);
-        var nn = document.querySelector('.hall-purposes[data-i="'+i+'"] .purp-note');
-        if(nn) flash(nn, clean.length ? 'Назначения сохранены' : 'Назначения убраны', true);
       })
-      .catch(function(e){ if(n) flash(n, e.message); });
+      .catch(function(e){ if(n) flash(n, e.message); throw e; });
   }
 
   function renderHallPackages(i){
@@ -2808,8 +2840,25 @@
               '<button type="button" data-delete="'+i+'">Удалить зал</button>' +
             '</div>' +
           '</div>' +
-        '</div>';
+        '</div>' +
+        // Назначения и цены — здесь, а не в карточке зала: видно все цели
+        // всех залов сразу, включать/выключать можно не заходя внутрь.
+        '<div class="hall-purposes" data-i="'+i+'"></div>' +
+        '<div class="hall-prules" data-i="'+i+'"></div>' +
+        '<div class="hp-pk"><button class="hcp-edit" type="button" data-pk="'+i+'">Пакеты часов' +
+          ((h.packages||[]).length ? ' · ' + h.packages.length : '') + '</button>' +
+          '<span class="muted"> — фикс-цена за несколько часов, перебивает почасовую</span>' +
+          '<div class="hall-packages" data-i="'+i+'" hidden></div></div>';
       g.appendChild(card);
+      renderHallPurposes(i);
+      renderHallPriceRules(i);
+    });
+    g.querySelectorAll('[data-pk]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var box = g.querySelector('.hall-packages[data-i="'+b.dataset.pk+'"]');
+        box.hidden = !box.hidden;
+        if(!box.hidden) renderHallPackages(+b.dataset.pk);
+      });
     });
     var add = document.createElement('button');
     add.type = 'button'; add.className = 'hall-card-add';
@@ -5484,9 +5533,10 @@
     return out;
   }
   function activeHallPurposes(h){ return hallPurposes(h).filter(function(p){ return p.active !== false; }); }
+  // Цена зала — цены его включённых целей (0052); у зала без целей — старое h.rate.
   function hallMinRate(h){
     var ps = activeHallPurposes(h);
-    var rates = ps.length ? ps.map(function(p){ return typeof p.rate === 'number' && isFinite(p.rate) ? p.rate : h.rate; }) : [h.rate];
+    var rates = hallPurposes(h).length ? ps.map(function(p){ return typeof p.rate === 'number' && isFinite(p.rate) ? p.rate : null; }) : [h.rate];
     rates = rates.filter(function(r){ return r > 0; });
     return rates.length ? Math.min.apply(null, rates) : null;
   }
@@ -5498,8 +5548,10 @@
       done:function(h){ return !!((h.title || h.name || '').trim() && h.capacity >= 1 && h.hallType); }},
     {key:'media',   grp:'Главное', title:'Фото и видео', need:'req',
       done:function(h){ return (h.photos || []).length >= PHOTOS_MIN; }},
-    {key:'pricing', grp:'Главное', title:'Цены и назначения', need:'req',
-      done:function(h){ return h.rate > 0 && (!hallPurposes(h).length || activeHallPurposes(h).length > 0); }},
+    // Не карточка страницы зала: цели и цены — на странице «Пространства»,
+    // под карточкой зала (renderHallPurposes). В готовность входят.
+    {key:'pricing', grp:'Главное', title:'Назначения с ценой', need:'req', card:false,
+      done:function(h){ return activeHallPurposes(h).some(function(p){ return p.rate > 0; }); }},
     {key:'describe', grp:'Описание', title:'Удобства, стиль и техника', need:'rec',
       done:function(h){ return hallAmenityLabels(h).length >= 3; }},
     {key:'rules',   grp:'Описание', title:'Правила и уборка', need:'rec',
@@ -5728,13 +5780,20 @@
       (r.missing.length ? '<span class="sc-chip req">не хватает обязательного</span>' : '<span class="sc-chip ok">всё обязательное есть</span>') + '</div>' +
       '<div class="muted">' + (r.missing.length
         ? 'Для публикации нужно: ' + esc(r.missing.join(', ').toLowerCase()) + '. Рекомендуемые разделы помогают клиентам выбрать именно этот зал.'
-        : 'Рекомендуемые разделы помогают клиентам выбрать именно этот зал.') + '</div>';
+        : 'Рекомендуемые разделы помогают клиентам выбрать именно этот зал.') + '</div>' +
+      '<div class="hp-purp-hint">Цены задаются назначениями зала — на странице «Пространства». ' +
+        '<button class="linkish" type="button" id="hpToPurposes">Перейти к назначениям</button></div>';
+    $('hpToPurposes').onclick = function(){
+      var i = WZ.hallIndex; wzClose();
+      var box = document.querySelector('.hall-purposes[data-i="' + i + '"]');
+      if(box && box.scrollIntoView) box.scrollIntoView({ block:'start' });
+    };
     if(ED.scope === 'hall') parkEditor();          // карточки перерисуются — редактор вынесем и вернём
     var groups = [];
     HALL_SECTIONS.forEach(function(s){ if(groups.indexOf(s.grp) < 0) groups.push(s.grp); });
     $('hpSecs').innerHTML = groups.map(function(g){
       return '<div class="sc-group">' + esc(g) + (g === 'Адрес и часы' ? ' <span>· общие для студии, для зала можно задать свои</span>' : '') + '</div>' +
-        HALL_SECTIONS.filter(function(s){ return s.grp === g; }).map(function(s){
+        HALL_SECTIONS.filter(function(s){ return s.grp === g && s.card !== false; }).map(function(s){
           var st = secState(s, h);
           return secCardHtml(s, st, hallSummary(s.key, h), ED.scope === 'hall' && ED.key === s.key, s.need === 'inh' ? ' inh' : '');
         }).join('');
@@ -5871,7 +5930,7 @@
   function nhOpen(){
     if(ED.key) edCancel();
     WZ.open = false;
-    NH = { step:0, idx:-1, d:{ title:'', hallType:null, capacity:'', area:'', rate:'', purposes:{ photo:{ on:true, rate:'' } } } };
+    NH = { step:0, idx:-1, d:{ title:'', hallType:null, capacity:'', area:'', purposes:{ photo:{ on:true, rate:'' } } } };
     $('hallsListView').hidden = true; $('wzView').hidden = true; $('nhView').hidden = false;
     window.scrollTo(0, 0);
     loadDict('space_type');
@@ -5894,22 +5953,20 @@
       wzComboHelper({ input:'nhType', box:'nhTypeSuggest' }, 'space_type', d, 'hallType');
       $('nhTitle').focus();
     } else if(NH.step === 1){
-      b.innerHTML = '<h2>Цена</h2><p class="nh-lead">Базовая цена за час и для чего вы сдаёте зал. У цели может быть своя цена — например, праздник дороже съёмки.</p>' +
-        '<label class="nh-f" for="nhRate">Базовая цена</label><span class="unitwrap"><input class="num" type="number" min="1" id="nhRate" value="' + esc(d.rate) + '"><span class="u">' + CUR + '/ч</span></span>' +
-        '<label class="nh-f">Для чего сдаёте</label><div id="nhPurp">' + HALL_PURPOSE_LIST.map(function(p){
+      b.innerHTML = '<h2>Для чего сдаёте и почём</h2><p class="nh-lead">Отметьте цели и укажите цену за час для каждой — например, праздник дороже съёмки. Из этого и складывается цена зала.</p>' +
+        '<div id="nhPurp">' + HALL_PURPOSE_LIST.map(function(p){
           var x = d.purposes[p.v] || { on:false, rate:'' };
           return '<div class="nh-purp"><label class="chk"><input type="checkbox" data-np="' + p.v + '"' + (x.on ? ' checked' : '') + '> ' + esc(p.label) + '</label>' +
-            '<span class="unitwrap"><input class="num" type="number" min="1" data-npr="' + p.v + '" value="' + esc(x.rate) + '" placeholder="как базовая"' + (x.on ? '' : ' disabled') + '><span class="u">' + CUR + '/ч</span></span></div>';
+            '<span class="unitwrap"><input class="num" type="number" min="1" data-npr="' + p.v + '" value="' + esc(x.rate) + '" placeholder="цена"' + (x.on ? '' : ' disabled') + '><span class="u">' + CUR + '/ч</span></span></div>';
         }).join('') + '</div>' +
-        '<div class="nh-hint">Цены по дням и часам, пакеты и что входит в аренду — позже, в карточке зала, раздел «Цены и назначения».</div>';
+        '<div class="nh-hint">Цены по дням и часам, минимум брони и что входит в аренду — позже, на странице «Пространства» под карточкой зала.</div>';
       b.querySelectorAll('[data-np]').forEach(function(c){ c.addEventListener('change', function(){
         d.purposes[c.dataset.np] = d.purposes[c.dataset.np] || { on:false, rate:'' };
         d.purposes[c.dataset.np].on = c.checked;
         b.querySelector('[data-npr="' + c.dataset.np + '"]').disabled = !c.checked;
       }); });
       b.querySelectorAll('[data-npr]').forEach(function(i){ i.addEventListener('input', function(){ d.purposes[i.dataset.npr].rate = i.value; }); });
-      $('nhRate').addEventListener('input', function(){ d.rate = this.value; });
-      $('nhRate').focus();
+      var firstRate = b.querySelector('[data-npr]:not([disabled])'); if(firstRate) firstRate.focus();
     } else {
       b.innerHTML = '<h2>Фотографии</h2><p class="nh-lead">Залы с ' + PHOTOS_MIN + '+ фото выбирают заметно чаще. Первое фото — обложка, порядок меняется перетаскиванием. Можно пропустить и добавить позже.</p>' +
         '<div class="hall-photos" data-i="' + NH.idx + '"></div>';
@@ -5930,11 +5987,13 @@
   }
   function nhCreate(){
     if(NH.idx >= 0) return Promise.resolve();      // зал уже создан (повторное нажатие после ошибки в целях)
-    var d = NH.d, rate = Number(d.rate);
-    if(!(rate > 0 && rate <= 100000)) return Promise.reject(new Error('Укажите базовую цену за час'));
+    var d = NH.d;
     var chosen = HALL_PURPOSE_LIST.filter(function(p){ return d.purposes[p.v] && d.purposes[p.v].on; });
-    var bad = chosen.filter(function(p){ var r = d.purposes[p.v].rate; return r !== '' && !(Number(r) > 0); })[0];
-    if(bad) return Promise.reject(new Error('«' + bad.label + '»: цена — число больше нуля или пусто'));
+    if(!chosen.length) return Promise.reject(new Error('Отметьте хотя бы одну цель'));
+    var bad = chosen.filter(function(p){ var r = Number(d.purposes[p.v].rate); return !(r > 0 && r <= 100000); })[0];
+    if(bad) return Promise.reject(new Error('«' + bad.label + '»: укажите цену за час'));
+    // Цена зала — минимальная из целей (так же её считает сервер, 0052).
+    var rate = Math.min.apply(null, chosen.map(function(p){ return Number(d.purposes[p.v].rate); }));
     var before = hallsDraft.map(function(h){ return h.id; });
     var area = parseInt(d.area, 10);
     var nh = mapHall({ name:d.title, title:d.title, capacity:parseInt(d.capacity, 10), rate:rate, hallType:d.hallType,
@@ -5945,13 +6004,8 @@
       hallsDraft.forEach(function(h, i){ if(before.indexOf(h.id) < 0) idx = i; });
       if(idx < 0) throw new Error('Зал сохранён, но не найден в списке — обновите страницу');
       NH.idx = idx;
-      if(!chosen.length) return;
       var h = hallsDraft[idx];
-      var clean = chosen.map(function(p){
-        var r = d.purposes[p.v].rate, out = { code:p.v, active:true };
-        if(r !== '') out.rate = Number(r);
-        return out;
-      });
+      var clean = chosen.map(function(p){ return { code:p.v, active:true, rate:Number(d.purposes[p.v].rate) }; });
       return api('PUT', '/admin/halls/' + encodeURIComponent(h.id) + '/purposes', clean)
         .then(function(res){ h.purposes = Array.isArray(res.purposes) ? res.purposes : clean; })
         .catch(function(e){ throw new Error('Зал создан, но цели не сохранились: ' + e.message + '. Задайте их в карточке зала.'); });
@@ -6662,39 +6716,6 @@
       }
     }
     return saveHallsNow();
-  };
-
-  // ---------- Цены и назначения ----------
-  WZ_RENDERERS.pricing = function(){
-    var h = wzHall();
-    $('wzBody').innerHTML =
-      '<label class="nh-f" for="wzBaseRate">Базовая цена</label>' +
-      '<span class="unitwrap"><input class="num" type="number" min="1" id="wzBaseRate" value="'+esc(h.rate>0?h.rate:'')+'"><span class="u">'+CUR+'/ч</span></span>' +
-      '<div class="muted" style="margin:4px 0 16px">По ней бронируются цели, у которых нет своей цены.</div>' +
-      '<div class="hall-purposes" data-i="'+WZ.hallIndex+'"></div>' +
-      '<div class="hall-prules" data-i="'+WZ.hallIndex+'" style="margin-top:14px"></div>' +
-      '<div class="amenity-group-t" style="margin-top:14px">Пакеты</div>' +
-      '<div class="hall-packages" data-i="'+WZ.hallIndex+'"></div>';
-    if(WZ.focusPurpose){ pgLoad(WZ.hallIndex, WZ.focusPurpose); WZ.focusPurpose = null; }
-    renderHallPurposes(WZ.hallIndex);
-    renderHallPriceRules(WZ.hallIndex);
-    renderHallPackages(WZ.hallIndex);
-    // Подгружаем словарь оборудования заранее — чтобы чипы «своего»
-    // оборудования (см. renderHallPurposes) сразу показывали название, а не
-    // код; если экран назначения уже открыт, перерисовываем его им же.
-    loadDict('equipment').then(function(){
-      if(WZ.section === 'pricing' && PG.i === WZ.hallIndex && PG.code) renderHallPurposes(WZ.hallIndex);
-    });
-  };
-  WZ_SAVERS.pricing = function(){
-    var rate = Number($('wzBaseRate').value);
-    if(!(rate > 0 && rate <= 100000)) return Promise.reject(new Error('Базовая цена — число больше нуля'));
-    // Экран одного назначения сохраняется своей кнопкой «Сохранить
-    // назначения» — но если он ОТКРЫТ, когда нажали «Сохранить», его правки
-    // без явного сохранения потерялись бы, поэтому досохраняем и здесь.
-    // Сначала назначения, потом зал: saveHallsNow заменяет объекты черновика.
-    var p = (PG.i === WZ.hallIndex && PG.code) ? saveHallPurposes(WZ.hallIndex) : Promise.resolve();
-    return p.then(function(){ wzHall().rate = rate; return saveHallsNow(); });
   };
 
   function boot(){
