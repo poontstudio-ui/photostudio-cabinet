@@ -185,9 +185,18 @@
   .sc-ready-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:4px;}
   .sc-bar{flex:1;min-width:120px;height:8px;background:var(--bg);border-radius:var(--r-pill);overflow:hidden;}
   .sc-bar i{display:block;height:100%;width:0;background:var(--green);border-radius:var(--r-pill);transition:width .3s;}
+  /* Пространства и запуск студии — во всю ширину экрана: карточки разделов в
+     две колонки, справа превью. Остальные разделы остаются в читаемой колонке. */
+  .shell[data-folder="halls"] .content,.shell[data-folder="launch"] .content{max-width:1680px;}
   #wzView{max-width:none;}
+  #hpSecs{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:12px 16px;align-items:start;}
+  #hpSecs .sc-group{grid-column:1 / -1;margin:14px 0 0;}
+  #hpSecs .sc-group:first-child{margin-top:0;}
+  #hpSecs .sc{margin-bottom:0;}
+  #hpSecs .sc.open{grid-column:1 / -1;}
+  .halls-list .hall-card-add,.halls-list .halls-empty{grid-column:1 / -1;}
   .hp-title{font-size:var(--fs-2xl);font-weight:700;letter-spacing:-.02em;margin:12px 0 14px;}
-  .hp-grid,.ln-grid{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:26px;align-items:start;}
+  .hp-grid,.ln-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:28px;align-items:start;}
   /* превью «как увидят клиенты» */
   .pv{position:sticky;top:18px;}
   .pv-t{font-size:var(--fs-xs);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px;}
@@ -236,6 +245,8 @@
   .nh-f{display:block;font-size:var(--fs-sm);font-weight:600;color:var(--text-2);margin:14px 0 5px;}
   .nh-hint{font-size:var(--fs-sm);color:var(--text-3);margin-top:6px;}
   .nh-two{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .nh-per{flex:none;} .nh-per[data-off] button{opacity:.5;cursor:default;}
+  .nh-per button{font-size:var(--fs-sm);padding:5px 10px;}
   .nh-purp{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line);}
   .nh-purp:first-child{border-top:none;}
   .nh-foot{display:flex;align-items:center;gap:12px;margin-top:26px;padding-top:16px;border-top:1px solid var(--line);}
@@ -467,7 +478,7 @@
   /* Список — по одной карточке на цель (иконка, название, цена/правила,
      стрелка), клик открывает её собственный экран редактирования, а не
      разворачивает поля тут же — тот же приём «список → отдельный экран»,
-     что и у самих залов (halls-list → визард), только на уровень глубже. */
+     что и у самих пространств (halls-list → визард), только на уровень глубже. */
   .purp-list{display:flex;flex-direction:column;gap:8px;margin-bottom:8px;}
   .purp-card{
     display:flex;align-items:center;gap:12px;width:100%;text-align:left;
@@ -580,7 +591,7 @@
   /* ---------- пространства: широкие карточки-строки (Peerspace Listings) ---------- */
   /* Фото слева, инфо справа — как в веб-версии Listings, а не плиткой:
      на телефоне превращается в фото сверху (media-запрос ниже). */
-  .halls-list{display:flex;flex-direction:column;gap:22px;}
+  .halls-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(520px,1fr));gap:22px;align-items:start;}
   .listing-card{border:1px solid var(--line);border-radius:var(--r-md);padding:18px;}
   .listing-head{display:flex;gap:16px;align-items:flex-start;}
   .listing-photo{width:180px;height:135px;flex:none;border-radius:var(--r-sm);overflow:hidden;background:var(--surface-2);}
@@ -651,7 +662,6 @@
      приём, что у clListView/clDetailView), НЕ модалка: без затемнения фона
      и без обрезки по высоте — на длинных разделах (например, «О
      пространстве») это раньше означало прокрутку внутри тесного окна. */
-  #wzView{max-width:640px;}
   #wzView > .btn{margin-bottom:14px;}
   .wz-head{margin-bottom:14px;display:flex;align-items:center;gap:6px;}
   .wz-back-btn{border:none;background:none;color:var(--text-3);font-size:var(--fs-lg);
@@ -739,7 +749,7 @@
   .stars button[aria-pressed="true"]{color:var(--amber);}
   .stars button:focus-visible{outline:2px solid var(--accent);border-radius:var(--r-sm);}
   /* Бронь в списке — только текст и воздух: дата+время крупно, статус
-     цветным словом, зал, клиент с кликабельным телефоном. Без рамок и полос. */
+     цветным словом, пространство, клиент с кликабельным телефоном. Без рамок и полос. */
   .bk{margin-bottom:30px;}
   .bk[data-st="cancelled"],.bk[data-st="declined"],.bk[data-st="no_show"]{opacity:.62;}
   .bk-top{display:flex;justify-content:space-between;align-items:center;gap:10px;}
@@ -771,7 +781,7 @@
      скруглённые ячейки с зазором вместо общих линий таблицы, легенда снизу.
      Цвета — свои, из палитры кабинета (--blue вместо клиентского --amber).
 
-     Скролл только горизонтальный — как у клиента, шапка (залы) и тело сетки
+     Скролл только горизонтальный — как у клиента, шапка (пространства) и тело сетки
      (часы + ячейки) РАЗНЕСЕНЫ на два отдельных грида: .qb-grid-head живёт
      вне горизонтально скроллящегося контейнера и липнет к верху ВЬЮПОРТА
      страницы (.qb-grid-head-wrap), тело — в .qb-grid-scroll (overflow-x:auto,
@@ -1123,7 +1133,7 @@
   <main class="content">
     <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Меню">☰</button>
     <div class="page-head"><h1 id="pageTitle">Управление студией</h1></div>
-    <div class="sub" id="pageSub">Настройки, залы, брони и синхронизация.</div>
+    <div class="sub" id="pageSub">Настройки, пространства, брони и синхронизация.</div>
 
     <div id="loading" class="card"><span class="muted">Загрузка…</span></div>
     <div id="denied" class="card" hidden><span class="err" id="deniedMsg"></span></div>
@@ -1165,7 +1175,7 @@
     <div class="card" id="sec-dashboard" data-folder="dashboard">
       <h2>Брони</h2>
       <div class="row">
-        <input class="name" type="text" id="dashSearch" placeholder="Поиск: имя, телефон, дата, зал…" autocomplete="off">
+        <input class="name" type="text" id="dashSearch" placeholder="Поиск: имя, телефон, дата, пространство…" autocomplete="off">
       </div>
       <button type="button" class="dash-pending" id="dashPending" hidden>
         <b id="dashPendingCount">0</b> ожидают подтверждения
@@ -1204,7 +1214,7 @@
 
     <!-- «Студия» — всё общее для всех залов: название, адрес, парковка и
          удобства, часы работы (карточка sec-hours ниже, та же папка).
-         Раньше это правилось изнутри КАЖДОГО зала и меняло все сразу. -->
+         Раньше это правилось изнутри КАЖДОГО пространства и меняло все сразу. -->
     <div class="card" id="sec-studio" data-folder="main" data-owner-only="1">
       <h2>Студия</h2>
       <div class="muted" style="margin:-6px 0 18px">Общее для всех пространств: меняется здесь — применяется везде.</div>
@@ -1231,13 +1241,13 @@
     <div class="card" id="sec-halls" data-folder="halls">
       <div id="hallsListView">
         <h2>Пространства</h2>
-        <div class="muted" style="margin-bottom:14px" id="hallsListHint">Всё про конкретный зал — в его карточке. Общее для студии (название, адрес, парковка, часы) — в разделе «Студия».</div>
+        <div class="muted" style="margin-bottom:14px" id="hallsListHint">Всё про конкретное пространство — в его карточке. Общее для студии (название, адрес, парковка, часы) — в разделе «Студия».</div>
         <div id="hallsGrid" class="halls-list"></div>
         <div class="note" id="hallNoteList"></div>
       </div>
 
       <!-- Новое пространство: три коротких шага (название/тип/вместимость →
-           цена → фото), дальше — страница зала. См. nhOpen. -->
+           цена → фото), дальше — страница пространства. См. nhOpen. -->
       <div id="nhView" hidden>
         <div class="nh-steps" id="nhSteps"></div>
         <div id="nhBody" class="fld"></div>
@@ -1250,7 +1260,7 @@
 
       <!-- Страница пространства: разделы-карточки со сводкой и статусом,
            редактор раскрывается в самой карточке (см. edOpen). Справа — как
-           зал увидят клиенты. -->
+           пространство увидят клиенты. -->
       <div id="wzView" hidden>
         <button class="btn ghost small" id="wzClose" type="button">← Пространства</button>
         <h2 class="hp-title" id="hpTitle">Пространство</h2>
@@ -1261,7 +1271,7 @@
             <div class="note" id="hpNote"></div>
           </div>
           <aside class="pv">
-            <div class="pv-t">Так зал увидят клиенты</div>
+            <div class="pv-t">Так пространство увидят клиенты</div>
             <div class="pv-card" id="hpPreview"></div>
           </aside>
         </div>
@@ -1302,7 +1312,7 @@
       <div class="muted" style="margin:-6px 0 16px">Ремонт, своя съёмка, бронь мимо платформы — клиенты не смогут занять это время.</div>
       <div class="blk-form fld">
         <div class="blk-grid">
-          <div><label class="nh-f" for="blkHall">Зал</label><select id="blkHall" class="name"></select></div>
+          <div><label class="nh-f" for="blkHall">Пространство</label><select id="blkHall" class="name"></select></div>
           <div><label class="nh-f" for="blkDate">Дата</label><input type="date" id="blkDate" class="name"></div>
           <div class="blk-wide"><label class="nh-f" for="blkFrom">Время</label>
             <div class="blk-time"><input type="time" id="blkFrom" step="1800" class="name" aria-label="С"><span>–</span><input type="time" id="blkTo" step="1800" class="name" aria-label="До">
@@ -1623,6 +1633,7 @@
     cards.forEach(function(c){ c.hidden = c.dataset.folder !== folder || (!!c.dataset.ownerOnly && window.PS_ROLE === 'admin'); });
     try{ localStorage.setItem(FOLDER_KEY, folder); }catch(e){}
     shell.dataset.nav = '';               // на мобильном — свернуть меню после выбора
+    shell.dataset.folder = folder;        // ширина страницы зависит от раздела (см. .shell[data-folder])
     window.scrollTo(0, 0);
   }
   folderBtns.forEach(function(b){
@@ -1834,7 +1845,7 @@
         '<div class="gp-row"><span>Каждый следующий</span><span class="unitwrap">+ <input class="num gp-in" data-f="price" inputmode="decimal" value="' + esc(gpMoney(g.price || 0)) + '"><span class="u">' + CUR + '</span></span>' +
           seg('gp-unit', [['booking','за бронь'],['hour','за час']], g.unit) + '</div>';
     } else {
-      html += '<div class="gp-row"><span>Аренда зала</span>' + seg('gp-rent', [['1','плюс аренда'],['0','только за людей']], g.withRent === false ? '0' : '1') + '</div>' +
+      html += '<div class="gp-row"><span>Аренда пространства</span>' + seg('gp-rent', [['1','плюс аренда'],['0','только за людей']], g.withRent === false ? '0' : '1') + '</div>' +
         '<div class="gp-tiers">' + g.tiers.map(function(t, k){
           var last = k === g.tiers.length - 1;
           var who = k === 0 ? '<b>' + (g.tiers.length > 1 && g.tiers[1].from === 2 ? '1 гость' : 'от 1 гостя') + '</b>'
@@ -2072,7 +2083,7 @@
   function setPageHead(name, city, address){
     $('pageTitle').textContent = name || 'Студия';
     var sub = [city, address].filter(Boolean).join(' · ');
-    $('pageSub').textContent = sub || 'Настройки, залы, брони и синхронизация.';
+    $('pageSub').textContent = sub || 'Настройки, пространства, брони и синхронизация.';
     document.title = (name ? name + ' · ' : '') + 'Кабинет';
   }
   // ---------- Новая бронь по звонку: сетка «залы × время» ----------
@@ -2082,7 +2093,7 @@
     slotMin: 60,
     minBookingMin: 60,
     lastMinute: { enabled:false, hours:24, pct:20 },
-    halls: [],             // активные залы студии — «сырые», rate/priceRules как из API
+    halls: [],             // активные пространства студии — «сырые», rate/priceRules как из API
     date: '',              // выбранная дата, YYYY-MM-DD
     dates: [],              // Date[] — все дни текущего окна (см. qbBuildDatesForMonthWindow), для ленты дат
     busy: {},              // {hallId: [{start,end}]}, минуты от полуночи
@@ -2400,7 +2411,7 @@
     var h = hallsDraft[i];
     var box = document.querySelector('.hall-prules[data-i="'+i+'"]');
     if(!box) return;
-    if(!h.id){ box.innerHTML = '<span class="muted">Сохраните зал, чтобы задать тарифы по времени.</span>'; return; }
+    if(!h.id){ box.innerHTML = '<span class="muted">Сохраните пространство, чтобы задать тарифы по времени.</span>'; return; }
     // Сетка — только у открытой цели: цены зала «вообще» больше нет (0052).
     if(!(PG.i === i && PG.code)){ box.innerHTML = ''; return; }
     var gpCur = hallPurposes(h).filter(function(p){ return p.code === PG.code; })[0];
@@ -2455,7 +2466,7 @@
 
     box.innerHTML =
       '<div class="muted" style="font-size:12px;margin-bottom:8px">' +
-        (PG.code ? 'Тарифы назначения «' + esc(purposeLabel(PG.code)) + '».' : 'Базовые тарифы зала.') +
+        (PG.code ? 'Тарифы назначения «' + esc(purposeLabel(PG.code)) + '».' : 'Базовые тарифы пространства.') +
         ' Выделите часы и назначьте им цену. ' +
         'Невыделенные часы считаются по ставке ' + esc(base) + ' ' + CUR + '/ч.</div>' +
       (PG.half ? '<div style="font-size:12px;color:var(--amber);margin-bottom:8px">Прежние тарифы были заданы с получасовыми границами — в сетке они округлены до целых часов. Проверьте цены перед сохранением.</div>' : '') +
@@ -2539,11 +2550,11 @@
     var h = hallsDraft[i];
     var box = document.querySelector('.hall-purposes[data-i="'+i+'"]');
     if(!box) return;
-    if(!h.id){ box.innerHTML = '<div class="amenity-group-t">Назначения</div><span class="muted">Сохраните зал, чтобы задать назначения.</span>'; return; }
+    if(!h.id){ box.innerHTML = '<div class="amenity-group-t">Назначения</div><span class="muted">Сохраните пространство, чтобы задать назначения.</span>'; return; }
     var list = hallPurposes(h);
     var code = (PG.i === i) ? PG.code : null;
     var cur = code ? list.find(function(p){ return p.code === code; }) : null;
-    if(code && !cur){ code = null; PG.code = null; }   // назначение удалили — падаем на зал
+    if(code && !cur){ code = null; PG.code = null; }   // назначение удалили — падаем на пространство
 
     if(cur){
       // ---------- экран одного назначения ----------
@@ -2571,7 +2582,7 @@
           '<label class="purp-lbl">Минимальная бронь<span class="unitwrap"><input class="num purp-hours" type="number" min="0.5" max="8" step="0.5" data-f="minBookingMin" value="'+esc(cur.minBookingMin!=null?(cur.minBookingMin/60):'')+'" placeholder="как у студии"><span class="u">ч</span></span></label>' +
           '<label class="purp-lbl">Вместимость<span class="unitwrap"><input class="num purp-f" type="number" min="1" max="1000" step="1" data-f="capacity" value="'+esc(cur.capacity!=null?cur.capacity:'')+'" placeholder="'+esc(h.capacity)+'"><span class="u">чел</span></span></label>' +
         '</div>' +
-        '<div class="muted purp-rate-note" style="margin-top:4px">Пустые минимум и вместимость — как у студии и у зала. Цены по дням и часам — в сетке ниже.</div>' +
+        '<div class="muted purp-rate-note" style="margin-top:4px">Пустые минимум и вместимость — как у студии и у пространства. Цены по дням и часам — в сетке ниже.</div>' +
         // Вместимость стоя/сидя — только у праздника: клиент увидит их
         // вместо площади, остальным назначениям эти цифры не нужны.
         (cur.code === 'event' ?
@@ -2593,7 +2604,7 @@
           '<span class="unitwrap"><input class="num purp-f" type="number" min="0" max="100" step="1" data-f="fullDayDiscountPct" value="'+esc(cur.fullDayDiscountPct!=null?cur.fullDayDiscountPct:'')+'" placeholder="0"><span class="u">%</span></span>' +
         '</div>' +
         '<div class="about-f-t" style="margin-top:12px">Что входит в аренду</div>' +
-        '<div class="muted" style="margin:-2px 0 6px">Мебель и техника под эту цель — клиент видит их, когда выбирает её. Свойства самого зала (доступ, свет, кухня) — в карточке зала.</div>' +
+        '<div class="muted" style="margin:-2px 0 6px">Мебель и техника под эту цель — клиент видит их, когда выбирает её. Свойства самого пространства (доступ, свет, кухня) — в карточке пространства.</div>' +
         equipHtml +
         (function(){
           var extra = (Array.isArray(cur.equipment) ? cur.equipment : []).filter(function(code){
@@ -2695,7 +2706,7 @@
       // список), не здесь.
       var del = box.querySelector('.purp-del');
       if(del) del.addEventListener('click', function(){
-        if(!confirm('Убрать «' + purposeLabel(cur.code) + '» из зала? Цена и настройки этой цели удалятся. Чтобы временно не сдавать — просто выключите её.')) return;
+        if(!confirm('Убрать «' + purposeLabel(cur.code) + '» из пространства? Цена и настройки этой цели удалятся. Чтобы временно не сдавать — просто выключите её.')) return;
         list.splice(list.indexOf(cur), 1);
         saveHallPurposes(i).then(function(){ PURP_SNAP = null; pgLoad(i, null); renderHalls(); hallFlash('Назначение убрано', true); }).catch(function(){});
       });
@@ -2737,7 +2748,7 @@
         var p = list.filter(function(y){ return y.code === t.dataset.purpToggle; })[0];
         if(!p) return;
         var othersOn = list.some(function(y){ return y !== p && y.active !== false; });
-        if(!t.checked && !othersOn && !confirm('Это последняя включённая цель — зал перестанет быть доступен для брони. Выключить?')){ t.checked = true; return; }
+        if(!t.checked && !othersOn && !confirm('Это последняя включённая цель — пространство перестанет быть доступно для брони. Выключить?')){ t.checked = true; return; }
         p.active = t.checked;
         saveHallPurposes(i).then(function(){ renderHalls(); })
           .catch(function(){ p.active = !t.checked; renderHalls(); });
@@ -2835,7 +2846,7 @@
     var h = hallsDraft[i];
     var box = document.querySelector('.hall-packages[data-i="'+i+'"]');
     if(!box) return;
-    if(!h.id){ box.innerHTML = '<span class="muted">Сохраните зал, чтобы задать пакеты.</span>'; return; }
+    if(!h.id){ box.innerHTML = '<span class="muted">Сохраните пространство, чтобы задать пакеты.</span>'; return; }
     var pk = h.packages || (h.packages = []);
     var rows = pk.map(function(p, pi){
       return '<div class="pr-row" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:6px 0;border-top:1px solid var(--line)">' +
@@ -2936,7 +2947,7 @@
     var box = document.querySelector('.hall-photos[data-i="'+i+'"]');
     if(!box) return;
     if(!h.id){
-      box.innerHTML = '<span class="muted">Сохраните зал, чтобы добавить фото.</span>';
+      box.innerHTML = '<span class="muted">Сохраните пространство, чтобы добавить фото.</span>';
       return;
     }
     // Первое фото — обложка (так его уже читает клиент, см. listing-photo/
@@ -2953,9 +2964,10 @@
     box.innerHTML =
       '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' + thumbs +
       ((h.photos||[]).length < 8
-        ? '<button class="btn ghost small ph-add" type="button">+ Фото</button>' : '') +
+        ? '<button class="btn ghost small ph-add" type="button">+ Добавить фото</button>' : '') +
       '</div>' +
-      ((h.photos||[]).length > 1 ? '<div class="muted" style="margin-top:6px">Перетащите фото, чтобы поменять порядок — первое становится обложкой.</div>' : '') +
+      '<div class="muted" style="margin-top:6px">Можно выбрать сразу несколько файлов (до ' + PHOTO_MAX + ' фото, каждое до ' + PHOTO_MAX_MB + ' МБ).' +
+        ((h.photos||[]).length > 1 ? ' Перетащите фото, чтобы поменять порядок — первое становится обложкой.' : '') + '</div>' +
       '<div class="note ph-note"></div>';
 
     box.querySelectorAll('.ph-del').forEach(function(b){
@@ -2967,8 +2979,8 @@
     var add = box.querySelector('.ph-add');
     if(add) add.addEventListener('click', function(){
       var inp = document.createElement('input');
-      inp.type = 'file'; inp.accept = 'image/jpeg,image/png,image/webp';
-      inp.addEventListener('change', function(){ if(inp.files[0]) uploadHallPhoto(i, inp.files[0]); });
+      inp.type = 'file'; inp.accept = 'image/jpeg,image/png,image/webp'; inp.multiple = true;
+      inp.addEventListener('change', function(){ if(inp.files.length) uploadHallPhotos(i, inp.files); });
       inp.click();
     });
     var dragFrom = null;
@@ -2997,19 +3009,52 @@
       .catch(function(e){ var n = document.querySelector('.hall-photos[data-i="'+i+'"] .ph-note'); if(n) flash(n, e.message); });
   }
 
-  function uploadHallPhoto(i, file){
+  // Несколько фото сразу: выбранные файлы грузятся параллельно (по 3), в
+  // список зала уходят одним сохранением в порядке выбора. Лимит сервера —
+  // 8 фото на пространство, лишнее отбрасываем с пояснением.
+  var PHOTO_MAX = 8, PHOTO_MAX_MB = 5;
+  function uploadHallPhotos(i, fileList){
     var h = hallsDraft[i];
     var n = document.querySelector('.hall-photos[data-i="'+i+'"] .ph-note');
-    if(file.size > 5*1024*1024){ if(n) flash(n, 'Файл больше 5 МБ'); return; }
-    if(n) flash(n, 'Загрузка…', true);
-    api('POST', '/admin/halls/' + encodeURIComponent(h.id) + '/photo-upload', { contentType: file.type })
-      .then(function(r){
-        return fetch(r.uploadUrl, { method:'PUT', body:file, headers:{ 'Content-Type': file.type } })
-          .then(function(res){ if(!res.ok) throw new Error('R2 отклонил загрузку ('+res.status+')'); return r.publicUrl; });
-      })
-      .then(function(publicUrl){ return saveHallPhotos(i, (h.photos||[]).concat([publicUrl])); })
-      .then(function(){ if(n) flash(n, 'Фото добавлено', true); })
-      .catch(function(e){ if(n) flash(n, e.message); });
+    var say = function(t, ok){ if(n) flash(n, t, ok); };
+    var have = (h.photos || []).length, room = PHOTO_MAX - have;
+    var all = [].slice.call(fileList);
+    var files = all.filter(function(f){ return /^image\/(jpeg|png|webp)$/.test(f.type); });
+    var skipped = [];
+    if(!files.length){ say('Подходят JPG, PNG и WebP'); return; }
+    if(files.length < all.length) skipped.push((all.length - files.length) + ' не фото (нужны JPG, PNG или WebP)');
+    var big = files.filter(function(f){ return f.size > PHOTO_MAX_MB*1024*1024; });
+    if(big.length){ skipped.push(big.length + ' больше ' + PHOTO_MAX_MB + ' МБ'); files = files.filter(function(f){ return f.size <= PHOTO_MAX_MB*1024*1024; }); }
+    if(files.length > room){ skipped.push((files.length - room) + ' сверх лимита ' + PHOTO_MAX + ' фото'); files = files.slice(0, Math.max(0, room)); }
+    if(!files.length){ say('Не загружено: ' + skipped.join(', ')); return; }
+    var done = 0, urls = new Array(files.length), failed = 0, next = 0;
+    say('Загрузка 0 из ' + files.length + '…', true);
+    function one(k){
+      var file = files[k];
+      return api('POST', '/admin/halls/' + encodeURIComponent(h.id) + '/photo-upload', { contentType: file.type })
+        .then(function(r){
+          return fetch(r.uploadUrl, { method:'PUT', body:file, headers:{ 'Content-Type': file.type } })
+            .then(function(res){ if(!res.ok) throw new Error('хранилище отклонило загрузку (' + res.status + ')'); urls[k] = r.publicUrl; });
+        })
+        .catch(function(){ failed++; })
+        .then(function(){ done++; say('Загрузка ' + done + ' из ' + files.length + '…', true); });
+    }
+    function worker(){
+      if(next >= files.length) return Promise.resolve();
+      var k = next++;
+      return one(k).then(worker);
+    }
+    var pool = [];
+    for(var w = 0; w < Math.min(3, files.length); w++) pool.push(worker());
+    Promise.all(pool).then(function(){
+      var ok = urls.filter(Boolean);
+      if(!ok.length){ say('Не удалось загрузить фото. Проверьте соединение и попробуйте ещё раз.'); return; }
+      return saveHallPhotos(i, (h.photos || []).concat(ok)).then(function(){
+        var m = document.querySelector('.hall-photos[data-i="'+i+'"] .ph-note');
+        var msg = 'Добавлено: ' + ok.length + (failed ? ', не загрузилось: ' + failed : '') + (skipped.length ? ' (пропущено: ' + skipped.join(', ') + ')' : '');
+        if(m) flash(m, msg, !failed && !skipped.length);
+      });
+    });
   }
 
   // ---------- пространства: список карточек ----------
@@ -3035,7 +3080,7 @@
             '<div class="listing-body">' +
               '<div class="listing-name">'+esc(h.title || h.name || 'Без названия')+'</div>' +
               '<div class="listing-meta">'+esc(meta)+'</div>' +
-              '<div class="listing-rate">'+(rate != null ? 'от '+esc(rate)+' '+CUR+'/ч' : '<span class="muted">цена не указана</span>')+'</div>' +
+              '<div class="listing-rate">'+(hallPriceText(h) ? esc(hallPriceText(h)) : '<span class="muted">цена не указана</span>')+'</div>' +
               '<div class="listing-ready">' + (r.missing.length
                 ? '<span class="sc-chip req">не хватает: '+esc(r.missing.join(', ').toLowerCase())+'</span>'
                 : '<span class="sc-chip ok">готово на '+r.pct+'%</span>') + '</div>' +
@@ -3045,7 +3090,7 @@
             '<button class="btn ghost small" type="button" data-edit="'+i+'">Открыть</button>' +
             '<button class="hall-card-menu-btn" type="button" data-menu="'+i+'" aria-label="Ещё">⋯</button>' +
             '<div class="hall-card-menu" data-menu-box="'+i+'" hidden>' +
-              '<button type="button" data-delete="'+i+'">Удалить зал</button>' +
+              '<button type="button" data-delete="'+i+'">Удалить пространство</button>' +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -3091,10 +3136,10 @@
         e.stopPropagation();
         var i = +b.dataset.delete;
         var h = hallsDraft[i];
-        if(hallsDraft.length <= 1){ flash($('hallNoteList'), 'Должен остаться хотя бы один зал'); return; }
-        if(!confirm('Удалить «'+(h.title||h.name||'зал')+'»? Прошлые брони сохранятся, зал перестанет быть доступен для новых.')) return;
+        if(hallsDraft.length <= 1){ flash($('hallNoteList'), 'Должно остаться хотя бы одно пространство'); return; }
+        if(!confirm('Удалить «'+(h.title||h.name||'пространство')+'»? Прошлые брони сохранятся, пространство перестанет быть доступно для новых.')) return;
         hallsDraft.splice(i, 1);
-        saveHallsSilently().then(function(){ flash($('hallNoteList'), 'Зал удалён', true); renderHalls(); });
+        saveHallsSilently().then(function(){ flash($('hallNoteList'), 'Пространство удалено', true); renderHalls(); });
       });
     });
     document.addEventListener('click', function(){
@@ -3112,7 +3157,7 @@
   // (сохраняет по шагам), и для удаления карточки из списка.
   function saveHallsNow(){
     for(var i=0;i<hallsDraft.length;i++){ var h=hallsDraft[i];
-      if(!h.name||!h.name.trim()){ return Promise.reject(new Error('У каждого зала должно быть название')); }
+      if(!h.name||!h.name.trim()){ return Promise.reject(new Error('У каждого пространства должно быть название')); }
       if(!Number.isInteger(h.capacity)||h.capacity<1){ return Promise.reject(new Error('Вместимость — целое от 1')); }
       if(!(h.rate>=0)){ return Promise.reject(new Error('Ставка — число от 0')); }
     }
@@ -3587,7 +3632,19 @@
     return { date: g('year')+'-'+g('month')+'-'+g('day'), minutes: Number(g('hour'))*60 + Number(g('minute')) };
   }
   function qbWeekday(dateStr){ return new Date(dateStr+'T00:00:00').getDay(); }
-  function qbDayWindow(dateStr){ return QB.hours[qbWeekday(dateStr)] || {start:0,end:0}; }
+  // Окно работы на дату: у пространства с «своим режимом» — его часы, иначе студии.
+  function qbDayWindow(dateStr, hall){
+    var h = hall && hall.hours;
+    var week = (Array.isArray(h) && h.length === 7) ? h : QB.hours;
+    return week[qbWeekday(dateStr)] || {start:0,end:0};
+  }
+  function qbHallById(id){ return QB.halls.find(function(x){ return x.id === id; }) || null; }
+  // Ось Y сетки — объединение окон всех пространств (остальное будет closed).
+  function qbGridWindow(dateStr){
+    var a = 24, b = 0;
+    QB.halls.forEach(function(h){ var w = qbDayWindow(dateStr, h); if(w.end > w.start){ a = Math.min(a, w.start); b = Math.max(b, w.end); } });
+    return b > a ? {start:a, end:b} : {start:0, end:0};
+  }
   function qbMaxSlots(){ return Math.round(8*60 / QB.slotMin); }
 
   // ---------- Лента дат + слайдер месяцев (см. photostudio-frontend/index.html,
@@ -3700,7 +3757,7 @@
     return Math.max(1, Math.ceil(minMin / QB.slotMin));
   }
   function qbCellState(hallId, slot){
-    var w = qbDayWindow(QB.date);
+    var w = qbDayWindow(QB.date, qbHallById(hallId));
     var s0 = slot * QB.slotMin, e0 = s0 + QB.slotMin;
     if(s0 < w.start*60 || e0 > w.end*60) return 'closed';
     // busy проверяем ДО past (порядок отличается от клиентского cellState()
@@ -3825,9 +3882,9 @@
   function qbRenderGrid(){
     var headEl = $('qbGridHead');
     var wrap = $('qbGrid');
-    if(!QB.halls.length){ headEl.innerHTML=''; wrap.innerHTML = '<div class="qb-empty">Нет активных залов.</div>'; qbRenderHint(); return; }
+    if(!QB.halls.length){ headEl.innerHTML=''; wrap.innerHTML = '<div class="qb-empty">Нет активных пространств.</div>'; qbRenderHint(); return; }
     if(!QB.date){ headEl.innerHTML=''; wrap.innerHTML = ''; qbRenderHint(); return; }
-    var w = qbDayWindow(QB.date);
+    var w = qbGridWindow(QB.date);
     var start = Math.floor(w.start*60/QB.slotMin), end = Math.ceil(w.end*60/QB.slotMin);
     if(end <= start){ headEl.innerHTML=''; wrap.innerHTML = '<div class="qb-empty">В этот день студия не работает.</div>'; qbRenderHint(); return; }
     var tpl = '44px repeat('+QB.halls.length+', minmax(88px,1fr))';
@@ -3918,7 +3975,7 @@
     var durMin = e - s;
     var durLabel = durMin % 60 === 0 ? (durMin/60) + ' ч' : Math.floor(durMin/60) + ' ч ' + (durMin%60) + ' мин';
     var rows = [
-      ['Зал', esc(hall.name)],
+      ['Пространство', esc(hall.name)],
       ['Время', minLabel(s) + '–' + minLabel(e) + ' · ' + durLabel],
     ];
     if(info.kind === 'booking'){
@@ -4081,7 +4138,7 @@
         ? (QB.reschedule.pkgSlots
             ? 'Пакет переносится целиком — выберите начало на сетке'
             : (qbSelectionPending() ? 'Отметьте вторую точку промежутка'
-               : 'Выберите новое время в зале «' + QB.reschedule.hallName + '»'))
+               : 'Выберите новое время в пространстве «' + QB.reschedule.hallName + '»'))
         // В обычном режиме подсказки в покое нет — сетка говорит сама за себя.
         // «Вторая точка» остаётся: это уже начатое действие, на нём без
         // подсказки непонятно, почему бронь ещё не готова. Сама подсказка —
@@ -4702,7 +4759,7 @@
   }
   function ntPreview(text){
     var v = { 'студия': profileDraft.name || 'Ваша студия', 'дата': '15.10.2026', 'время': '18:00–20:00',
-              'зал': 'Зал 1', 'цена': '40 ' + CUR, 'через': '1 ч', 'кто': 'студией' };
+              'пространство': 'Пространство 1', 'цена': '40 ' + CUR, 'через': '1 ч', 'кто': 'студией' };
     return esc(text).replace(/\{([^{}\s]+)\}/g, function(m, n){ return n in v ? esc(v[n]) : m; })
                     .replace(/\*\*([^*\n][^*]*?)\*\*/g, '<b>$1</b>');
   }
@@ -5400,7 +5457,7 @@
     var sel = $('blkHall');
     var cur = sel.value;
     var halls = (hallsDraft || []).filter(function(h){ return h.id; });
-    sel.innerHTML = '<option value="all">Все залы</option>' +
+    sel.innerHTML = '<option value="all">Все пространства</option>' +
       halls.map(function(h){ return '<option value="'+esc(h.id)+'">'+esc(h.name)+'</option>'; }).join('');
     if(cur) sel.value = cur;
   }
@@ -5489,7 +5546,7 @@
     order.forEach(function(bid){
       var rows = byBatch[bid], first = rows[0];
       var names = rows.map(function(r){ var h = HALLS_BY_ID[r.hallId] || {}; return h.title || h.name || r.hallId; });
-      var scope = rows.length >= totalHalls && totalHalls > 0 ? 'Все залы' : names.join(', ');
+      var scope = rows.length >= totalHalls && totalHalls > 0 ? 'Все пространства' : names.join(', ');
       if(first.date !== lastDate){ html += '<div class="blk-day">' + esc(blkDayLabel(first.date)) + '</div>'; lastDate = first.date; }
       html += '<div class="blk-row"><span class="blk-when">' + minLabel(first.start) + '–' + minLabel(first.end) + '</span>' +
         '<span class="blk-what"><b>' + esc(scope) + '</b>' + (first.note ? '<span class="muted">' + esc(first.note) + '</span>' : '') + '</span>' +
@@ -5769,6 +5826,17 @@
   }
   function activeHallPurposes(h){ return hallPurposes(h).filter(function(p){ return p.active !== false; }); }
   // Цена зала — цены его включённых целей (0052); у зала без целей — старое h.rate.
+  // Подпись цены пространства: «от 30 BYN/ч» или, если сдаётся только за людей, «от 5 BYN за гостя».
+  function hallPriceText(h){
+    var r = hallMinRate(h);
+    if(r != null) return 'от ' + r + ' ' + CUR + '/ч';
+    var per = [];
+    activeHallPurposes(h).forEach(function(p){
+      if(p.guestPricing && p.guestPricing.mode === 'perPerson' && p.guestPricing.withRent === false)
+        p.guestPricing.tiers.forEach(function(t){ per.push(t.price); });
+    });
+    return per.length ? 'от ' + gpMoney(Math.min.apply(null, per)) + ' ' + CUR + ' за гостя' : '';
+  }
   function hallMinRate(h){
     var ps = activeHallPurposes(h);
     var rates = hallPurposes(h).length ? ps.map(function(p){ return typeof p.rate === 'number' && isFinite(p.rate) ? p.rate : null; }) : [h.rate];
@@ -5813,7 +5881,7 @@
   var SC_CHIP = {
     ok:'<span class="sc-chip ok">заполнено</span>', req:'<span class="sc-chip req">нужно для публикации</span>',
     rec:'<span class="sc-chip rec">рекомендуем</span>', inh:'<span class="sc-chip inh">как у студии</span>',
-    own:'<span class="sc-chip own">своё для зала</span>' };
+    own:'<span class="sc-chip own">своё для пространства</span>' };
   function hallReadiness(h){
     var got = 0, total = 0, missing = [];
     HALL_SECTIONS.forEach(function(s){
@@ -5851,13 +5919,13 @@
         ['Площадь', h.areaM2 ? h.areaM2 + ' м²' : ''],
         ['Потолки', h.ceilingCm ? String(h.ceilingCm / 100).replace('.', ',') + ' м' : ''],
         ['Этаж', h.floor != null ? (h.floor <= 0 ? 'цокольный' : String(h.floor)) : ''],
-        ['Описание', clip(h.description, 180), 'нет — пара фраз помогает выбрать зал'] ]);
+        ['Описание', clip(h.description, 180), 'нет — пара фраз помогает выбрать пространство'] ]);
       case 'media':
         var ph = h.photos || [];
         var thumbs = ph.slice(0, 5).map(function(u){ return '<img src="' + esc(u) + '" alt="" loading="lazy">'; }).join('');
         var extra = [h.videoTourUrl ? 'видео-тур' : '', h.tour3dUrl ? '3D-тур' : ''].filter(Boolean).join(', ');
         return (thumbs ? '<div class="sc-thumbs">' + thumbs + '</div>' : '') +
-          (ph.length ? esc(ph.length + ' фото') + (ph.length < PHOTOS_MIN ? ' · добавьте ещё ' + (PHOTOS_MIN - ph.length) + ' — нужно минимум ' + PHOTOS_MIN : '') : emptyLine('Нет ни одного фото — без них зал почти не выбирают')) +
+          (ph.length ? esc(ph.length + ' фото') + (ph.length < PHOTOS_MIN ? ' · добавьте ещё ' + (PHOTOS_MIN - ph.length) + ' — нужно минимум ' + PHOTOS_MIN : '') : emptyLine('Нет ни одного фото — без них пространство почти не выбирают')) +
           (extra ? ' · ' + esc(extra) : '');
       case 'pricing':
         var base = h.rate > 0 ? 'Базовая цена — ' + h.rate + ' ' + CUR + '/ч' : '';
@@ -5880,7 +5948,7 @@
       case 'access':
         var acc = hallAccessLabels(h);
         return (acc.length ? esc(acc.join(' · ')) + '<br>' : '') +
-          ((h.aboutAccess || '').trim() ? esc(clip(h.aboutAccess, 180)) : emptyLine('Как найти зал и попасть внутрь — не указано')) + '<br>' +
+          ((h.aboutAccess || '').trim() ? esc(clip(h.aboutAccess, 180)) : emptyLine('Как найти пространство и попасть внутрь — не указано')) + '<br>' +
           ((h.wifiSsid || '').trim() ? 'Wi-Fi: «' + esc(h.wifiSsid) + '» · виден только после брони' : emptyLine('Wi-Fi не указан'));
       case 'hallLocation':
         return h.lat != null ? esc([h.city, h.address].filter(Boolean).join(', ') || 'своя метка на карте')
@@ -6004,7 +6072,7 @@
       '<div class="pv-body"><div class="pv-name">' + esc(h.title || h.name || 'Без названия') + '</div>' +
       '<div class="pv-meta">' + esc([hallTypeLabel(h.hallType), h.capacity ? 'до ' + h.capacity + ' чел.' : '', h.areaM2 ? h.areaM2 + ' м²' : ''].filter(Boolean).join(' · ')) + '</div>' +
       '<div class="pv-meta">' + esc(addr.filter(Boolean).join(', ')) + '</div>' +
-      '<div class="pv-price">' + (rate != null ? 'от ' + rate + ' ' + CUR + '/ч' : '<span class="muted">цена не указана</span>') + '</div>' +
+      '<div class="pv-price">' + (hallPriceText(h) ? esc(hallPriceText(h)) : '<span class="muted">цена не указана</span>') + '</div>' +
       (am.length ? '<div class="pv-tags">' + am.map(function(a){ return '<span>' + esc(a) + '</span>'; }).join('') + '</div>' : '') +
       (r.missing.length ? '<div class="pv-miss">Пока не хватает: ' + esc(r.missing.join(', ').toLowerCase()) + '</div>' : '') +
       '</div>';
@@ -6018,9 +6086,9 @@
       '<div class="sc-bar"><i style="width:' + r.pct + '%"></i></div>' +
       (r.missing.length ? '<span class="sc-chip req">не хватает обязательного</span>' : '<span class="sc-chip ok">всё обязательное есть</span>') + '</div>' +
       '<div class="muted">' + (r.missing.length
-        ? 'Для публикации нужно: ' + esc(r.missing.join(', ').toLowerCase()) + '. Рекомендуемые разделы помогают клиентам выбрать именно этот зал.'
-        : 'Рекомендуемые разделы помогают клиентам выбрать именно этот зал.') + '</div>' +
-      '<div class="hp-purp-hint">Цены задаются назначениями зала — на странице «Пространства». ' +
+        ? 'Для публикации нужно: ' + esc(r.missing.join(', ').toLowerCase()) + '. Рекомендуемые разделы помогают клиентам выбрать именно это пространство.'
+        : 'Рекомендуемые разделы помогают клиентам выбрать именно это пространство.') + '</div>' +
+      '<div class="hp-purp-hint">Цены задаются назначениями пространства — на странице «Пространства». ' +
         '<button class="linkish" type="button" id="hpToPurposes">Перейти к назначениям</button></div>';
     $('hpToPurposes').onclick = function(){
       var i = WZ.hallIndex; wzClose();
@@ -6031,7 +6099,7 @@
     var groups = [];
     HALL_SECTIONS.forEach(function(s){ if(groups.indexOf(s.grp) < 0) groups.push(s.grp); });
     $('hpSecs').innerHTML = groups.map(function(g){
-      return '<div class="sc-group">' + esc(g) + (g === 'Адрес и часы' ? ' <span>· общие для студии, для зала можно задать свои</span>' : '') + '</div>' +
+      return '<div class="sc-group">' + esc(g) + (g === 'Адрес и часы' ? ' <span>· общие для студии, для пространства можно задать свои</span>' : '') + '</div>' +
         HALL_SECTIONS.filter(function(s){ return s.grp === g && s.card !== false; }).map(function(s){
           var st = secState(s, h);
           return secCardHtml(s, st, hallSummary(s.key, h), ED.scope === 'hall' && ED.key === s.key, s.need === 'inh' ? ' inh' : '');
@@ -6082,7 +6150,7 @@
       { t:'Первое пространство', d:'Название и тип, вместимость, ' + PHOTOS_MIN + '+ фото и цена — без этого клиенту нечего бронировать.',
         done:ri >= 0, v:hallV, cta:!hallsDraft.length ? 'Добавить' : ri >= 0 ? 'Открыть' : 'Дозаполнить',
         go:function(){ goFolder('halls'); if(!hallsDraft.length) nhOpen(); else wzOpen(ri >= 0 ? ri : 0); } },
-      { t:'Часы работы', d:'Когда студия принимает брони. Отдельный зал может работать по своему расписанию.',
+      { t:'Часы работы', d:'Когда студия принимает брони. Отдельное пространство может работать по своему расписанию.',
         done:true, v:fmtWeek(hoursDraft), cta:'Изменить', go:function(){ goFolder('main'); setTimeout(function(){ $('sec-hours').scrollIntoView({ block:'start' }); }, 50); } },
       { t:'Правила бронирования', d:'Подтверждать ли заявки вручную и сколько вернуть при отмене. Стоят разумные значения — проверьте их.',
         done:!!ONB.rulesConfirmedAt, v:rulesSummaryLine(), cta:ONB.rulesConfirmedAt ? 'Изменить' : 'Всё верно',
@@ -6165,7 +6233,7 @@
   // сразу виден клиентам, и нулевая цена там не должна появиться даже на минуту.
   // Фото — третьим шагом: загрузке нужен id зала.
   var NH = { step:0, d:null, idx:-1 };
-  var NH_STEPS = ['Что это за зал', 'Цена', 'Фотографии'];
+  var NH_STEPS = ['Что это за пространство', 'Цена', 'Фотографии'];
   function nhOpen(){
     if(ED.key) edCancel();
     WZ.open = false;
@@ -6183,56 +6251,71 @@
     $('nhNote').textContent = '';
     var b = $('nhBody');
     if(NH.step === 0){
-      b.innerHTML = '<h2>Что это за зал</h2><p class="nh-lead">Главное о зале. Остальное — описание, удобства, правила — заполните потом в его карточке.</p>' +
-        '<label class="nh-f" for="nhTitle">Название зала</label><input class="name" id="nhTitle" maxlength="120" placeholder="Например, Белая циклорама" value="' + esc(d.title) + '">' +
-        '<div class="nh-hint">Так зал будет подписан в каталоге и в сетке броней.</div>' +
+      b.innerHTML = '<h2>Что это за пространство</h2><p class="nh-lead">Главное о пространстве. Остальное — описание, удобства, правила — заполните потом в его карточке.</p>' +
+        '<label class="nh-f" for="nhTitle">Название пространства</label><input class="name" id="nhTitle" maxlength="120" placeholder="Например, Белая циклорама" value="' + esc(d.title) + '">' +
+        '<div class="nh-hint">Так пространство будет подписано в каталоге и в сетке броней.</div>' +
         '<label class="nh-f" for="nhType">Тип пространства</label><div style="position:relative"><input class="name" id="nhType" placeholder="Начните печатать — фотостудия, лофт…" autocomplete="off"><div id="nhTypeSuggest" class="addr-suggest" hidden></div></div>' +
         '<div class="nh-two"><div><label class="nh-f" for="nhCap">Вместимость</label><span class="unitwrap"><input class="num" type="number" min="1" max="1000" id="nhCap" value="' + esc(d.capacity) + '"><span class="u">чел.</span></span></div>' +
         '<div><label class="nh-f" for="nhArea">Площадь <span class="muted">· необязательно</span></label><span class="unitwrap"><input class="num" type="number" min="1" id="nhArea" value="' + esc(d.area) + '"><span class="u">м²</span></span></div></div>';
       wzComboHelper({ input:'nhType', box:'nhTypeSuggest' }, 'space_type', d, 'hallType');
       $('nhTitle').focus();
     } else if(NH.step === 1){
-      b.innerHTML = '<h2>Для чего сдаёте и почём</h2><p class="nh-lead">Отметьте цели и укажите цену за час для каждой — например, праздник дороже съёмки. Из этого и складывается цена зала.</p>' +
+      b.innerHTML = '<h2>Для чего сдаёте и почём</h2><p class="nh-lead">Отметьте цели и укажите цену: за час аренды пространства или с каждого человека. У праздника цена может быть выше, чем у встречи. Из этого и складывается цена пространства.</p>' +
         '<div id="nhPurp">' + HALL_PURPOSE_LIST.map(function(p){
-          var x = d.purposes[p.v] || { on:false, rate:'' };
+          var x = d.purposes[p.v] || { on:false, rate:'', per:'hour' };
+          var per = x.per === 'person' ? 'person' : 'hour';
           return '<div class="nh-purp"><label class="chk"><input type="checkbox" data-np="' + p.v + '"' + (x.on ? ' checked' : '') + '> ' + esc(p.label) + '</label>' +
-            '<span class="unitwrap"><input class="num" type="number" min="1" data-npr="' + p.v + '" value="' + esc(x.rate) + '" placeholder="цена"' + (x.on ? '' : ' disabled') + '><span class="u">' + CUR + '/ч</span></span></div>';
+            '<span class="seg nh-per" data-per-for="' + p.v + '"' + (x.on ? '' : ' data-off="1"') + '>' +
+              '<button type="button" data-per="hour"' + (per === 'hour' ? ' class="on"' : '') + '>за час</button>' +
+              '<button type="button" data-per="person"' + (per === 'person' ? ' class="on"' : '') + '>за человека</button></span>' +
+            '<span class="unitwrap"><input class="num" type="number" min="1" data-npr="' + p.v + '" value="' + esc(x.rate) + '" placeholder="цена"' + (x.on ? '' : ' disabled') + '><span class="u" data-npu="' + p.v + '">' + CUR + (per === 'person' ? '/чел. в час' : '/ч') + '</span></span></div>';
         }).join('') + '</div>' +
-        '<div class="nh-hint">Цены по дням и часам, минимум брони и что входит в аренду — позже, на странице «Пространства» под карточкой зала.</div>';
+        '<div class="nh-hint">«За человека» — цена складывается из числа людей в брони (например, 5 ' + CUR + ' с каждого за час), аренда пространства отдельно не берётся. Доплату сверх лимита, ступени по числу людей, цены по дням и часам и минимальную бронь настроите позже, на странице «Пространства».</div>';
       b.querySelectorAll('[data-np]').forEach(function(c){ c.addEventListener('change', function(){
-        d.purposes[c.dataset.np] = d.purposes[c.dataset.np] || { on:false, rate:'' };
+        d.purposes[c.dataset.np] = d.purposes[c.dataset.np] || { on:false, rate:'', per:'hour' };
         d.purposes[c.dataset.np].on = c.checked;
         b.querySelector('[data-npr="' + c.dataset.np + '"]').disabled = !c.checked;
+        var sg = b.querySelector('[data-per-for="' + c.dataset.np + '"]'); if(sg){ if(c.checked) sg.removeAttribute('data-off'); else sg.setAttribute('data-off', '1'); }
       }); });
       b.querySelectorAll('[data-npr]').forEach(function(i){ i.addEventListener('input', function(){ d.purposes[i.dataset.npr].rate = i.value; }); });
+      b.querySelectorAll('.nh-per button').forEach(function(btn){ btn.addEventListener('click', function(){
+        var sg = btn.parentNode, code = sg.dataset.perFor;
+        if(sg.hasAttribute('data-off')) return;
+        d.purposes[code] = d.purposes[code] || { on:true, rate:'', per:'hour' };
+        d.purposes[code].per = btn.dataset.per;
+        sg.querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', x === btn); });
+        b.querySelector('[data-npu="' + code + '"]').textContent = CUR + (btn.dataset.per === 'person' ? '/чел. в час' : '/ч');
+      }); });
       var firstRate = b.querySelector('[data-npr]:not([disabled])'); if(firstRate) firstRate.focus();
     } else {
-      b.innerHTML = '<h2>Фотографии</h2><p class="nh-lead">Залы с ' + PHOTOS_MIN + '+ фото выбирают заметно чаще. Первое фото — обложка, порядок меняется перетаскиванием. Можно пропустить и добавить позже.</p>' +
+      b.innerHTML = '<h2>Фотографии</h2><p class="nh-lead">Пространства с ' + PHOTOS_MIN + '+ фото выбирают заметно чаще. Первое фото — обложка, порядок меняется перетаскиванием. Можно пропустить и добавить позже.</p>' +
         '<div class="hall-photos" data-i="' + NH.idx + '"></div>';
       renderHallPhotos(NH.idx);
     }
-    $('nhBack').textContent = NH.step === 0 ? 'Отмена' : NH.step === 2 ? 'К списку' : 'Назад';
-    $('nhNext').textContent = NH.step === 0 ? 'Дальше' : NH.step === 1 ? 'Создать пространство' : 'Открыть карточку зала';
+    $('nhBack').textContent = NH.step === 0 ? 'Отмена' : NH.step === 2 ? 'Закрыть' : 'Назад';
+    $('nhNext').textContent = NH.step === 2 ? 'Создать пространство' : 'Дальше';
   }
   function nhCollectStep0(){
     var d = NH.d;
     d.title = $('nhTitle').value.trim();
     d.capacity = $('nhCap').value; d.area = $('nhArea').value;
-    if(!d.title) return Promise.reject(new Error('Введите название зала'));
+    if(!d.title) return Promise.reject(new Error('Введите название пространства'));
     var cap = parseInt(d.capacity, 10);
     if(!(cap >= 1 && cap <= 1000)) return Promise.reject(new Error('Вместимость — от 1 до 1000 человек'));
     if(!$('nhType').value.trim()) return Promise.reject(new Error('Выберите или впишите тип пространства'));
     return wzComboResolve('nhType', 'space_type', d, 'hallType');
   }
   function nhCreate(){
-    if(NH.idx >= 0) return Promise.resolve();      // зал уже создан (повторное нажатие после ошибки в целях)
+    if(NH.idx >= 0) return Promise.resolve();      // пространство уже создано (повторное нажатие после ошибки в целях)
     var d = NH.d;
     var chosen = HALL_PURPOSE_LIST.filter(function(p){ return d.purposes[p.v] && d.purposes[p.v].on; });
     if(!chosen.length) return Promise.reject(new Error('Отметьте хотя бы одну цель'));
     var bad = chosen.filter(function(p){ var r = Number(d.purposes[p.v].rate); return !(r > 0 && r <= 100000); })[0];
     if(bad) return Promise.reject(new Error('«' + bad.label + '»: укажите цену за час'));
     // Цена зала — минимальная из целей (так же её считает сервер, 0052).
-    var rate = Math.min.apply(null, chosen.map(function(p){ return Number(d.purposes[p.v].rate); }));
+    // «За человека» — почасовой ставки нет, цена зала считается сервером из целей.
+    var hourly = chosen.filter(function(p){ return d.purposes[p.v].per !== 'person'; });
+    var rate = hourly.length ? Math.min.apply(null, hourly.map(function(p){ return Number(d.purposes[p.v].rate); })) : 0;
     var before = hallsDraft.map(function(h){ return h.id; });
     var area = parseInt(d.area, 10);
     var nh = mapHall({ name:d.title, title:d.title, capacity:parseInt(d.capacity, 10), rate:rate, hallType:d.hallType,
@@ -6241,13 +6324,19 @@
     return saveHallsNow().then(function(){
       var idx = -1;
       hallsDraft.forEach(function(h, i){ if(before.indexOf(h.id) < 0) idx = i; });
-      if(idx < 0) throw new Error('Зал сохранён, но не найден в списке — обновите страницу');
+      if(idx < 0) throw new Error('Пространство сохранено, но не найдено в списке — обновите страницу');
       NH.idx = idx;
       var h = hallsDraft[idx];
-      var clean = chosen.map(function(p){ return { code:p.v, active:true, rate:Number(d.purposes[p.v].rate) }; });
+      var clean = chosen.map(function(p){
+        var x = d.purposes[p.v], price = Number(x.rate);
+        // за человека: цена с каждого за каждый час, аренда не берётся (guestPricing, 0054)
+        return x.per === 'person'
+          ? { code:p.v, active:true, guestPricing:{ mode:'perPerson', unit:'hour', withRent:false, tiers:[{ from:1, price:price }] } }
+          : { code:p.v, active:true, rate:price };
+      });
       return api('PUT', '/admin/halls/' + encodeURIComponent(h.id) + '/purposes', clean)
         .then(function(res){ h.purposes = Array.isArray(res.purposes) ? res.purposes : clean; })
-        .catch(function(e){ throw new Error('Зал создан, но цели не сохранились: ' + e.message + '. Задайте их в карточке зала.'); });
+        .catch(function(e){ throw new Error('Пространство создано, но цели не сохранились: ' + e.message + '. Задайте их в карточке пространства.'); });
     }).catch(function(e){
       // не сохранилось — убираем черновик нового зала, чтобы он не уехал со следующим сохранением
       if(NH.idx < 0){ var k = hallsDraft.indexOf(nh); if(k >= 0) hallsDraft.splice(k, 1); }
@@ -6261,7 +6350,7 @@
       btn.disabled = false;
       if(NH.step === 2){ var i = NH.idx; $('nhView').hidden = true; wzOpen(i); return; }
       NH.step++; nhRender();
-      if(NH.step === 2) hallFlash('Пространство создано', true);
+      if(NH.step === 2) hallFlash('Пространство сохранено — добавьте фото и нажмите «Создать пространство»', true);
     }).catch(function(e){ btn.disabled = false; flash($('nhNote'), (e && e.message) || 'Ошибка'); });
   });
   $('nhBack').addEventListener('click', function(){
@@ -6473,7 +6562,7 @@
     $('wzBody').innerHTML =
       '<div class="bk-field"><div class="bk-field-t">Минимальная бронь и шаг выбора времени</div>' +
         segHtml('bkMinDur', [{ v:30, t:'30 минут' }, { v:60, t:'1 час' }], s.minBookingMin) +
-        '<div class="bk-opt-d">Клиент не сможет забронировать меньше, а время выбирает с этим же шагом. У отдельной цели зала минимум может быть больше — это в ценах зала.</div></div>' +
+        '<div class="bk-opt-d">Клиент не сможет забронировать меньше, а время выбирает с этим же шагом. У отдельной цели пространства минимум может быть больше — это в ценах пространства.</div></div>' +
       '<div class="bk-field"><div class="bk-field-t">Уборка после каждой брони</div>' +
         segHtml('bkBufSeg', [{ v:0, t:'Не нужна' }, { v:10, t:'10 мин' }, { v:15, t:'15 мин' }, { v:30, t:'30 мин' }], s.bufferMin) +
         ' <span class="unitwrap"><input class="num" type="number" id="bkBuffer" min="0" max="120" step="5" value="' + esc(s.bufferMin) + '"><span class="u">мин</span></span>' +
@@ -6566,7 +6655,7 @@
     var s = BKE.s;
     $('wzBody').innerHTML =
       '<label class="bk-check"><input type="checkbox" id="bkLmOn"' + (s.lastminuteEnabled ? ' checked' : '') + '><span><b>Скидка на горящие окна</b>' +
-        '<span class="bk-opt-d">Свободное время, до которого осталось мало часов, продаётся дешевле — лучше, чем пустой зал.</span></span></label>' +
+        '<span class="bk-opt-d">Свободное время, до которого осталось мало часов, продаётся дешевле — лучше, чем пустое пространство.</span></span></label>' +
       '<div id="bkLmWrap"><div class="bk-tier"><span class="bk-tier-when">Если до окна меньше</span><span class="unitwrap"><input class="num" type="number" id="bkLmHours" min="1" max="72" value="' + esc(s.lastminuteHours) + '"><span class="u">ч</span></span></div>' +
         '<div class="bk-tier"><span class="bk-tier-when">скидка</span><span class="unitwrap"><input class="num" type="number" id="bkLmPct" min="1" max="90" value="' + esc(s.lastminutePct) + '"><span class="u">%</span></span></div>' +
         '<div id="bkLmPrev" class="bk-prev"></div></div>';
@@ -6658,7 +6747,7 @@
       '<div class="row"><label class="fld-l">Телефон</label><input class="name" id="wzPhone" type="tel" inputmode="numeric" placeholder="+375 (29) 123-45-67" autocomplete="off" value="'+esc(profileDraft.phone)+'"></div>' +
       '<div class="muted" id="wzMapHint" style="margin:2px 0 6px" hidden>Выберите адрес из подсказок или перетащите метку на карте.</div>' +
       '<div id="wzMap" style="width:100%;height:220px;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border);background:var(--surface-2)" hidden></div>' +
-      '<div class="muted" style="margin-top:8px">Адрес общий для всех залов. Если зал в другом здании — задайте ему свой адрес в карточке зала.</div>';
+      '<div class="muted" style="margin-top:8px">Адрес общий для всех пространств. Если пространство в другом здании — задайте ему свой адрес в карточке пространства.</div>';
     wzAddrHelper({ addr:'wzAddr', box:'wzAddrSuggest', map:'wzMap', mapHint:'wzMapHint' }, profileDraft);
     wzWirePhoneMask('wzPhone');
   };
@@ -6686,7 +6775,7 @@
   WZ_RENDERERS.hallLocation = function(){
     var h = wzHall();
     $('wzBody').innerHTML =
-      '<div class="wz-toggle-row" style="border-top:none;margin-top:0;padding-top:0"><div><div class="t">Этот зал по другому адресу</div>' +
+      '<div class="wz-toggle-row" style="border-top:none;margin-top:0;padding-top:0"><div><div class="t">Это пространство по другому адресу</div>' +
         '<div class="d">Отдельное здание — свой адрес и метка на карте вместо адреса студии (' + esc([profileDraft.city, profileDraft.address].filter(Boolean).join(', ') || 'ещё не указан') + ')</div></div>' +
         '<label class="chk" style="gap:8px"><input type="checkbox" id="wzOwnLocation"'+(h.lat!=null?' checked':'')+'></label></div>' +
       '<div id="wzHallLocWrap" hidden>' +
@@ -6707,7 +6796,7 @@
   WZ_SAVERS.hallLocation = function(){
     var h = wzHall();
     if(!$('wzOwnLocation').checked){ h.address = null; h.city = null; h.lat = null; h.lon = null; return saveHallsNow(); }
-    if(h.lat == null || h.lon == null) return Promise.reject(new Error('Укажите адрес зала из подсказок или поставьте метку на карте'));
+    if(h.lat == null || h.lon == null) return Promise.reject(new Error('Укажите адрес пространства из подсказок или поставьте метку на карте'));
     h.city = $('wzHallCity').value.trim();
     return saveHallsNow();
   };
@@ -6716,7 +6805,7 @@
   WZ_RENDERERS.basics = function(){
     var h = wzHall();
     $('wzBody').innerHTML =
-      '<label class="nh-f" for="wzTitle">Название зала</label>' +
+      '<label class="nh-f" for="wzTitle">Название пространства</label>' +
       '<input class="name" id="wzTitle" maxlength="120" placeholder="Например, Белая циклорама" value="'+esc(h.title||h.name||'')+'">' +
       '<label class="nh-f" for="wzHallType">Тип пространства</label>' +
       '<div style="position:relative"><input class="name" id="wzHallType" placeholder="Начните печатать — фотостудия, лофт…" autocomplete="off">' +
@@ -6728,13 +6817,13 @@
         (HALL_PROPS.floor ? '<div><label class="nh-f" for="wzFloor">Этаж</label><span class="unitwrap"><input class="num" type="number" min="-10" max="300" step="1" id="wzFloor" value="'+esc(h.floor!=null?h.floor:'')+'"><span class="u">эт.</span></span></div>' : '') +
       '</div>' +
       '<label class="nh-f" for="wzDescription">Описание</label>' +
-      '<textarea class="name" id="wzDescription" rows="4" maxlength="2000" placeholder="Пара абзацев: чем зал хорош и для чего подходит" style="resize:vertical">'+esc(h.description||'')+'</textarea>';
+      '<textarea class="name" id="wzDescription" rows="4" maxlength="2000" placeholder="Пара абзацев: чем пространство хорошо и для чего подходит" style="resize:vertical">'+esc(h.description||'')+'</textarea>';
     wzComboHelper({ input:'wzHallType', box:'wzHallTypeSuggest' }, 'space_type', h, 'hallType');
   };
   WZ_SAVERS.basics = function(){
     var h = wzHall();
     var title = $('wzTitle').value.trim();
-    if(!title) return Promise.reject(new Error('Введите название зала'));
+    if(!title) return Promise.reject(new Error('Введите название пространства'));
     var cap = parseInt($('wzCap').value, 10);
     if(!(cap >= 1 && cap <= 1000)) return Promise.reject(new Error('Вместимость — от 1 до 1000 человек'));
     h.title = title;
@@ -6806,7 +6895,7 @@
   WZ_RENDERERS.rules = function(){
     var h = wzHall();
     $('wzBody').innerHTML =
-      '<label class="nh-f" for="wzAboutRules">Правила зала</label>' +
+      '<label class="nh-f" for="wzAboutRules">Правила пространства</label>' +
       '<textarea class="name" id="wzAboutRules" rows="3" maxlength="1000" placeholder="Сменная обувь на циклораме, еда только на кухне, без конфетти" style="resize:vertical">'+esc(h.aboutRules||'')+'</textarea>' +
       '<label class="nh-f" for="wzCleaning">Уборка между бронями</label>' +
       '<textarea class="name" id="wzCleaning" rows="4" maxlength="1000" placeholder="Например: проветривание и влажная уборка после каждой брони, смена текстиля" style="resize:vertical">'+esc(h.aboutCleaning||'')+'</textarea>' +
@@ -6827,7 +6916,7 @@
       (accItems.length ? '<label class="nh-f">Доступ</label><div class="chip-row">' + accItems.map(function(a){
         return '<button type="button" class="chip-tog'+(h[a.f]?' on':'')+'" data-bool="'+a.f+'">'+esc(a.label)+'</button>';
       }).join('') + '</div>' : '') +
-      '<label class="nh-f" for="wzAboutAccess">Как найти зал и попасть внутрь</label>' +
+      '<label class="nh-f" for="wzAboutAccess">Как найти пространство и попасть внутрь</label>' +
       '<textarea class="name" id="wzAboutAccess" rows="4" maxlength="1000" placeholder="Этаж, куда поворачивать, домофон, кому звонить, как заносить реквизит" style="resize:vertical">'+esc(h.aboutAccess||'')+'</textarea>' +
       '<label class="nh-f" for="wzWifiSsid">Wi-Fi</label>' +
       '<div class="nh-two"><input class="name" id="wzWifiSsid" maxlength="100" placeholder="Название сети" value="'+esc(h.wifiSsid||'')+'">' +
@@ -6943,7 +7032,7 @@
     var own = Array.isArray(h.hours);
     $('wzBody').innerHTML =
       '<div class="wz-toggle-row" style="border-top:none;margin-top:0;padding-top:0">' +
-        '<div><div class="t">Свои часы для этого зала</div><div class="d">Иначе — как в общих часах студии</div></div>' +
+        '<div><div class="t">Свои часы для этого пространства</div><div class="d">Иначе — как в общих часах студии</div></div>' +
         '<label class="chk" style="gap:8px"><input type="checkbox" id="wzOwnHours"'+(own?' checked':'')+'></label>' +
       '</div>' +
       '<div id="wzHoursWrap"'+(own ? '' : ' hidden')+'></div>';
