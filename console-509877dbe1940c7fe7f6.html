@@ -255,7 +255,8 @@
       tr.innerHTML =
         '<td><a href="./studio.html?id=' + encodeURIComponent(s.id) + '">' + esc(s.name || s.id) + '</a>' +
           '<div class="muted">' + esc(s.city || '') + '</div></td>' +
-        '<td><span class="badge ' + esc(s.status) + '">' + esc(STATUS_RU[s.status] || s.status) + '</span></td>' +
+        '<td><span class="badge ' + esc(s.status) + '">' + esc(STATUS_RU[s.status] || s.status) + '</span>' +
+          (s.reviewRequestedAt ? ' <span class="badge sending" title="Владелец отправил студию на публикацию">ждёт проверки</span>' : '') + '</td>' +
         '<td class="num">' + esc(s.halls) + '</td>' +
         '<td class="num">' + esc(s.activeBookings) + '</td>' +
         '<td class="num">' + esc(s.members) + '</td>' +
