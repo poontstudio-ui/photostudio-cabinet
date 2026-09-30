@@ -190,7 +190,7 @@
   .shell[data-folder="launch"] .content{max-width:1280px;}
   #wzView{max-width:none;}
   .hp-title{font-size:var(--fs-2xl);font-weight:700;letter-spacing:-.02em;margin:12px 0 14px;}
-  .hp-grid,.ln-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:28px;align-items:start;}
+  .ln-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:28px;align-items:start;}
   /* превью «как увидят клиенты» */
   .pv{position:sticky;top:18px;}
   .pv-t{font-size:var(--fs-xs);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px;}
@@ -250,7 +250,7 @@
   .listing-ready{margin-top:8px;}
   .halls-empty{padding:18px;border:1px dashed var(--line-strong);border-radius:var(--r-md);color:var(--text-2);margin-bottom:12px;}
   @media(max-width:900px){
-    .hp-grid,.ln-grid{grid-template-columns:minmax(0,1fr);}
+    .ln-grid{grid-template-columns:minmax(0,1fr);}
     .pv{position:static;}
   }
   @media(max-width:600px){ .nh-two{grid-template-columns:minmax(0,1fr);} .sc-kv{grid-template-columns:minmax(0,1fr);} .sc-kv dt{margin-top:6px;} .ln-step{grid-template-columns:28px minmax(0,1fr);} .ln-acts{grid-column:2;align-items:flex-start;} }
@@ -1253,22 +1253,14 @@
       </div>
 
       <!-- Страница пространства: разделы-карточки со сводкой и статусом,
-           редактор раскрывается в самой карточке (см. edOpen). Справа — как
-           пространство увидят клиенты. -->
+           редактор раскрывается в самой карточке (см. edOpen), всё в одну
+           колонку на всю ширину страницы. -->
       <div id="wzView" hidden>
         <button class="btn ghost small" id="wzClose" type="button">← Пространства</button>
         <h2 class="hp-title" id="hpTitle">Пространство</h2>
-        <div class="hp-grid">
-          <div>
-            <div class="sc-ready" id="hpReady"></div>
-            <div id="hpSecs"></div>
-            <div class="note" id="hpNote"></div>
-          </div>
-          <aside class="pv">
-            <div class="pv-t">Так пространство увидят клиенты</div>
-            <div class="pv-card" id="hpPreview"></div>
-          </aside>
-        </div>
+        <div class="sc-ready" id="hpReady"></div>
+        <div id="hpSecs"></div>
+        <div class="note" id="hpNote"></div>
       </div>
 
       <!-- Редактор раздела — один на весь кабинет; edOpen переносит его в
@@ -6101,7 +6093,6 @@
     }).join('');
     var host = $('hpSecs').querySelector('[data-ed-host]');
     if(host) host.appendChild($('edSlot'));
-    $('hpPreview').innerHTML = hallPreviewHtml(h);
   }
   $('hpSecs').addEventListener('click', function(e){
     var b = e.target.closest && e.target.closest('[data-sc-edit]');
