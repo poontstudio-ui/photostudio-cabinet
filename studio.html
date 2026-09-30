@@ -365,7 +365,8 @@
   .gp-cell.on{border-color:var(--blue);background:var(--blue-bg);}
 
   /* ---------- редактор раздела: та же карточка, строки «подпись | поле» ---------- */
-  .sc.open{border-color:var(--line-strong);box-shadow:var(--shadow);}
+  .sc{transition:border-color .15s,box-shadow .15s;}
+  .sc.open{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-bg);}
   .sc.open .sc-h{border-bottom:1px solid var(--line);}
   .sc-anim{overflow:hidden;}
   .sc-edit{border-top:none;animation:scIn .22s ease-out;}
