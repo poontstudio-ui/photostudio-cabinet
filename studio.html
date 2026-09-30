@@ -169,7 +169,7 @@
   .sc-edit{padding:14px 16px 16px;border-top:1px solid var(--line);}
   .sc-edit .wz-foot{position:sticky;bottom:0;background:var(--surface);padding:12px 0 2px;margin-top:16px;border-top:1px solid var(--line);}
   .sc-empty{color:var(--text-3);font-style:italic;}
-  .sc-kv{display:grid;grid-template-columns:120px minmax(0,1fr);gap:4px 12px;margin:0;}
+  .sc-kv{display:grid;grid-template-columns:160px minmax(0,1fr);gap:6px 20px;margin:0;}
   .sc-kv dt{color:var(--text-3);} .sc-kv dd{margin:0;color:var(--text);}
   .sc-thumbs{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;}
   .sc-thumbs img{width:56px;height:42px;object-fit:cover;border-radius:6px;border:1px solid var(--line);}
@@ -363,6 +363,49 @@
   .gp-cell span{display:block;font-size:var(--fs-xs);color:var(--text-3);}
   .gp-cell b{font-size:var(--fs-sm);}
   .gp-cell.on{border-color:var(--blue);background:var(--blue-bg);}
+
+  /* ---------- редактор раздела: та же карточка, строки «подпись | поле» ---------- */
+  .sc.open{border-color:var(--line-strong);box-shadow:var(--shadow);}
+  .sc.open .sc-h{border-bottom:1px solid var(--line);}
+  .sc-anim{overflow:hidden;}
+  .sc-edit{border-top:none;animation:scIn .22s ease-out;}
+  @keyframes scIn{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;}}
+  .fr{display:grid;grid-template-columns:160px minmax(0,1fr);gap:6px 20px;padding:12px 0;border-top:1px solid var(--line);align-items:start;}
+  #wzBody > .fr:first-child,#wzBody > div > .fr:first-child{border-top:none;}
+  #wzBody > .fr:first-child{padding-top:0;}
+  .fr[hidden]{display:none;}
+  .fr-l{font-size:var(--fs-sm);color:var(--text-2);padding-top:9px;display:flex;flex-direction:column;gap:2px;}
+  .fr-l label{color:inherit;cursor:pointer;}
+  .fr-req{font-size:var(--fs-xs);color:var(--text-3);}
+  .fr-hint{font-size:var(--fs-xs);color:var(--text-3);line-height:1.35;}
+  .fr-c{min-width:0;}
+  .fr-note{font-size:var(--fs-xs);color:var(--text-3);margin-top:6px;}
+  .fr-in{display:block;width:100%;font:inherit;font-size:var(--fs-md);color:var(--text);background:var(--surface);
+    border:1px solid var(--line-strong);border-radius:var(--r-sm);padding:8px 11px;line-height:1.4;transition:border-color .12s,box-shadow .12s;}
+  textarea.fr-in{resize:vertical;min-height:64px;}
+  .fr-in::placeholder{color:var(--text-3);}
+  .fr-in:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-bg);}
+  .fr-unit{display:inline-flex;align-items:center;gap:8px;}
+  .fr-unit .fr-num{width:120px;}
+  .fr-unit > span{font-size:var(--fs-sm);color:var(--text-3);}
+  .fr-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .fr-hours{display:inline-flex;align-items:center;gap:8px;}
+  .fr-sel{width:auto;min-width:92px;padding-right:8px;}
+  .fr-dash{color:var(--text-3);}
+  .fr-chips{margin:2px 0 0;}
+  .fr-seg{margin-top:1px;}
+  .fr-seg button{font-size:var(--fs-sm);padding:6px 12px;}
+  .fr-more{margin-top:10px;}
+  #wzHoursWrap .fr{padding:5px 0;border-top:none;}
+  .fr-map{margin-top:8px;width:100%;height:220px;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--line);background:var(--surface-2);}
+  .sc-edit .wz-foot{border-top:1px solid var(--line);margin-top:4px;padding-top:12px;}
+  @media(max-width:600px){
+    .fr{grid-template-columns:minmax(0,1fr);gap:4px;}
+    .fr-l{padding-top:0;flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:0 8px;}
+    .fr-hint{flex-basis:100%;}
+    .fr-pair{grid-template-columns:minmax(0,1fr);}
+  }
+  @media (prefers-reduced-motion:reduce){ .sc-edit{animation:none;} }
   .tm-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);}
   .tm-row:first-child{border-top:none;}
   .tm-who{flex:1;min-width:0;}
@@ -5978,23 +6021,55 @@
       hall: scope === 'hall' ? clone(wzHall()) : null,
       amen: clone(amenitiesDraft), prof: clone(profileDraft) } };
     WZ.section = key;
-    renderScope(scope);
-    var host = document.querySelector('[data-ed-host]');
-    host.appendChild($('edSlot'));
-    $('wzNote').textContent = '';
-    $('wzNext').disabled = false;
-    WZ_RENDERERS[key]();
-    var card = host.closest('.sc');
-    if(card && card.scrollIntoView) card.scrollIntoView({ block:'nearest' });
+    scAnimate(key, function(){
+      renderScope(scope);
+      var host = document.querySelector('[data-ed-host]');
+      host.appendChild($('edSlot'));
+      $('wzNote').textContent = '';
+      $('wzNext').disabled = false;
+      WZ_RENDERERS[key]();
+    });
+    var card = document.querySelector('.sc[data-sec="' + key + '"]');
+    if(card){
+      var r = card.getBoundingClientRect();
+      if(r.top < 12) window.scrollBy({ top: r.top - 12, behavior: scReduced() ? 'auto' : 'smooth' });
+      // Курсор — в первое поле, только если раздел начинается с текстового поля
+      var first = card.querySelector('#wzBody > .fr:first-child .fr-c > .fr-in');
+      if(first && first.focus) first.focus({ preventScroll:true });
+    }
+  }
+  // Плавное раскрытие/сворачивание карточки: высота карточки переходит от
+  // старой к новой (FLIP), содержимое редактора проявляется. При «уменьшении
+  // движения» — мгновенно. Перерисовка страницы внутри fn не видна: карточки
+  // вокруг получают тот же DOM.
+  function scReduced(){ return window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches; }
+  function scAnimate(key, fn){
+    var sel = '.sc[data-sec="' + key + '"]';
+    var before = document.querySelector(sel);
+    var h0 = before ? before.getBoundingClientRect().height : 0;
+    fn();
+    var card = document.querySelector(sel);
+    if(!card || !h0 || scReduced()) return;
+    var h1 = card.getBoundingClientRect().height;
+    if(Math.abs(h1 - h0) < 2) return;
+    card.classList.add('sc-anim');
+    card.style.height = h0 + 'px';
+    void card.offsetHeight;
+    card.style.transition = 'height ' + (h1 > h0 ? 260 : 180) + 'ms cubic-bezier(.2,.8,.2,1)';
+    card.style.height = h1 + 'px';
+    var done = function(){ card.style.height = ''; card.style.transition = ''; card.classList.remove('sc-anim'); };
+    card.addEventListener('transitionend', function te(e){ if(e.target !== card) return; card.removeEventListener('transitionend', te); done(); });
+    setTimeout(done, 320);   // страховка, если transitionend не придёт
   }
   function edClose(){
-    var scope = ED.scope;
+    var scope = ED.scope, key = ED.key;
     ED = { key:null, scope:null, snap:null };
     WZ.section = null;
     PG.i = -1; PG.code = null;
-    parkEditor();
-    renderScope(scope);
+    scAnimate(key, function(){ parkEditor(); renderScope(scope); });
     renderLaunch();
+    var btn = key && document.querySelector('.sc[data-sec="' + key + '"] [data-sc-edit]');
+    if(btn) btn.focus({ preventScroll:true });   // фокус возвращается туда, откуда открывали
   }
   // Страницы с карточками разделов: чем перерисовать и куда писать «Сохранено».
   function renderScope(scope){
@@ -6718,6 +6793,38 @@
     });
   };
 
+  // ---------- Строки формы редактора (аудит 2026-09-30) ----------
+  // Редактор раздела — та же карточка, что и сводка: подпись слева (как <dt>
+  // в сводке), поле справа. Одинаковые подписи, поля и отступы во всех
+  // разделах пространства, вместо четырёх разных стилей заголовков.
+  function frow(label, control, opts){
+    opts = opts || {};
+    return '<div class="fr"' + (opts.id ? ' id="' + opts.id + '"' : '') + (opts.hidden ? ' hidden' : '') + '>' +
+      '<div class="fr-l">' + (opts.forId ? '<label for="' + opts.forId + '">' + esc(label) + '</label>' : esc(label)) +
+        (opts.req ? '<span class="fr-req">обязательно</span>' : '') +
+        (opts.hint ? '<span class="fr-hint">' + esc(opts.hint) + '</span>' : '') + '</div>' +
+      '<div class="fr-c">' + control + (opts.note ? '<div class="fr-note">' + opts.note + '</div>' : '') + '</div></div>';
+  }
+  function frInput(id, value, attrs){ return '<input class="fr-in" id="' + id + '" value="' + esc(value == null ? '' : value) + '"' + (attrs || '') + '>'; }
+  function frNum(id, value, unit, attrs){
+    return '<span class="fr-unit"><input class="fr-in fr-num" id="' + id + '" value="' + esc(value == null ? '' : value) + '"' + (attrs || '') + '><span>' + esc(unit) + '</span></span>';
+  }
+  function frArea(id, value, rows, attrs){ return '<textarea class="fr-in" id="' + id + '" rows="' + (rows || 3) + '"' + (attrs || '') + '>' + esc(value || '') + '</textarea>'; }
+  function frSeg(id, opts, cur){
+    return '<span class="seg fr-seg" id="' + id + '">' + opts.map(function(o){
+      return '<button type="button" data-v="' + esc(o[0]) + '"' + (String(o[0]) === String(cur) ? ' class="on"' : '') + '>' + esc(o[1]) + '</button>'; }).join('') + '</span>';
+  }
+  function frChips(items, h, attr){
+    return '<div class="chip-row fr-chips">' + items.map(function(a){
+      return '<button type="button" class="chip-tog' + (h[a.f] ? ' on' : '') + '" ' + (attr || 'data-bool') + '="' + a.f + '" aria-pressed="' + (!!h[a.f]) + '">' + esc(a.label) + '</button>';
+    }).join('') + '</div>';
+  }
+  function frWireBools(h){
+    $('wzBody').querySelectorAll('.chip-tog[data-bool]').forEach(function(btn){
+      btn.addEventListener('click', function(){ var f = btn.dataset.bool; h[f] = !h[f]; btn.classList.toggle('on', !!h[f]); btn.setAttribute('aria-pressed', !!h[f]); });
+    });
+  }
+
   // ---------- Адрес и телефон студии (раздел «Студия») ----------
   WZ_RENDERERS.studioLocation = function(){
     $('wzBody').innerHTML =
@@ -6759,23 +6866,29 @@
   // ---------- Адрес зала: как у студии или свой ----------
   WZ_RENDERERS.hallLocation = function(){
     var h = wzHall();
+    var studioAddr = [profileDraft.city, profileDraft.address].filter(Boolean).join(', ') || 'ещё не указан';
+    var own = h.lat != null;
     $('wzBody').innerHTML =
-      '<div class="wz-toggle-row" style="border-top:none;margin-top:0;padding-top:0"><div><div class="t">Это пространство по другому адресу</div>' +
-        '<div class="d">Отдельное здание — свой адрес и метка на карте вместо адреса студии (' + esc([profileDraft.city, profileDraft.address].filter(Boolean).join(', ') || 'ещё не указан') + ')</div></div>' +
-        '<label class="chk" style="gap:8px"><input type="checkbox" id="wzOwnLocation"'+(h.lat!=null?' checked':'')+'></label></div>' +
-      '<div id="wzHallLocWrap" hidden>' +
-        '<div class="row" style="position:relative"><input class="name" id="wzHallAddr" placeholder="Улица, дом" autocomplete="off" value="'+esc(h.address||'')+'"><div id="wzHallAddrSuggest" class="addr-suggest" hidden></div></div>' +
-        '<div class="row"><input class="name" id="wzHallCity" placeholder="Город" value="'+esc(h.city||'')+'"></div>' +
-        '<div id="wzHallMap" style="width:100%;height:200px;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border);background:var(--surface-2)" hidden></div>' +
+      frow('Адрес', frSeg('wzLocSeg', [['studio','Как у студии'],['own','Свой адрес']], own ? 'own' : 'studio') +
+        '<input type="checkbox" id="wzOwnLocation" hidden' + (own ? ' checked' : '') + '>',
+        { note:'Адрес студии: ' + esc(studioAddr) }) +
+      '<div id="wzHallLocWrap"' + (own ? '' : ' hidden') + '>' +
+        frow('Улица, дом', '<div style="position:relative">' + frInput('wzHallAddr', h.address || '', ' placeholder="Начните печатать и выберите из списка" autocomplete="off"') +
+          '<div id="wzHallAddrSuggest" class="addr-suggest" hidden></div></div>' +
+          '<div id="wzHallMap" class="fr-map" hidden></div>', { forId:'wzHallAddr', req:true, hint:'метку на карте можно перетащить на вход' }) +
+        frow('Город', frInput('wzHallCity', h.city || '', ' placeholder="Город"'), { forId:'wzHallCity' }) +
       '</div>';
-    var ownLoc = $('wzOwnLocation');
-    function sync(){ $('wzHallLocWrap').hidden = !ownLoc.checked; }
-    sync();
-    if(ownLoc.checked) wzAddrHelper({ addr:'wzHallAddr', box:'wzHallAddrSuggest', map:'wzHallMap' }, h);
-    ownLoc.addEventListener('change', function(){
-      sync();
-      if(ownLoc.checked) wzAddrHelper({ addr:'wzHallAddr', box:'wzHallAddrSuggest', map:'wzHallMap' }, h);
+    var ownLoc = $('wzOwnLocation'), helped = false;
+    function sync(){
+      $('wzHallLocWrap').hidden = !ownLoc.checked;
+      if(ownLoc.checked && !helped){ helped = true; wzAddrHelper({ addr:'wzHallAddr', box:'wzHallAddrSuggest', map:'wzHallMap' }, h); }
+    }
+    $('wzLocSeg').addEventListener('click', function(e){
+      var b = e.target.closest('button[data-v]'); if(!b) return;
+      $('wzLocSeg').querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', x === b); });
+      ownLoc.checked = b.dataset.v === 'own'; sync();
     });
+    sync();
     $('wzHallCity').addEventListener('input', function(){ h.city = $('wzHallCity').value; });
   };
   WZ_SAVERS.hallLocation = function(){
@@ -6796,19 +6909,14 @@
   WZ_RENDERERS.basics = function(){
     var h = wzHall();
     $('wzBody').innerHTML =
-      '<label class="nh-f" for="wzTitle">Название пространства</label>' +
-      '<input class="name" id="wzTitle" maxlength="120" placeholder="Например, Белая циклорама" value="'+esc(h.title||h.name||'')+'">' +
-      '<label class="nh-f" for="wzHallType">Тип пространства</label>' +
-      '<div style="position:relative"><input class="name" id="wzHallType" placeholder="Начните печатать — фотостудия, лофт…" autocomplete="off">' +
-        '<div id="wzHallTypeSuggest" class="addr-suggest" hidden></div></div>' +
-      '<div class="nh-two"><div><label class="nh-f" for="wzCap">Вместимость</label><span class="unitwrap"><input class="num" type="number" min="1" max="1000" id="wzCap" value="'+esc(h.capacity||'')+'"><span class="u">чел.</span></span></div>' +
-      '<div><label class="nh-f" for="wzArea">Площадь</label><span class="unitwrap"><input class="num" type="number" min="1" id="wzArea" value="'+esc(h.areaM2!=null?h.areaM2:'')+'"><span class="u">м²</span></span></div></div>' +
-      '<div class="nh-two">' +
-        (HALL_PROPS.ceilingCm ? '<div><label class="nh-f" for="wzCeiling">Высота потолков</label><span class="unitwrap"><input class="num" type="text" inputmode="decimal" id="wzCeiling" placeholder="3,5" value="'+esc(h.ceilingCm!=null?String(h.ceilingCm/100).replace('.', ','):'')+'"><span class="u">м</span></span></div>' : '') +
-        (HALL_PROPS.floor ? '<div><label class="nh-f" for="wzFloor">Этаж</label><span class="unitwrap"><input class="num" type="number" min="-10" max="300" step="1" id="wzFloor" value="'+esc(h.floor!=null?h.floor:'')+'"><span class="u">эт.</span></span></div>' : '') +
-      '</div>' +
-      '<label class="nh-f" for="wzDescription">Описание</label>' +
-      '<textarea class="name" id="wzDescription" rows="4" maxlength="2000" placeholder="Пара абзацев: чем пространство хорошо и для чего подходит" style="resize:vertical">'+esc(h.description||'')+'</textarea>';
+      frow('Название', frInput('wzTitle', h.title || h.name || '', ' maxlength="120" placeholder="Например, Белая циклорама"'), { forId:'wzTitle', req:true, hint:'Так пространство подписано в каталоге и в сетке броней' }) +
+      frow('Тип', '<div style="position:relative">' + frInput('wzHallType', '', ' placeholder="Начните печатать — фотостудия, лофт…" autocomplete="off"') +
+        '<div id="wzHallTypeSuggest" class="addr-suggest" hidden></div></div>', { forId:'wzHallType', req:true }) +
+      frow('Вместимость', frNum('wzCap', h.capacity || '', 'чел.', ' type="number" min="1" max="1000"'), { forId:'wzCap', req:true }) +
+      frow('Площадь', frNum('wzArea', h.areaM2 != null ? h.areaM2 : '', 'м²', ' type="number" min="1"'), { forId:'wzArea' }) +
+      (HALL_PROPS.ceilingCm ? frow('Высота потолков', frNum('wzCeiling', h.ceilingCm != null ? String(h.ceilingCm/100).replace('.', ',') : '', 'м', ' type="text" inputmode="decimal" placeholder="3,5"'), { forId:'wzCeiling' }) : '') +
+      (HALL_PROPS.floor ? frow('Этаж', frNum('wzFloor', h.floor != null ? h.floor : '', 'этаж', ' type="number" min="-10" max="300"'), { forId:'wzFloor', hint:'0 — цокольный' }) : '') +
+      frow('Описание', frArea('wzDescription', h.description, 4, ' maxlength="2000" placeholder="Пара абзацев: чем пространство хорошо и для чего подходит"'), { forId:'wzDescription' });
     wzComboHelper({ input:'wzHallType', box:'wzHallTypeSuggest' }, 'space_type', h, 'hallType');
   };
   WZ_SAVERS.basics = function(){
@@ -6843,36 +6951,35 @@
   // ---------- Удобства, стиль и техника ----------
   WZ_RENDERERS.describe = function(){
     var h = wzHall();
-    var amenityGroups = HALL_AMENITY_GROUPS.map(function(g){
+    // Текст «подробнее» стоит в той же строке, что и чипсы темы (Свет — к свету),
+    // чтобы одна подпись не повторялась дважды.
+    var aboutOf = function(title){ return HALL_ABOUT_FIELDS.filter(function(y){ return y.label === title && /^about(Lighting|Sound|Electrical)$/.test(y.f); })[0]; };
+    var aboutArea = function(x){ return frArea('wz_' + x.f, h[x.f], 2, ' maxlength="1000" placeholder="' + esc(x.ph) + '" aria-label="' + esc(x.label) + ', подробности"'); };
+    var used = {};
+    var html = HALL_AMENITY_GROUPS.map(function(g){
       var items = g.items.filter(function(a){ return HALL_PROPS[a.f]; });
       if(!items.length) return '';
-      return '<div class="amenity-group"><div class="amenity-group-t">'+esc(g.title)+'</div>' +
-        '<div class="chip-row">' + items.map(function(a){
-          return '<button type="button" class="chip-tog'+(h[a.f]?' on':'')+'" data-bool="'+a.f+'">'+esc(a.label)+'</button>';
-        }).join('') + '</div></div>';
+      var x = aboutOf(g.title); if(x) used[x.f] = true;
+      return frow(g.title, frChips(items, h) + (x ? '<div class="fr-more">' + aboutArea(x) + '</div>' : ''));
     }).join('');
-    var styleChips = HALL_PROPS.styles ? ('<div class="amenity-group"><div class="amenity-group-t">Стиль интерьера</div>' +
-      '<div class="chip-row">' + HALL_STYLES.map(function(s){
-        var on = (h.styles||[]).indexOf(s.v) !== -1;
-        return '<button type="button" class="chip-tog'+(on?' on':'')+'" data-style="'+s.v+'">'+esc(s.label)+'</button>';
-      }).join('') + '</div></div>') : '';
-    var techAbout = ['aboutLighting','aboutSound','aboutElectrical'].map(function(f){
+    if(HALL_PROPS.styles){
+      html += frow('Стиль интерьера', '<div class="chip-row fr-chips">' + HALL_STYLES.map(function(st){
+        var on = (h.styles||[]).indexOf(st.v) !== -1;
+        return '<button type="button" class="chip-tog' + (on ? ' on' : '') + '" data-style="' + st.v + '" aria-pressed="' + on + '">' + esc(st.label) + '</button>';
+      }).join('') + '</div>');
+    }
+    ['aboutLighting','aboutSound','aboutElectrical'].forEach(function(f){
       var x = HALL_ABOUT_FIELDS.filter(function(y){ return y.f === f; })[0];
-      if(!x) return '';
-      return '<div class="about-f"><div class="about-f-t">'+esc(x.label)+'</div>' +
-        '<div class="row"><textarea class="name" id="wz_'+x.f+'" rows="2" maxlength="1000" placeholder="'+esc(x.ph)+'" style="resize:vertical">'+esc(h[x.f]||'')+'</textarea></div></div>';
-    }).join('');
-    $('wzBody').innerHTML = amenityGroups + styleChips +
-      (techAbout ? '<div class="amenity-group-t" style="margin-top:14px">Технические детали</div>' + techAbout : '');
-    $('wzBody').querySelectorAll('.chip-tog[data-bool]').forEach(function(btn){
-      btn.addEventListener('click', function(){ var f = btn.dataset.bool; h[f] = !h[f]; btn.classList.toggle('on'); });
+      if(x && !used[x.f]) html += frow(x.label, frArea('wz_' + x.f, h[x.f], 2, ' maxlength="1000" placeholder="' + esc(x.ph) + '"'), { forId:'wz_' + x.f });
     });
+    $('wzBody').innerHTML = html;
+    frWireBools(h);
     $('wzBody').querySelectorAll('.chip-tog[data-style]').forEach(function(btn){
       btn.addEventListener('click', function(){
         h.styles = h.styles || [];
         var v = btn.dataset.style, k = h.styles.indexOf(v);
         if(k === -1) h.styles.push(v); else h.styles.splice(k, 1);
-        btn.classList.toggle('on');
+        btn.classList.toggle('on', k === -1); btn.setAttribute('aria-pressed', k === -1);
       });
     });
   };
@@ -6886,11 +6993,9 @@
   WZ_RENDERERS.rules = function(){
     var h = wzHall();
     $('wzBody').innerHTML =
-      '<label class="nh-f" for="wzAboutRules">Правила пространства</label>' +
-      '<textarea class="name" id="wzAboutRules" rows="3" maxlength="1000" placeholder="Сменная обувь на циклораме, еда только на кухне, без конфетти" style="resize:vertical">'+esc(h.aboutRules||'')+'</textarea>' +
-      '<label class="nh-f" for="wzCleaning">Уборка между бронями</label>' +
-      '<textarea class="name" id="wzCleaning" rows="4" maxlength="1000" placeholder="Например: проветривание и влажная уборка после каждой брони, смена текстиля" style="resize:vertical">'+esc(h.aboutCleaning||'')+'</textarea>' +
-      '<div class="muted" style="margin-top:8px">Правила студии в целом (животные, дети, 18+, кейтеринг) — в разделе «Студия».</div>';
+      frow('Правила', frArea('wzAboutRules', h.aboutRules, 3, ' maxlength="1000" placeholder="Сменная обувь, еда только на кухне, без конфетти"'), { forId:'wzAboutRules',
+        hint:'животные, дети, 18+ — в разделе «Студия»' }) +
+      frow('Уборка', frArea('wzCleaning', h.aboutCleaning, 3, ' maxlength="1000" placeholder="Проветривание и влажная уборка после каждой брони"'), { forId:'wzCleaning', hint:'что делаете между бронями' });
   };
   WZ_SAVERS.rules = function(){
     var h = wzHall();
@@ -6904,18 +7009,12 @@
     var h = wzHall();
     var accItems = HALL_ACCESS_ITEMS.filter(function(a){ return HALL_PROPS[a.f]; });
     $('wzBody').innerHTML =
-      (accItems.length ? '<label class="nh-f">Доступ</label><div class="chip-row">' + accItems.map(function(a){
-        return '<button type="button" class="chip-tog'+(h[a.f]?' on':'')+'" data-bool="'+a.f+'">'+esc(a.label)+'</button>';
-      }).join('') + '</div>' : '') +
-      '<label class="nh-f" for="wzAboutAccess">Как найти пространство и попасть внутрь</label>' +
-      '<textarea class="name" id="wzAboutAccess" rows="4" maxlength="1000" placeholder="Этаж, куда поворачивать, домофон, кому звонить, как заносить реквизит" style="resize:vertical">'+esc(h.aboutAccess||'')+'</textarea>' +
-      '<label class="nh-f" for="wzWifiSsid">Wi-Fi</label>' +
-      '<div class="nh-two"><input class="name" id="wzWifiSsid" maxlength="100" placeholder="Название сети" value="'+esc(h.wifiSsid||'')+'">' +
-      '<input class="name" id="wzWifiPassword" maxlength="100" placeholder="Пароль" value="'+esc(h.wifiPassword||'')+'"></div>' +
-      '<div class="wz-private"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Wi-Fi не публичный — его видит только тот, кто забронировал</div>';
-    $('wzBody').querySelectorAll('.chip-tog[data-bool]').forEach(function(btn){
-      btn.addEventListener('click', function(){ var f = btn.dataset.bool; h[f] = !h[f]; btn.classList.toggle('on'); });
-    });
+      (accItems.length ? frow('Доступ', frChips(accItems, h)) : '') +
+      frow('Как пройти', frArea('wzAboutAccess', h.aboutAccess, 3, ' maxlength="1000" placeholder="Этаж, куда поворачивать, домофон, кому звонить"'), { forId:'wzAboutAccess' }) +
+      frow('Wi-Fi', '<div class="fr-pair">' + frInput('wzWifiSsid', h.wifiSsid || '', ' maxlength="100" placeholder="Название сети" aria-label="Название сети"') +
+        frInput('wzWifiPassword', h.wifiPassword || '', ' maxlength="100" placeholder="Пароль" aria-label="Пароль Wi-Fi"') + '</div>',
+        { note:'Не публичный — его видит только тот, кто забронировал' });
+    frWireBools(h);
   };
   WZ_SAVERS.access = function(){
     var h = wzHall();
@@ -7000,12 +7099,9 @@
   WZ_RENDERERS.media = function(){
     var h = wzHall();
     $('wzBody').innerHTML =
-      '<div class="amenity-group-t">Фото</div>' +
-      '<div class="hall-photos" data-i="'+WZ.hallIndex+'" style="margin-bottom:14px"></div>' +
-      '<div class="amenity-group-t">Видео-тур</div>' +
-      '<div class="row"><input class="name" id="wzVideoTourUrl" placeholder="Ссылка на видео (YouTube и т.п.)" value="'+esc(h.videoTourUrl||'')+'"></div>' +
-      '<div class="amenity-group-t">3D-тур</div>' +
-      '<div class="row"><input class="name" id="wzTour3dUrl" placeholder="Ссылка на 3D-тур (Matterport и т.п.)" value="'+esc(h.tour3dUrl||'')+'"></div>';
+      frow('Фото', '<div class="hall-photos" data-i="'+WZ.hallIndex+'"></div>', { req:true, hint:'минимум ' + PHOTOS_MIN + ', первое — обложка' }) +
+      frow('Видео-тур', frInput('wzVideoTourUrl', h.videoTourUrl || '', ' type="url" placeholder="Ссылка на видео (YouTube и т.п.)"'), { forId:'wzVideoTourUrl' }) +
+      frow('3D-тур', frInput('wzTour3dUrl', h.tour3dUrl || '', ' type="url" placeholder="Ссылка на 3D-тур (Matterport и т.п.)"'), { forId:'wzTour3dUrl' });
     renderHallPhotos(WZ.hallIndex);
   };
   WZ_SAVERS.media = function(){
@@ -7021,33 +7117,38 @@
   WZ_RENDERERS.hours = function(){
     var h = wzHall();
     var own = Array.isArray(h.hours);
+    var ORDER = [1,2,3,4,5,6,0], hourOpts = function(sel, from, to){
+      var o = ''; for(var x = from; x <= to; x++) o += '<option value="' + x + '"' + (x === sel ? ' selected' : '') + '>' + String(x).padStart(2, '0') + ':00</option>'; return o;
+    };
     $('wzBody').innerHTML =
-      '<div class="wz-toggle-row" style="border-top:none;margin-top:0;padding-top:0">' +
-        '<div><div class="t">Свои часы для этого пространства</div><div class="d">Иначе — как в общих часах студии</div></div>' +
-        '<label class="chk" style="gap:8px"><input type="checkbox" id="wzOwnHours"'+(own?' checked':'')+'></label>' +
-      '</div>' +
-      '<div id="wzHoursWrap"'+(own ? '' : ' hidden')+'></div>';
+      frow('Режим работы', frSeg('wzHoursSeg', [['studio','Как у студии'],['own','Свои часы']], own ? 'own' : 'studio') +
+        '<input type="checkbox" id="wzOwnHours" hidden' + (own ? ' checked' : '') + '>',
+        { note:'Часы студии: ' + esc(fmtWeek(hoursDraft)) }) +
+      '<div id="wzHoursWrap"' + (own ? '' : ' hidden') + '></div>';
     function renderGrid(){
-      var wrap = $('wzHoursWrap');
-      var arr = Array.isArray(h.hours) ? h.hours : DAYS.map(function(_, idx){ return {start:hoursDraft[idx].start, end:hoursDraft[idx].end}; });
-      wrap.innerHTML = arr.map(function(d, idx){
-        return '<div class="hours-day"><span class="d">'+DAYS[idx]+'</span>' +
-          '<input type="number" min="0" max="24" data-idx="'+idx+'" data-f="start" value="'+esc(d.start)+'"> — ' +
-          '<input type="number" min="0" max="24" data-idx="'+idx+'" data-f="end" value="'+esc(d.end)+'"></div>';
+      var arr = Array.isArray(h.hours) ? h.hours : hoursDraft;
+      $('wzHoursWrap').innerHTML = ORDER.map(function(idx){
+        var d = arr[idx];
+        return frow(DAYS[idx], '<span class="fr-hours"><select class="fr-in fr-sel" data-idx="' + idx + '" data-f="start" aria-label="' + DAYS[idx] + ', с">' + hourOpts(d.start, 0, 23) + '</select>' +
+          '<span class="fr-dash">—</span><select class="fr-in fr-sel" data-idx="' + idx + '" data-f="end" aria-label="' + DAYS[idx] + ', до">' + hourOpts(d.end, 1, 24) + '</select></span>');
       }).join('');
-      wrap.querySelectorAll('input').forEach(function(inp){
-        inp.addEventListener('input', function(){
+      $('wzHoursWrap').querySelectorAll('select').forEach(function(sel){
+        sel.addEventListener('change', function(){
           if(!Array.isArray(h.hours)) return;
-          h.hours[+inp.dataset.idx][inp.dataset.f] = parseInt(inp.value, 10);
+          h.hours[+sel.dataset.idx][sel.dataset.f] = parseInt(sel.value, 10);
         });
       });
     }
-    renderGrid();
-    $('wzOwnHours').addEventListener('change', function(){
-      h.hours = this.checked ? DAYS.map(function(_, idx){ return {start:hoursDraft[idx].start, end:hoursDraft[idx].end}; }) : null;
-      $('wzHoursWrap').hidden = !this.checked;
+    $('wzHoursSeg').addEventListener('click', function(e){
+      var b = e.target.closest('button[data-v]'); if(!b) return;
+      $('wzHoursSeg').querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', x === b); });
+      var on = b.dataset.v === 'own';
+      $('wzOwnHours').checked = on;
+      h.hours = on ? (Array.isArray(h.hours) ? h.hours : DAYS.map(function(_, idx){ return {start:hoursDraft[idx].start, end:hoursDraft[idx].end}; })) : null;
+      $('wzHoursWrap').hidden = !on;
       renderGrid();
     });
+    renderGrid();
   };
   WZ_SAVERS.hours = function(){
     var h = wzHall();
