@@ -372,7 +372,7 @@
   .sc-edit{border-top:none;animation:scIn .22s ease-out;}
   @keyframes scIn{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;}}
   .fr{display:grid;grid-template-columns:160px minmax(0,1fr);gap:6px 20px;padding:12px 0;border-top:1px solid var(--line);align-items:start;}
-  #wzBody > .fr:first-child,#wzBody > div > .fr:first-child{border-top:none;}
+  #wzBody > .fr:first-child,#wzBody > div:first-child > .fr:first-child{border-top:none;}
   #wzBody > .fr:first-child{padding-top:0;}
   .fr[hidden]{display:none;}
   .fr-l{font-size:var(--fs-sm);color:var(--text-2);padding-top:9px;display:flex;flex-direction:column;gap:2px;}
@@ -397,6 +397,15 @@
   .fr-seg{margin-top:1px;}
   .fr-seg button{font-size:var(--fs-sm);padding:6px 12px;}
   .fr-more{margin-top:10px;}
+  .fr-more[hidden]{display:none;}
+  .fr-err{color:var(--red);font-size:var(--fs-sm);margin-top:6px;}
+  .fr-in.invalid,#wzBody input.num.invalid,#wzBody select.invalid{border-color:var(--red);box-shadow:0 0 0 3px var(--red-bg);}
+  .fr-seg.invalid{outline:2px solid var(--red);outline-offset:2px;border-radius:var(--r-sm);}
+  /* остатки прежних полей внутри редактора — в том же виде, что и .fr-in */
+  #wzBody input.num{background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r-sm);padding:7px 10px;font:inherit;font-size:var(--fs-md);color:var(--text);}
+  #wzBody input.num:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-bg);}
+  .sc-edit .bk-tier:first-child{border-top:none;padding-top:0;}
+  .sc-edit .bk-prev{margin-top:4px;}
   #wzHoursWrap .fr{padding:5px 0;border-top:none;}
   .fr-map{margin-top:8px;width:100%;height:220px;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--line);background:var(--surface-2);}
   .sc-edit .wz-foot{border-top:1px solid var(--line);margin-top:4px;padding-top:12px;}
@@ -6101,7 +6110,7 @@
     var scope = ED.scope;
     Promise.resolve().then(function(){ return saver ? saver() : null; })
       .then(function(){ btn.disabled = false; edClose(); flash($(SCOPE_NOTE[scope]), 'Сохранено', true); })
-      .catch(function(e){ btn.disabled = false; flash($('wzNote'), (e && e.message) || 'Ошибка'); });
+      .catch(function(e){ btn.disabled = false; edShowErr(e); });
   });
 
   // ---------- страница пространства ----------
@@ -6576,7 +6585,30 @@
       if(!ONB.rulesConfirmedAt) ONB.rulesConfirmedAt = new Date().toISOString();
     });
   }
-  function bad(msg){ return Promise.reject(new Error(msg)); }
+  // bad(текст, селектор) — ошибка привязана к полю: редактор покажет её под полем.
+  function bad(msg, field){ var e = new Error(msg); if(field) e.field = field; return Promise.reject(e); }
+  function edClearErr(){
+    var b = $('wzBody');
+    b.querySelectorAll('.fr-err').forEach(function(x){ x.remove(); });
+    b.querySelectorAll('.invalid').forEach(function(x){ x.classList.remove('invalid'); x.removeAttribute('aria-invalid'); });
+  }
+  // Ошибка проверки — под самим полем, а внизу только короткий итог. Ошибки без
+  // поля (сервер, сеть) остаются в нижней строке.
+  function edShowErr(e){
+    var msg = (e && e.message) || 'Ошибка';
+    edClearErr();
+    var el = e && e.field ? $('wzBody').querySelector(e.field) : null;
+    if(!el){ flash($('wzNote'), msg); return; }
+    var d = document.createElement('div'); d.className = 'fr-err'; d.setAttribute('role', 'alert'); d.textContent = msg;
+    var row = el.closest('.bk-tier');
+    if(row) row.insertAdjacentElement('afterend', d); else (el.closest('.fr-c') || el.parentNode).appendChild(d);
+    el.classList.add('invalid'); el.setAttribute('aria-invalid', 'true');
+    if(el.focus) el.focus({ preventScroll:true });
+    el.scrollIntoView({ block:'center', behavior: scReduced() ? 'auto' : 'smooth' });
+    flash($('wzNote'), 'Проверьте отмеченное поле');
+  }
+  $('wzBody').addEventListener('input', function(){ if($('wzBody').querySelector('.fr-err')){ edClearErr(); $('wzNote').textContent = ''; } });
+  $('wzBody').addEventListener('change', function(){ if($('wzBody').querySelector('.fr-err')){ edClearErr(); $('wzNote').textContent = ''; } });
   function segHtml(id, opts, cur){
     return '<span class="seg" id="' + id + '">' + opts.map(function(o){
       return '<button type="button" data-v="' + esc(o.v) + '" class="' + (String(o.v) === String(cur) ? 'on' : '') + '">' + esc(o.t) + '</button>';
@@ -6598,12 +6630,12 @@
         '<span><b>' + esc(t) + '</b><span class="bk-opt-d">' + esc(d) + '</span></span></label>';
     }
     $('wzBody').innerHTML =
-      '<div class="bk-opts">' +
-        opt(false, 'Подтверждаю вручную', 'Каждая заявка ждёт вашего решения до ' + HOLD_HOURS_UI + ' ч. Удобно, если нужно уточнить детали съёмки.') +
-        opt(true, 'Автоматически', 'Бронь сразу встаёт в расписание. Клиенту не нужно ждать ответа.') +
-      '</div>' +
-      '<label class="bk-check" id="bkDebtWrap"><input type="checkbox" id="bkDebt"' + (s.debtBlocksAutoconfirm ? ' checked' : '') + '>' +
-        '<span>Клиентов с долгом подтверждать вручную<span class="bk-opt-d">Их бронь придёт заявкой. Отказа клиент не увидит — решаете вы.</span></span></label>' +
+      frow('Подтверждение', '<div class="bk-opts">' +
+        opt(false, 'Подтверждаю вручную', 'Каждая заявка ждёт вашего решения до ' + HOLD_HOURS_UI + ' ч. Удобно, если нужно уточнить детали брони.') +
+        opt(true, 'Автоматически', 'Бронь сразу встаёт в расписание. Клиенту не нужно ждать ответа.') + '</div>') +
+      '<div id="bkDebtWrap">' + frow('Клиенты с долгом',
+        '<label class="bk-check" style="margin-top:0"><input type="checkbox" id="bkDebt"' + (s.debtBlocksAutoconfirm ? ' checked' : '') + '>' +
+        '<span>Подтверждать вручную<span class="bk-opt-d">Их бронь придёт заявкой. Отказа клиент не увидит — решаете вы.</span></span></label>') + '</div>' +
       '<div id="bkConfPrev" class="bk-prev"></div>';
     function sync(){
       $('bkDebtWrap').hidden = !s.autoConfirm;
@@ -6621,13 +6653,11 @@
   WZ_RENDERERS.bkTiming = function(){
     var s = BKE.s;
     $('wzBody').innerHTML =
-      '<div class="bk-field"><div class="bk-field-t">Минимальная бронь и шаг выбора времени</div>' +
-        segHtml('bkMinDur', [{ v:30, t:'30 минут' }, { v:60, t:'1 час' }], s.minBookingMin) +
-        '<div class="bk-opt-d">Клиент не сможет забронировать меньше, а время выбирает с этим же шагом. У отдельной цели пространства минимум может быть больше — это в ценах пространства.</div></div>' +
-      '<div class="bk-field"><div class="bk-field-t">Уборка после каждой брони</div>' +
-        segHtml('bkBufSeg', [{ v:0, t:'Не нужна' }, { v:10, t:'10 мин' }, { v:15, t:'15 мин' }, { v:30, t:'30 мин' }], s.bufferMin) +
-        ' <span class="unitwrap"><input class="num" type="number" id="bkBuffer" min="0" max="120" step="5" value="' + esc(s.bufferMin) + '"><span class="u">мин</span></span>' +
-        '<div class="bk-opt-d">Время уборки входит в бронь клиента: следующий клиент может занять время сразу после окончания предыдущей брони.</div></div>' +
+      frow('Минимальная бронь', frSeg('bkMinDur', [[30, '30 минут'], [60, '1 час']], s.minBookingMin),
+        { note:'Клиент не сможет забронировать меньше, а время выбирает с этим же шагом. У отдельной цели пространства минимум может быть больше — это в ценах пространства.' }) +
+      frow('Уборка после брони', frSeg('bkBufSeg', [[0, 'Не нужна'], [10, '10 мин'], [15, '15 мин'], [30, '30 мин']], s.bufferMin) +
+        ' ' + frNum('bkBuffer', s.bufferMin, 'мин', ' type="number" min="0" max="120" step="5"'),
+        { note:'Время уборки входит в бронь клиента: следующий клиент может занять время сразу после окончания предыдущей брони.' }) +
       '<div id="bkTimePrev" class="bk-prev"></div>';
     function sync(){ $('bkTimePrev').innerHTML = timingBarHtml(Number(s.minBookingMin), Number(s.bufferMin) || 0); }
     wireSeg('bkMinDur', function(v){ s.minBookingMin = Number(v); sync(); });
@@ -6641,9 +6671,9 @@
   };
   WZ_SAVERS.bkTiming = function(){
     var buf = parseInt($('bkBuffer').value, 10), min = Number(BKE.s.minBookingMin);
-    if(!Number.isInteger(buf) || buf < 0 || buf > 120) return bad('Уборка — от 0 до 120 минут');
-    if([30, 60].indexOf(min) < 0) return bad('Минимальная бронь — 30 минут или 1 час');
-    if(buf >= min) return bad('Уборка должна быть короче минимальной брони');
+    if(!Number.isInteger(buf) || buf < 0 || buf > 120) return bad('Уборка — от 0 до 120 минут', '#bkBuffer');
+    if([30, 60].indexOf(min) < 0) return bad('Минимальная бронь — 30 минут или 1 час', '#bkMinDur');
+    if(buf >= min) return bad('Уборка должна быть короче минимальной брони', '#bkBuffer');
     return saveSettingsPatch({ bufferMin: buf, minBookingMin: min });
   };
 
@@ -6668,14 +6698,11 @@
       sync();
     }
     $('wzBody').innerHTML =
-      '<div class="bk-field"><div class="bk-field-t">Возврат при отмене</div>' +
-        '<div class="bk-opt-d" style="margin-bottom:8px">Чем ближе к началу брони отмена, тем меньше возврат. Ступени — от ранней отмены к поздней.</div>' +
-        '<div id="bkTiers"></div>' +
-        '<button class="linkish" type="button" id="bkTierAdd">+ Добавить ступень</button></div>' +
-      '<div class="bk-field"><div class="bk-field-t">Удержания</div>' +
-        '<div class="bk-tier"><span class="bk-tier-when">Не пришёл и не отменил</span><span class="bk-tier-what">удержать <span class="unitwrap"><input class="num" type="number" min="0" max="100" step="5" id="bkNoShow" value="' + esc(s.noShowFeePct) + '"><span class="u">% стоимости</span></span></span></div>' +
-        '<div class="bk-tier"><span class="bk-tier-when">Платный перенос</span><span class="bk-tier-what">стоит <span class="unitwrap"><input class="num" type="number" min="0" max="100" step="5" id="bkResched" value="' + esc(s.rescheduleFeePct) + '"><span class="u">% стоимости</span></span></span></div>' +
-        '<div class="bk-opt-d">0% — ничего не удерживать. Удержания записываются клиенту в долг.</div></div>' +
+      frow('Возврат при отмене', '<div id="bkTiers" class="bk-tiers"></div><button class="linkish" type="button" id="bkTierAdd">+ Добавить ступень</button>',
+        { hint:'Чем ближе к началу брони, тем меньше возврат. Ступени — от ранней отмены к поздней.' }) +
+      frow('Не пришёл и не отменил', '<span class="bk-tier-what">удержать <span class="unitwrap"><input class="num" type="number" min="0" max="100" step="5" id="bkNoShow" value="' + esc(s.noShowFeePct) + '"><span class="u">% стоимости</span></span></span>',
+        { hint:'0% — ничего не удерживать. Удержания записываются клиенту в долг.' }) +
+      frow('Платный перенос', '<span class="bk-tier-what">стоит <span class="unitwrap"><input class="num" type="number" min="0" max="100" step="5" id="bkResched" value="' + esc(s.rescheduleFeePct) + '"><span class="u">% стоимости</span></span></span>') +
       '<div id="bkCancelPrev" class="bk-prev"></div>';
     function sync(){ $('bkCancelPrev').innerHTML = cancelTimelineHtml(pol, parseInt($('bkNoShow').value, 10) || 0, parseInt($('bkResched').value, 10) || 0); }
     $('bkTiers').addEventListener('input', function(e){
@@ -6699,26 +6726,28 @@
   };
   WZ_SAVERS.bkCancel = function(){
     var pol = BKE.pol.map(function(t){ return { hoursBefore:t.hoursBefore | 0, refundPct:t.refundPct | 0, rescheduleFree:!!t.rescheduleFree }; });
-    if(!pol.length) return bad('Нужна хотя бы одна ступень');
+    if(!pol.length) return bad('Нужна хотя бы одна ступень', '#bkTierAdd');
     pol[pol.length - 1].hoursBefore = 0;
     for(var i = 0; i < pol.length; i++){
-      if(pol[i].refundPct < 0 || pol[i].refundPct > 100) return bad('Возврат — от 0 до 100%');
-      if(i < pol.length - 1 && (pol[i].hoursBefore < 1 || pol[i].hoursBefore > 720)) return bad('Часы ступени — от 1 до 720');
-      if(i > 0 && i < pol.length - 1 && pol[i].hoursBefore >= pol[i - 1].hoursBefore) return bad('Ступени — от ранней отмены к поздней: часы должны уменьшаться');
+      if(pol[i].refundPct < 0 || pol[i].refundPct > 100) return bad('Возврат — от 0 до 100%', '#bkTiers [data-i="' + i + '"][data-f="refundPct"]');
+      if(i < pol.length - 1 && (pol[i].hoursBefore < 1 || pol[i].hoursBefore > 720)) return bad('Часы ступени — от 1 до 720', '#bkTiers [data-i="' + i + '"][data-f="hoursBefore"]');
+      if(i > 0 && i < pol.length - 1 && pol[i].hoursBefore >= pol[i - 1].hoursBefore) return bad('Ступени — от ранней отмены к поздней: часы должны уменьшаться', '#bkTiers [data-i="' + i + '"][data-f="hoursBefore"]');
     }
     var ns = parseInt($('bkNoShow').value, 10), rs = parseInt($('bkResched').value, 10);
-    if(!(ns >= 0 && ns <= 100)) return bad('Удержание за прогул — от 0 до 100%');
-    if(!(rs >= 0 && rs <= 100)) return bad('Платный перенос — от 0 до 100%');
+    if(!(ns >= 0 && ns <= 100)) return bad('Удержание за прогул — от 0 до 100%', '#bkNoShow');
+    if(!(rs >= 0 && rs <= 100)) return bad('Платный перенос — от 0 до 100%', '#bkResched');
     return saveSettingsPatch({ cancelPolicy: pol, noShowFeePct: ns, rescheduleFeePct: rs });
   };
 
   WZ_RENDERERS.bkLastminute = function(){
     var s = BKE.s;
     $('wzBody').innerHTML =
-      '<label class="bk-check"><input type="checkbox" id="bkLmOn"' + (s.lastminuteEnabled ? ' checked' : '') + '><span><b>Скидка на горящие окна</b>' +
-        '<span class="bk-opt-d">Свободное время, до которого осталось мало часов, продаётся дешевле — лучше, чем пустое пространство.</span></span></label>' +
-      '<div id="bkLmWrap"><div class="bk-tier"><span class="bk-tier-when">Если до окна меньше</span><span class="unitwrap"><input class="num" type="number" id="bkLmHours" min="1" max="72" value="' + esc(s.lastminuteHours) + '"><span class="u">ч</span></span></div>' +
-        '<div class="bk-tier"><span class="bk-tier-when">скидка</span><span class="unitwrap"><input class="num" type="number" id="bkLmPct" min="1" max="90" value="' + esc(s.lastminutePct) + '"><span class="u">%</span></span></div>' +
+      frow('Скидка на горящие окна', frSeg('bkLmSeg', [[0, 'Выключена'], [1, 'Включена']], s.lastminuteEnabled ? 1 : 0) +
+        '<input type="checkbox" id="bkLmOn" hidden' + (s.lastminuteEnabled ? ' checked' : '') + '>',
+        { note:'Свободное время, до которого осталось мало часов, продаётся дешевле — лучше, чем пустое пространство.' }) +
+      '<div id="bkLmWrap">' +
+        frow('Если до окна меньше', frNum('bkLmHours', s.lastminuteHours, 'ч', ' type="number" min="1" max="72"'), { forId:'bkLmHours' }) +
+        frow('Скидка', frNum('bkLmPct', s.lastminutePct, '%', ' type="number" min="1" max="90"'), { forId:'bkLmPct' }) +
         '<div id="bkLmPrev" class="bk-prev"></div></div>';
     function sync(){
       s.lastminuteEnabled = $('bkLmOn').checked;
@@ -6728,13 +6757,14 @@
         (r ? '<s>' + r + '</s> → <b>' + Math.round(r * (100 - p)) / 100 + ' ' + CUR + '/ч</b>' : 'цена −' + p + '%') +
         '. Окно через ' + (hh + 2) + ' ч — по обычной цене.</div>';
     }
-    ['bkLmOn','bkLmHours','bkLmPct'].forEach(function(id){ $(id).addEventListener('input', sync); $(id).addEventListener('change', sync); });
+    wireSeg('bkLmSeg', function(v){ $('bkLmOn').checked = v === '1'; sync(); });
+    ['bkLmHours','bkLmPct'].forEach(function(id){ $(id).addEventListener('input', sync); });
     sync();
   };
   WZ_SAVERS.bkLastminute = function(){
     var on = $('bkLmOn').checked, h = parseInt($('bkLmHours').value, 10), p = parseInt($('bkLmPct').value, 10);
-    if(on && !(h >= 1 && h <= 72)) return bad('Горящее окно — от 1 до 72 часов');
-    if(on && !(p >= 1 && p <= 90)) return bad('Скидка — от 1 до 90%');
+    if(on && !(h >= 1 && h <= 72)) return bad('Горящее окно — от 1 до 72 часов', '#bkLmHours');
+    if(on && !(p >= 1 && p <= 90)) return bad('Скидка — от 1 до 90%', '#bkLmPct');
     var patch = { lastminuteEnabled: on };
     if(h >= 1 && h <= 72) patch.lastminuteHours = h;
     if(p >= 1 && p <= 90) patch.lastminutePct = p;
@@ -6744,13 +6774,13 @@
   WZ_RENDERERS.bkReminder = function(){
     var s = BKE.s;
     $('wzBody').innerHTML =
-      '<label class="bk-check"><input type="checkbox" id="bkRemOn"' + (s.reminderEnabled ? ' checked' : '') + '><span><b>Напоминать клиенту перед бронью</b>' +
-        '<span class="bk-opt-d">Сообщение в Telegram с адресом и кнопками «Как добраться» и «Вызвать такси». Приходит только клиентам, вошедшим через Telegram.</span></span></label>' +
-      '<div id="bkRemWrap" class="bk-field"><div class="bk-field-t">Когда</div>' +
-        segHtml('bkRemSeg', [{ v:30, t:'за 30 мин' }, { v:60, t:'за 1 ч' }, { v:120, t:'за 2 ч' }, { v:180, t:'за 3 ч' }], s.reminderMinutesBefore) +
-        ' <span class="unitwrap"><input class="num" type="number" id="bkRemMin" min="10" max="180" step="5" value="' + esc(s.reminderMinutesBefore) + '"><span class="u">мин</span></span></div>';
+      frow('Напоминание клиенту', frSeg('bkRemOnSeg', [[0, 'Выключено'], [1, 'Включено']], s.reminderEnabled ? 1 : 0) +
+        '<input type="checkbox" id="bkRemOn" hidden' + (s.reminderEnabled ? ' checked' : '') + '>',
+        { note:'Сообщение в Telegram с адресом и кнопками «Как добраться» и «Вызвать такси». Приходит только клиентам, вошедшим через Telegram.' }) +
+      '<div id="bkRemWrap">' + frow('Когда', frSeg('bkRemSeg', [[30, 'за 30 мин'], [60, 'за 1 ч'], [120, 'за 2 ч'], [180, 'за 3 ч']], s.reminderMinutesBefore) +
+        ' ' + frNum('bkRemMin', s.reminderMinutesBefore, 'мин', ' type="number" min="10" max="180" step="5"')) + '</div>';
     function sync(){ $('bkRemWrap').hidden = !$('bkRemOn').checked; }
-    $('bkRemOn').addEventListener('change', sync);
+    wireSeg('bkRemOnSeg', function(v){ $('bkRemOn').checked = v === '1'; sync(); });
     wireSeg('bkRemSeg', function(v){ $('bkRemMin').value = v; });
     $('bkRemMin').addEventListener('input', function(){
       var v = parseInt(this.value, 10);
@@ -6760,7 +6790,7 @@
   };
   WZ_SAVERS.bkReminder = function(){
     var on = $('bkRemOn').checked, m = parseInt($('bkRemMin').value, 10);
-    if(on && !(m >= 10 && m <= 180)) return bad('Напоминание — от 10 до 180 минут до брони');
+    if(on && !(m >= 10 && m <= 180)) return bad('Напоминание — от 10 до 180 минут до брони', '#bkRemMin');
     var patch = { reminderEnabled: on };
     if(m >= 10 && m <= 180) patch.reminderMinutesBefore = m;
     return saveSettingsPatch(patch);
@@ -6780,12 +6810,12 @@
   // ---------- Название и бренд ----------
   WZ_RENDERERS.brand = function(){
     $('wzBody').innerHTML =
-      '<div class="row"><input class="name" id="wzBrandName" maxlength="120" placeholder="Название студии" value="'+esc(profileDraft.name)+'"></div>' +
-      '<div class="row"><input class="name" id="wzSubtitle" maxlength="200" placeholder="Подзаголовок (необязательно)" value="'+esc(profileDraft.subtitle)+'"></div>';
+      frow('Название', frInput('wzBrandName', profileDraft.name, ' maxlength="120" placeholder="Название студии"'), { forId:'wzBrandName', req:true }) +
+      frow('Подзаголовок', frInput('wzSubtitle', profileDraft.subtitle, ' maxlength="200" placeholder="Например, лофт в центре"'), { forId:'wzSubtitle' });
   };
   WZ_SAVERS.brand = function(){
     var studioName = $('wzBrandName').value.trim();
-    if(studioName.length < 2 || studioName.length > 120) return Promise.reject(new Error('Название студии — от 2 до 120 символов'));
+    if(studioName.length < 2 || studioName.length > 120) return bad('Название студии — от 2 до 120 символов', '#wzBrandName');
     var subtitle = $('wzSubtitle').value.trim();
     return api('PUT', '/admin/profile', { name: studioName, subtitle: subtitle }).then(function(u){
       profileDraft.name = u.name || ''; profileDraft.subtitle = u.subtitle || '';
@@ -6829,26 +6859,25 @@
   // ---------- Адрес и телефон студии (раздел «Студия») ----------
   WZ_RENDERERS.studioLocation = function(){
     $('wzBody').innerHTML =
-      '<div class="row"><label class="fld-l">Страна</label><select class="name" id="wzCountry" style="max-width:220px">' +
+      frow('Страна', '<select class="fr-in fr-sel" id="wzCountry">' +
         COUNTRY_OPTS.map(function(c){ return '<option value="'+c.v+'"'+(profileDraft.country===c.v?' selected':'')+'>'+esc(c.label)+'</option>'; }).join('') +
-      '</select></div>' +
-      '<div class="row" style="position:relative"><label class="fld-l">Адрес</label>' +
-        '<input class="name" id="wzAddr" placeholder="Улица, дом" autocomplete="off" value="'+esc(profileDraft.address)+'">' +
+      '</select>', { forId:'wzCountry' }) +
+      frow('Адрес', '<div style="position:relative">' + frInput('wzAddr', profileDraft.address, ' placeholder="Начните печатать и выберите из списка" autocomplete="off"') +
         '<div id="wzAddrSuggest" class="addr-suggest" hidden></div></div>' +
-      '<div class="row"><label class="fld-l">Город</label><input class="name" id="wzCity" placeholder="Город" value="'+esc(profileDraft.city)+'"></div>' +
-      '<div class="row"><label class="fld-l">Индекс</label><input class="name" id="wzPostal" placeholder="220000" style="max-width:160px" value="'+esc(profileDraft.postalCode||'')+'"></div>' +
-      '<div class="row"><label class="fld-l">Телефон</label><input class="name" id="wzPhone" type="tel" inputmode="numeric" placeholder="+375 (29) 123-45-67" autocomplete="off" value="'+esc(profileDraft.phone)+'"></div>' +
-      '<div class="muted" id="wzMapHint" style="margin:2px 0 6px" hidden>Выберите адрес из подсказок или перетащите метку на карте.</div>' +
-      '<div id="wzMap" style="width:100%;height:220px;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border);background:var(--surface-2)" hidden></div>' +
-      '<div class="muted" style="margin-top:8px">Адрес общий для всех пространств. Если пространство в другом здании — задайте ему свой адрес в карточке пространства.</div>';
+        '<div class="fr-note" id="wzMapHint" hidden>Выберите адрес из подсказок или перетащите метку на карте.</div>' +
+        '<div id="wzMap" class="fr-map" hidden></div>',
+        { forId:'wzAddr', note:'Общий для всех пространств. Если пространство в другом здании — задайте ему свой адрес в его карточке.' }) +
+      frow('Город', frInput('wzCity', profileDraft.city, ' placeholder="Город"'), { forId:'wzCity', req:true }) +
+      frow('Индекс', frInput('wzPostal', profileDraft.postalCode || '', ' placeholder="220000" style="max-width:160px"'), { forId:'wzPostal' }) +
+      frow('Телефон', frInput('wzPhone', profileDraft.phone, ' type="tel" inputmode="numeric" placeholder="+375 (29) 123-45-67" autocomplete="off"'), { forId:'wzPhone' });
     wzAddrHelper({ addr:'wzAddr', box:'wzAddrSuggest', map:'wzMap', mapHint:'wzMapHint' }, profileDraft);
     wzWirePhoneMask('wzPhone');
   };
   WZ_SAVERS.studioLocation = function(){
     var city = $('wzCity').value.trim();
-    if(city.length < 2 || city.length > 120) return Promise.reject(new Error('Город — от 2 до 120 символов'));
-    if($('wzAddr').value.length > 200) return Promise.reject(new Error('Адрес — до 200 символов'));
-    if($('wzPhone').value.length > 30) return Promise.reject(new Error('Телефон — до 30 символов'));
+    if(city.length < 2 || city.length > 120) return bad('Город — от 2 до 120 символов', '#wzCity');
+    if($('wzAddr').value.length > 200) return bad('Адрес — до 200 символов', '#wzAddr');
+    if($('wzPhone').value.length > 30) return bad('Телефон — до 30 символов', '#wzPhone');
     var payload = {
       city: city, address: $('wzAddr').value.trim(), phone: $('wzPhone').value.trim(),
       country: $('wzCountry').value, postalCode: $('wzPostal').value.trim(),
@@ -6895,12 +6924,12 @@
   WZ_SAVERS.hallLocation = function(){
     var h = wzHall();
     if(!$('wzOwnLocation').checked){ h.address = null; h.city = null; h.lat = null; h.lon = null; return saveHallsNow(); }
-    if(h.lat == null || h.lon == null) return Promise.reject(new Error('Укажите адрес пространства из подсказок или поставьте метку на карте'));
+    if(h.lat == null || h.lon == null) return bad('Выберите адрес из подсказок или поставьте метку на карте', '#wzHallAddr');
     // Текст адреса пишем в зал явно: подсказка/метка меняют только координаты,
     // а клиент показывает под картой именно этот текст.
     var addr = $('wzHallAddr').value.trim();
-    if(!addr) return Promise.reject(new Error('Впишите адрес пространства (улица, дом)'));
-    if(addr.length > 200) return Promise.reject(new Error('Адрес — до 200 символов'));
+    if(!addr) return bad('Впишите адрес пространства (улица, дом)', '#wzHallAddr');
+    if(addr.length > 200) return bad('Адрес — до 200 символов', '#wzHallAddr');
     h.address = addr;
     h.city = $('wzHallCity').value.trim();
     return saveHallsNow();
@@ -6923,9 +6952,9 @@
   WZ_SAVERS.basics = function(){
     var h = wzHall();
     var title = $('wzTitle').value.trim();
-    if(!title) return Promise.reject(new Error('Введите название пространства'));
+    if(!title) return bad('Введите название пространства', '#wzTitle');
     var cap = parseInt($('wzCap').value, 10);
-    if(!(cap >= 1 && cap <= 1000)) return Promise.reject(new Error('Вместимость — от 1 до 1000 человек'));
+    if(!(cap >= 1 && cap <= 1000)) return bad('Вместимость — от 1 до 1000 человек', '#wzCap');
     h.title = title;
     h.name = title;   // внутреннее «короткое» имя отдельно не спрашиваем — всегда = названию
     h.capacity = cap;
@@ -6935,14 +6964,14 @@
       var cv = $('wzCeiling').value.trim();
       if(cv === '') h.ceilingCm = null;
       else { var cm = Math.round(parseFloat(cv.replace(',', '.')) * 100);
-        if(!(cm >= 150 && cm <= 2000)) return Promise.reject(new Error('Высота потолков — от 1,5 до 20 м'));
+        if(!(cm >= 150 && cm <= 2000)) return bad('Высота потолков — от 1,5 до 20 м', '#wzCeiling');
         h.ceilingCm = cm; }
     }
     if($('wzFloor')){
       var fv = $('wzFloor').value.trim();
       if(fv === '') h.floor = null;
       else { var fl = parseInt(fv, 10);
-        if(!(fl >= -10 && fl <= 300)) return Promise.reject(new Error('Этаж — от −10 до 300'));
+        if(!(fl >= -10 && fl <= 300)) return bad('Этаж — от −10 до 300', '#wzFloor');
         h.floor = fl; }
     }
     h.description = $('wzDescription').value;
@@ -7028,27 +7057,17 @@
   // ---------- Парковка и видеонаблюдение (+ общие удобства студии) ----------
   WZ_RENDERERS.parking = function(){
     $('wzBody').innerHTML =
-      '<div class="amenity-group">' +
-        '<div class="amenity-group-t">Парковка</div>' +
-        '<div class="park-q"><span>Есть ли парковка у студии или рядом?</span><span class="seg" id="wzParkingYesNo"></span></div>' +
-        '<div id="wzParkingWrap" hidden>' +
-          '<div class="about-f-t">Выберите всё, что подходит</div>' +
+      frow('Парковка', '<span class="seg fr-seg" id="wzParkingYesNo"></span>' +
+        '<div id="wzParkingWrap" class="fr-more" hidden>' +
           '<div class="check-grid" id="wzParking"></div>' +
-          '<div class="about-f-t" style="margin-top:8px">Описание парковки</div>' +
-          '<div class="row"><textarea class="name" id="wzParkingText" rows="2" maxlength="1000" placeholder="Как проехать, сколько мест, как открыть шлагбаум" style="resize:vertical">'+esc(amenitiesDraft.aboutParking||'')+'</textarea></div>' +
-        '</div>' +
-      '</div>' +
-      '<div class="amenity-group">' +
-        '<div class="amenity-group-t">Видеонаблюдение</div>' +
-        '<div class="park-q"><span>Ведётся ли видеозапись в студии?</span><span class="seg" id="wzVideoYesNo"></span></div>' +
-        '<div id="wzVideoWrap" hidden>' +
-          '<div class="about-f-t">Пояснение</div>' +
-          '<div class="row"><textarea class="name" id="wzVideoText" rows="2" maxlength="1000" placeholder="Где камеры, как долго хранится запись" style="resize:vertical">'+esc(amenitiesDraft.aboutVideoSurveillance||'')+'</textarea></div>' +
-        '</div>' +
-      '</div>' +
+          '<div class="fr-more">' + frArea('wzParkingText', amenitiesDraft.aboutParking, 2, ' maxlength="1000" placeholder="Как проехать, сколько мест, как открыть шлагбаум" aria-label="Описание парковки"') + '</div>' +
+        '</div>', { hint:'Есть ли парковка у студии или рядом' }) +
+      frow('Видеонаблюдение', '<span class="seg fr-seg" id="wzVideoYesNo"></span>' +
+        '<div id="wzVideoWrap" class="fr-more" hidden>' +
+          frArea('wzVideoText', amenitiesDraft.aboutVideoSurveillance, 2, ' maxlength="1000" placeholder="Где камеры, как долго хранится запись" aria-label="Пояснение"') +
+        '</div>', { hint:'Ведётся ли видеозапись в студии' }) +
       STUDIO_AMENITY_GROUPS.map(function(g){
-        return '<div class="amenity-group"><div class="amenity-group-t">'+esc(g.title)+'</div>' +
-          '<div class="check-grid">' + g.items.map(function(a){ return checkHtml('data-am', a.f, a.label, amenitiesDraft[a.f]); }).join('') + '</div></div>';
+        return frow(g.title, '<div class="check-grid">' + g.items.map(function(a){ return checkHtml('data-am', a.f, a.label, amenitiesDraft[a.f]); }).join('') + '</div>');
       }).join('');
 
     var yn = $('wzParkingYesNo');
@@ -7109,8 +7128,8 @@
     var h = wzHall();
     h.videoTourUrl = $('wzVideoTourUrl').value.trim();
     h.tour3dUrl = $('wzTour3dUrl').value.trim();
-    if(h.videoTourUrl.length > 500) return Promise.reject(new Error('Ссылка на видео — до 500 символов'));
-    if(h.tour3dUrl.length > 500) return Promise.reject(new Error('Ссылка на 3D-тур — до 500 символов'));
+    if(h.videoTourUrl.length > 500) return bad('Ссылка на видео — до 500 символов', '#wzVideoTourUrl');
+    if(h.tour3dUrl.length > 500) return bad('Ссылка на 3D-тур — до 500 символов', '#wzTour3dUrl');
     return saveHallsNow();
   };
 
@@ -7157,7 +7176,7 @@
       for(var idx=0; idx<7; idx++){
         var d = h.hours[idx];
         if(!Number.isInteger(d.start) || !Number.isInteger(d.end) || d.start<0 || d.end>24 || d.start>=d.end){
-          return Promise.reject(new Error(DAYS[idx]+': часы 0..24, начало меньше конца'));
+          return bad(DAYS[idx] + ': начало должно быть раньше конца', '#wzHoursWrap select[data-idx="' + idx + '"][data-f="end"]');
         }
       }
     }
