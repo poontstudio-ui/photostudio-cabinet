@@ -185,16 +185,10 @@
   .sc-ready-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:4px;}
   .sc-bar{flex:1;min-width:120px;height:8px;background:var(--bg);border-radius:var(--r-pill);overflow:hidden;}
   .sc-bar i{display:block;height:100%;width:0;background:var(--green);border-radius:var(--r-pill);transition:width .3s;}
-  /* Пространства и запуск студии — во всю ширину экрана: карточки разделов в
-     две колонки, справа превью. Остальные разделы остаются в читаемой колонке. */
-  .shell[data-folder="halls"] .content,.shell[data-folder="launch"] .content{max-width:1680px;}
+  /* Пространства — одна колонка карточек той же ширины, что «Бронирование»;
+     справа от страницы пространства — превью. Запуск студии шире: чек-лист + превью. */
+  .shell[data-folder="launch"] .content{max-width:1280px;}
   #wzView{max-width:none;}
-  #hpSecs{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:12px 16px;align-items:start;}
-  #hpSecs .sc-group{grid-column:1 / -1;margin:14px 0 0;}
-  #hpSecs .sc-group:first-child{margin-top:0;}
-  #hpSecs .sc{margin-bottom:0;}
-  #hpSecs .sc.open{grid-column:1 / -1;}
-  .halls-list .hall-card-add,.halls-list .halls-empty{grid-column:1 / -1;}
   .hp-title{font-size:var(--fs-2xl);font-weight:700;letter-spacing:-.02em;margin:12px 0 14px;}
   .hp-grid,.ln-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:28px;align-items:start;}
   /* превью «как увидят клиенты» */
@@ -591,7 +585,7 @@
   /* ---------- пространства: широкие карточки-строки (Peerspace Listings) ---------- */
   /* Фото слева, инфо справа — как в веб-версии Listings, а не плиткой:
      на телефоне превращается в фото сверху (media-запрос ниже). */
-  .halls-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(520px,1fr));gap:22px;align-items:start;}
+  .halls-list{display:flex;flex-direction:column;gap:22px;}
   .listing-card{border:1px solid var(--line);border-radius:var(--r-md);padding:18px;}
   .listing-head{display:flex;gap:16px;align-items:flex-start;}
   .listing-photo{width:180px;height:135px;flex:none;border-radius:var(--r-sm);overflow:hidden;background:var(--surface-2);}
