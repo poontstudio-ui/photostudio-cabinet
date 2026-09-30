@@ -396,6 +396,15 @@
   .fr-chips{margin:2px 0 0;}
   .fr-seg{margin-top:1px;}
   .fr-seg button{font-size:var(--fs-sm);padding:6px 12px;}
+  .hrs .fr{padding:5px 0;border-top:none;grid-template-columns:48px minmax(0,1fr);gap:0 12px;}
+  .hrs .fr-l{padding-top:9px;}
+  .pd-head{padding:4px 0 12px;}
+  .pd{border-top:1px solid var(--line);}
+  .pd .fr:first-child{border-top:none;}
+  .pd-gp{padding:12px 0;border-top:1px solid var(--line);}
+  .pd-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:14px;margin-top:4px;}
+  .pd-foot .purp-note{margin-left:8px;}
+  .fr-pair-add{grid-template-columns:minmax(0,1fr) auto;}
   .fr-more{margin-top:10px;}
   .fr-more[hidden]{display:none;}
   .fr-err{color:var(--red);font-size:var(--fs-sm);margin-top:6px;}
@@ -1341,7 +1350,7 @@
 
     <div class="card" id="sec-hours" data-folder="main" data-owner-only="1">
       <h2>Часы работы</h2>
-      <div class="muted" style="margin-bottom:8px">Целые часы, по дням недели. Пустой день = закрыто нельзя, ставьте равные значения только если день рабочий.</div>
+      <div class="muted" style="margin-bottom:8px">Общие часы студии по дням недели, с шагом в час. Свой режим можно задать отдельному пространству — в его карточке. Закрыть день или часть дня — в разделе «Закрыть время».</div>
       <div id="hoursEd"></div>
       <div class="note" id="hoursNote"></div>
     </div>
@@ -2607,71 +2616,61 @@
           }).join('') + '</div>';
       }).join('');
 
+      var eqLabel = function(code){
+        var hit = (DICT_CACHE.equipment || []).find(function(d){ return d.code === code; });
+        return hit ? hit.labelRu : code;
+      };
+      var extraEq = (Array.isArray(cur.equipment) ? cur.equipment : []).filter(function(code){
+        return !HALL_EQUIPMENT_GROUPS.some(function(g){ return g.items.some(function(x){ return x.f === code; }); });
+      });
+      var capNum = function(f, ph){ return frNum('', cur[f], f === 'standingCapacity' ? 'стоя' : f === 'seatedCapacity' ? 'сидя' : 'чел.', ' type="number" min="1" max="1000" step="1" data-f="' + f + '" placeholder="' + esc(ph) + '"', 'purp-f'); };
+
       box.innerHTML =
-        '<div class="purp-detail-head">' +
+        '<div class="purp-detail-head pd-head">' +
           '<button type="button" class="btn ghost small purp-back">← Назад</button>' +
           '<div class="purp-detail-title"><span class="purp-icon">'+purposeIconSvg(cur.code)+'</span>' +
             '<span>'+esc(purposeLabel(cur.code))+'</span>' +
             (cur.active === false ? '<span class="purp-inactive-tag">Неактивно</span>' : '') +
           '</div>' +
         '</div>' +
+        '<div class="pd">' +
         // Цена — только здесь: у зала своей «базовой» цены нет (0052).
-        '<div class="purp-fields">' +
-          '<label class="purp-lbl">Цена за час<span class="unitwrap"><input class="num purp-f purp-rate" type="number" min="1" step="1" data-f="rate" value="'+esc(cur.rate!=null?cur.rate:'')+'" placeholder="обязательно"><span class="u">'+CUR+'/ч</span></span></label>' +
-          '<label class="purp-lbl">Минимальная бронь<span class="unitwrap"><input class="num purp-hours" type="number" min="0.5" max="8" step="0.5" data-f="minBookingMin" value="'+esc(cur.minBookingMin!=null?(cur.minBookingMin/60):'')+'" placeholder="как у студии"><span class="u">ч</span></span></label>' +
-          '<label class="purp-lbl">Вместимость<span class="unitwrap"><input class="num purp-f" type="number" min="1" max="1000" step="1" data-f="capacity" value="'+esc(cur.capacity!=null?cur.capacity:'')+'" placeholder="'+esc(h.capacity)+'"><span class="u">чел</span></span></label>' +
-        '</div>' +
-        '<div class="muted purp-rate-note" style="margin-top:4px">Пустые минимум и вместимость — как у студии и у пространства. Цены по дням и часам — в сетке ниже.</div>' +
+        frow('Цена за час', frNum('', cur.rate, CUR + '/ч', ' type="number" min="1" step="1" data-f="rate" placeholder="обязательно"', 'purp-f purp-rate'), { req:true, hint:'Цены по дням и часам — в сетке ниже' }) +
+        frow('Минимальная бронь', frNum('', cur.minBookingMin != null ? cur.minBookingMin / 60 : '', 'ч', ' type="number" min="0.5" max="8" step="0.5" data-f="minBookingMin" placeholder="как у студии"', 'purp-hours'), { hint:'Пусто — как у студии' }) +
+        frow('Вместимость', capNum('capacity', h.capacity), { hint:'Пусто — как у пространства' }) +
         // Вместимость стоя/сидя — только у праздника: клиент увидит их
         // вместо площади, остальным назначениям эти цифры не нужны.
-        (cur.code === 'event' ?
-          '<div class="row" style="margin-top:8px">' +
-            '<span class="unitwrap"><input class="num purp-f" type="number" min="1" max="1000" step="1" data-f="standingCapacity" value="'+esc(cur.standingCapacity!=null?cur.standingCapacity:'')+'" placeholder="—"><span class="u">чел стоя</span></span>' +
-            '<span class="unitwrap"><input class="num purp-f" type="number" min="1" max="1000" step="1" data-f="seatedCapacity" value="'+esc(cur.seatedCapacity!=null?cur.seatedCapacity:'')+'" placeholder="—"><span class="u">чел сидя</span></span>' +
-          '</div>' : '') +
-        '<div class="gp"></div>' +
-        '<div class="wz-toggle-row" style="margin-top:12px">' +
-          '<div><div class="t">Подтверждение брони</div><div class="d">Своё для этой цели — иначе как у студии</div></div>' +
-          '<span class="seg purp-autoconfirm">' +
+        (cur.code === 'event' ? frow('Стоя и сидя', '<span class="fr-hours">' + capNum('standingCapacity', '—') + capNum('seatedCapacity', '—') + '</span>', { hint:'Клиент увидит их вместо площади' }) : '') +
+        '<div class="pd-gp"><div class="gp"></div></div>' +
+        frow('Подтверждение брони', '<span class="seg fr-seg purp-autoconfirm">' +
             '<button type="button" data-ac="inherit"'+(cur.autoConfirm==null?' class="on"':'')+'>Как у студии</button>' +
             '<button type="button" data-ac="yes"'+(cur.autoConfirm===true?' class="on"':'')+'>Авто</button>' +
             '<button type="button" data-ac="no"'+(cur.autoConfirm===false?' class="on"':'')+'>Вручную</button>' +
-          '</span>' +
-        '</div>' +
-        '<div class="row" style="margin-top:8px">' +
-          '<span>Скидка за бронь на 8 часов</span>' +
-          '<span class="unitwrap"><input class="num purp-f" type="number" min="0" max="100" step="1" data-f="fullDayDiscountPct" value="'+esc(cur.fullDayDiscountPct!=null?cur.fullDayDiscountPct:'')+'" placeholder="0"><span class="u">%</span></span>' +
-        '</div>' +
-        '<div class="about-f-t" style="margin-top:12px">Что входит в аренду</div>' +
-        '<div class="muted" style="margin:-2px 0 6px">Мебель и техника под эту цель — клиент видит их, когда выбирает её. Свойства самого пространства (доступ, свет, кухня) — в карточке пространства.</div>' +
-        equipHtml +
-        (function(){
-          var extra = (Array.isArray(cur.equipment) ? cur.equipment : []).filter(function(code){
-            return !HALL_EQUIPMENT_GROUPS.some(function(g){ return g.items.some(function(x){ return x.f === code; }); });
-          });
-          // Метка словаря могла ещё не подгрузиться (loadDict асинхронный) —
-          // тогда временно показываем код, следующая перерисовка поправит.
-          var eqLabel = function(code){
-            var hit = (DICT_CACHE.equipment || []).find(function(d){ return d.code === code; });
-            return hit ? hit.labelRu : code;
-          };
-          return (extra.length ? '<div class="chip-row" style="margin-top:6px">' + extra.map(function(code){
+          '</span>', { hint:'Своё для этой цели' }) +
+        frow('Скидка за 8 часов', frNum('', cur.fullDayDiscountPct, '%', ' type="number" min="0" max="100" step="1" data-f="fullDayDiscountPct" placeholder="0"', 'purp-f'), { hint:'За бронь на 8 часов и больше' }) +
+        HALL_EQUIPMENT_GROUPS.map(function(g){
+          return frow(g.title, '<div class="check-grid">' + g.items.map(function(x){
+            return checkHtml('data-eq', x.f, x.label, Array.isArray(cur.equipment) && cur.equipment.indexOf(x.f) !== -1);
+          }).join('') + '</div>');
+        }).join('') +
+        frow('Своё оборудование',
+          (extraEq.length ? '<div class="chip-row fr-chips">' + extraEq.map(function(code){
             return '<button type="button" class="chip-tog on purp-eq-extra" data-eq-extra="'+esc(code)+'">'+esc(eqLabel(code))+' ×</button>';
           }).join('') + '</div>' : '') +
-          '<div class="row" style="margin-top:6px">' +
-            '<input class="name purp-eq-custom" placeholder="Своё оборудование…" style="flex:1 1 auto">' +
-            '<button type="button" class="btn ghost small purp-eq-add">Добавить</button>' +
-          '</div>';
-        })() +
-        '<div class="about-f-t" style="margin-top:12px">Свои пункты</div>' +
-        '<div class="muted" style="margin:-2px 0 6px">Если нужного нет в списке выше — по строке на пункт.</div>' +
-        '<div class="row"><textarea class="name purp-includes" rows="3" maxlength="1000" ' +
-          'placeholder="Особенный реквизит\nЧто-то ещё своё" style="resize:vertical">'+esc(cur.includes||'')+'</textarea></div>' +
-        '<div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+          '<div class="fr-pair fr-pair-add"><input class="fr-in purp-eq-custom" placeholder="Например, дым-машина" aria-label="Своё оборудование">' +
+            '<button type="button" class="btn ghost small purp-eq-add">Добавить</button></div>',
+          { hint:'Если нужного нет в списке' }) +
+        frow('Что ещё входит', frArea('', cur.includes, 3, ' maxlength="1000" placeholder="По строке на пункт" aria-label="Что ещё входит"').replace('class="fr-in"', 'class="fr-in purp-includes"'),
+          { hint:'По строке на пункт', note:'Мебель и техника — то, что клиент увидит при выборе цели. Свойства самого пространства (доступ, свет, кухня) — в его карточке.' }) +
+        '</div>' +
+        '<div class="pd-foot">' +
           '<button type="button" class="btn small purp-save">Сохранить</button>' +
           '<button type="button" class="btn ghost small purp-cancel">Отмена</button>' +
           (cur._new ? '' : '<button type="button" class="btn ghost small danger purp-del">Убрать назначение</button>') +
-        '</div><div class="note purp-note"></div>';
+          '<span class="note purp-note"></span>' +
+        '</div>';
+      // ошибка в поле стирается, как только человек начал его править
+      box.querySelector('.pd').addEventListener('input', function(){ box.querySelectorAll('.fr-err').forEach(function(x){ x.remove(); }); box.querySelectorAll('.invalid').forEach(function(x){ x.classList.remove('invalid'); }); });
 
       box.querySelector('.purp-back').addEventListener('click', function(){ purpCancel(i); });
       box.querySelector('.purp-cancel').addEventListener('click', function(){ purpCancel(i); });
@@ -2828,21 +2827,34 @@
     // Проверяем здесь, а не только на бэкенде: там ошибка приходит одной
     // фразой на весь список, а владельцу нужно имя цели и поле, в котором он
     // ошибся, — и до отправки, а не после.
-    var bad = null;
+    var bad = null, badSel = null;
     hallPurposes(h).forEach(function(p){
       if(bad) return;
+      var open = PG.code === p.code;   // поле подсветим, только если открыт именно этот экран
       var at = '«' + purposeLabel(p.code) + '»';
       var onlyPeople = !gpRentApplies(p.guestPricing), ge = gpError(p.guestPricing);
       if(ge) bad = at + ': ' + ge;
-      else if(!onlyPeople && !(typeof p.rate === 'number' && p.rate > 0 && p.rate <= 100000)) bad = at + ': укажите цену за час';
-      else if(p.capacity != null && !(p.capacity >= 1 && p.capacity <= 1000)) bad = at + ': вместимость — целое от 1 до 1000';
+      else if(!onlyPeople && !(typeof p.rate === 'number' && p.rate > 0 && p.rate <= 100000)) { bad = at + ': укажите цену за час'; if(open) badSel = '.purp-rate'; }
+      else if(p.capacity != null && !(p.capacity >= 1 && p.capacity <= 1000)) { bad = at + ': вместимость — целое от 1 до 1000'; if(open) badSel = '[data-f="capacity"]'; }
       else if(p.minBookingMin != null && !(p.minBookingMin >= 30 && p.minBookingMin <= 480 && p.minBookingMin % 30 === 0)) {
-        bad = at + ': минимальная бронь — от 0,5 до 8 часов, шагом по полчаса';
+        bad = at + ': минимальная бронь — от 0,5 до 8 часов, шагом по полчаса'; if(open) badSel = '.purp-hours';
       }
-      else if(p.standingCapacity != null && !(p.standingCapacity >= 1 && p.standingCapacity <= 1000)) bad = at + ': вместимость стоя — целое от 1 до 1000';
-      else if(p.seatedCapacity != null && !(p.seatedCapacity >= 1 && p.seatedCapacity <= 1000)) bad = at + ': вместимость сидя — целое от 1 до 1000';
+      else if(p.standingCapacity != null && !(p.standingCapacity >= 1 && p.standingCapacity <= 1000)) { bad = at + ': вместимость стоя — целое от 1 до 1000'; if(open) badSel = '[data-f="standingCapacity"]'; }
+      else if(p.seatedCapacity != null && !(p.seatedCapacity >= 1 && p.seatedCapacity <= 1000)) { bad = at + ': вместимость сидя — целое от 1 до 1000'; if(open) badSel = '[data-f="seatedCapacity"]'; }
     });
-    if(bad){ n = document.querySelector('.hall-purposes[data-i="'+i+'"] .purp-note'); if(n) flash(n, bad); return Promise.reject(new Error(bad)); }
+    if(bad){
+      n = document.querySelector('.hall-purposes[data-i="'+i+'"] .purp-note');
+      var el = badSel && document.querySelector('.hall-purposes[data-i="'+i+'"] ' + badSel);
+      if(el){
+        // ошибка — под самим полем; внизу только итог
+        var row = el.closest('.fr-c') || el.parentNode;
+        if(!row.querySelector('.fr-err')){ var d = document.createElement('div'); d.className = 'fr-err'; d.setAttribute('role', 'alert'); d.textContent = bad.replace(/^«[^»]*»: /, ''); row.appendChild(d); }
+        el.classList.add('invalid'); if(el.focus) el.focus({ preventScroll:true });
+        el.scrollIntoView({ block:'center', behavior: scReduced() ? 'auto' : 'smooth' });
+        if(n) flash(n, 'Проверьте отмеченное поле');
+      } else if(n) flash(n, bad);
+      return Promise.reject(new Error(bad));
+    }
     var clean = hallPurposes(h).map(function(p){
       // active — всегда явным true/false, не «пусто значит включено»: это
       // переключатель, а не поле «как у зала».
@@ -3246,17 +3258,23 @@
   // Значение чекбокса при этом не трогаем: выключил автоподтверждение —
   // настройка спряталась, но не сбросилась, включил обратно — она на месте.
   function renderHours(){
-    var c = $('hoursEd'); c.innerHTML = '';
-    hoursDraft.forEach(function(d, i){
-      var row = document.createElement('div'); row.className = 'hours-day';
-      row.innerHTML =
-        '<span class="d">'+DAYS[i]+'</span>' +
-        '<input type="number" min="0" max="24" data-i="'+i+'" data-f="start" value="'+esc(d.start)+'"> — ' +
-        '<input type="number" min="0" max="24" data-i="'+i+'" data-f="end" value="'+esc(d.end)+'">';
-      c.appendChild(row);
-    });
-    c.querySelectorAll('input').forEach(function(inp){
-      inp.addEventListener('input', function(){ hoursDraft[+inp.dataset.i][inp.dataset.f] = parseInt(inp.value,10); svCheck('hours'); });
+    var c = $('hoursEd');
+    var ORDER = [1,2,3,4,5,6,0];   // неделя с понедельника; индекс = JS getDay
+    var opts = function(sel, from, to){
+      var o = ''; for(var x = from; x <= to; x++) o += '<option value="' + x + '"' + (x === sel ? ' selected' : '') + '>' + String(x).padStart(2, '0') + ':00</option>'; return o;
+    };
+    c.innerHTML = '<div class="hrs">' + ORDER.map(function(i){
+      var d = hoursDraft[i];
+      return frow(DAYS[i], '<span class="fr-hours"><select class="fr-in fr-sel" data-i="' + i + '" data-f="start" aria-label="' + DAYS[i] + ', с">' + opts(d.start, 0, 23) + '</select>' +
+        '<span class="fr-dash">—</span><select class="fr-in fr-sel" data-i="' + i + '" data-f="end" aria-label="' + DAYS[i] + ', до">' + opts(d.end, 1, 24) + '</select></span>');
+    }).join('') + '</div>';
+    c.querySelectorAll('select').forEach(function(sel){
+      sel.addEventListener('change', function(){
+        hoursDraft[+sel.dataset.i][sel.dataset.f] = parseInt(sel.value, 10);
+        c.querySelectorAll('.fr-err').forEach(function(x){ x.remove(); }); c.querySelectorAll('.invalid').forEach(function(x){ x.classList.remove('invalid'); });
+        $('hoursNote').textContent = '';
+        svCheck('hours');
+      });
     });
     svSnap('hours');
   }
@@ -4772,7 +4790,14 @@
   function saveHours(){
     for(var i=0;i<7;i++){ var d=hoursDraft[i];
       if(!Number.isInteger(d.start)||!Number.isInteger(d.end)||d.start<0||d.end>24||d.start>=d.end){
-        flash($('hoursNote'), DAYS[i]+': часы 0..24, начало меньше конца'); return Promise.reject(new Error('validation'));
+        var el = $('hoursEd').querySelector('select[data-i="' + i + '"][data-f="end"]');
+        if(el && !$('hoursEd').querySelector('.fr-err')){
+          var er = document.createElement('div'); er.className = 'fr-err'; er.setAttribute('role', 'alert'); er.textContent = DAYS[i] + ': начало должно быть раньше конца';
+          el.closest('.fr-c').appendChild(er); el.classList.add('invalid'); el.focus({ preventScroll:true });
+          el.scrollIntoView({ block:'center', behavior: scReduced() ? 'auto' : 'smooth' });
+          flash($('hoursNote'), 'Проверьте отмеченное поле');
+        } else flash($('hoursNote'), DAYS[i]+': начало должно быть раньше конца');
+        return Promise.reject(new Error('validation'));
       } }
     return api('PUT','/admin/hours', hoursDraft.map(function(d){ return {start:d.start,end:d.end}; }))
       .then(function(u){ hoursDraft = u.map(function(d){return {start:d.start,end:d.end};}); renderHours(); flash($('hoursNote'),'Часы обновлены',true); })
@@ -6837,10 +6862,10 @@
       '<div class="fr-c">' + control + (opts.note ? '<div class="fr-note">' + opts.note + '</div>' : '') + '</div></div>';
   }
   function frInput(id, value, attrs){ return '<input class="fr-in" id="' + id + '" value="' + esc(value == null ? '' : value) + '"' + (attrs || '') + '>'; }
-  function frNum(id, value, unit, attrs){
-    return '<span class="fr-unit"><input class="fr-in fr-num" id="' + id + '" value="' + esc(value == null ? '' : value) + '"' + (attrs || '') + '><span>' + esc(unit) + '</span></span>';
+  function frNum(id, value, unit, attrs, cls){
+    return '<span class="fr-unit"><input class="fr-in fr-num' + (cls ? ' ' + cls : '') + '"' + (id ? ' id="' + id + '"' : '') + ' value="' + esc(value == null ? '' : value) + '"' + (attrs || '') + '><span>' + esc(unit) + '</span></span>';
   }
-  function frArea(id, value, rows, attrs){ return '<textarea class="fr-in" id="' + id + '" rows="' + (rows || 3) + '"' + (attrs || '') + '>' + esc(value || '') + '</textarea>'; }
+  function frArea(id, value, rows, attrs){ return '<textarea class="fr-in"' + (id ? ' id="' + id + '"' : '') + ' rows="' + (rows || 3) + '"' + (attrs || '') + '>' + esc(value || '') + '</textarea>'; }
   function frSeg(id, opts, cur){
     return '<span class="seg fr-seg" id="' + id + '">' + opts.map(function(o){
       return '<button type="button" data-v="' + esc(o[0]) + '"' + (String(o[0]) === String(cur) ? ' class="on"' : '') + '>' + esc(o[1]) + '</button>'; }).join('') + '</span>';
