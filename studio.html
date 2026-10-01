@@ -399,19 +399,23 @@
   .hg{min-width:0;}
   .hg-grid{display:grid;gap:3px;align-items:center;}
   .hg-lab{font-size:var(--fs-xs);color:var(--text-3);text-align:center;line-height:1;}
-  .hg-day{font-size:var(--fs-sm);font-weight:600;color:var(--text-2);text-align:left;}
+  .hg-day{font-size:var(--fs-sm);font-weight:500;color:var(--text-2);text-align:left;}
   .hg-hr{font-family:var(--f-mono);}
   .hg-v .hg-day{text-align:center;} .hg-v .hg-hr{text-align:right;padding-right:4px;}
   .hg-ctl{display:flex;justify-content:center;align-items:center;}
-  .hg-cb{position:relative;width:18px;height:18px;padding:0;border:1.5px solid var(--line-strong);border-radius:5px;background:var(--surface);cursor:pointer;touch-action:manipulation;}
-  .hg-cb[aria-checked="true"]{background:var(--blue);border-color:var(--blue);}
-  .hg-cb[aria-checked="true"]::after{content:'';position:absolute;left:5px;top:1px;width:5px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);}
-  .hg-cb[aria-checked="mixed"]{border-color:var(--blue);}
-  .hg-cb[aria-checked="mixed"]::after{content:'';position:absolute;left:3px;top:6.5px;width:9px;height:2px;background:var(--blue);border-radius:1px;}
-  .hg-cell{width:100%;aspect-ratio:1;min-height:20px;padding:0;border:none;border-radius:6px;background:var(--bg);cursor:pointer;touch-action:manipulation;transition:background .1s;}
+  /* Тон — как у выделения в сетке быстрой брони (#d4e5fd), а не сплошной
+     акцент: сетка большая, сплошная синяя заливка перекрикивала всю страницу.
+     Флажки — уменьшенная копия .chk: та же рамка и галочка, но светлые. */
+  .hg-cb{position:relative;width:14px;height:14px;padding:0;border:1.5px solid var(--line-strong);border-radius:4px;background:var(--surface);cursor:pointer;touch-action:manipulation;}
+  .hg-cb::before{content:'';position:absolute;inset:-8px;}   /* палец промахивается мимо 14px — зона касания шире самого флажка */
+  .hg-cb[aria-checked="true"],.hg-cb[aria-checked="mixed"]{background:var(--accent-bg);border-color:var(--accent);}
+  .hg-cb[aria-checked="true"]::after{content:'';position:absolute;left:3.5px;top:0.5px;width:3.5px;height:7px;border:solid var(--accent);border-width:0 1.5px 1.5px 0;transform:rotate(45deg);}
+  .hg-cb[aria-checked="mixed"]::after{content:'';position:absolute;left:2.5px;top:4.75px;width:6px;height:1.5px;background:var(--accent);border-radius:1px;}
+  .hg-cell{width:100%;aspect-ratio:1;min-height:20px;padding:0;border:none;border-radius:5px;background:var(--bg);cursor:pointer;touch-action:manipulation;transition:background .1s;}
   .hg-v .hg-cell{aspect-ratio:auto;height:26px;}
-  .hg-cell[aria-checked="true"]{background:var(--blue);}
-  .hg-cell:hover{filter:brightness(.94);}
+  .hg-cell[aria-checked="true"]{background:#d4e5fd;}
+  .hg-cell:hover{background:#e7e9ed;}
+  .hg-cell[aria-checked="true"]:hover{background:#c3dafb;}
   .hg-cell:focus-visible,.hg-cb:focus-visible{outline:2px solid var(--blue);outline-offset:2px;}
   .hg-sum{margin-top:12px;font-size:var(--fs-sm);color:var(--text-2);}
   .hg-wrap{padding-top:6px;}
