@@ -400,8 +400,13 @@
   .hg-grid{display:grid;gap:3px;align-items:center;}
   .hg-lab{font-size:var(--fs-xs);color:var(--text-3);text-align:center;line-height:1;}
   .hg-day{font-size:var(--fs-sm);font-weight:500;color:var(--text-2);text-align:left;}
-  .hg-hr{font-family:var(--f-mono);}
-  .hg-v .hg-day{text-align:center;} .hg-v .hg-hr{text-align:right;padding-right:4px;}
+  .hg-hr{font-family:var(--f-mono);font-size:var(--fs-sm);color:var(--text-2);}
+  /* воздух между подписями, флажками и самой сеткой: сверху (часы/дни) и сбоку */
+  .hg-t1{padding-bottom:6px;}
+  .hg-t2{padding-bottom:10px;}
+  .hg-s2{padding-right:10px;}
+  .hg-v .hg-s1{padding-right:6px;}
+  .hg-v .hg-day{text-align:center;} .hg-v .hg-hr{text-align:right;}
   .hg-ctl{display:flex;justify-content:center;align-items:center;}
   /* Тон — как у выделения в сетке быстрой брони (#d4e5fd), а не сплошной
      акцент: сетка большая, сплошная синяя заливка перекрикивала всю страницу.
@@ -3336,12 +3341,12 @@
     // оси: «линии дней» и «линии часов» — какая из них строки, зависит от ориентации
     HG_ORDER.forEach(function(d, di){
       var pos = vertical ? at(1, di + 3) : at(di + 3, 2);
-      html += '<div class="hg-lab hg-day" style="' + pos + '">' + DAYS[d] + '</div>';
-      html += '<div class="hg-ctl" style="' + (vertical ? at(2, di + 3) : at(di + 3, 1)) + '">' + cb('d', d, DAYS[d] + ': весь день') + '</div>';
+      html += '<div class="hg-lab hg-day ' + (vertical ? 'hg-t1' : 'hg-s2') + '" style="' + pos + '">' + DAYS[d] + '</div>';
+      html += '<div class="hg-ctl ' + (vertical ? 'hg-t2' : 'hg-s1') + '" style="' + (vertical ? at(2, di + 3) : at(di + 3, 1)) + '">' + cb('d', d, DAYS[d] + ': весь день') + '</div>';
     });
     for(var h = 0; h < 24; h++){
-      html += '<div class="hg-lab hg-hr" style="' + (vertical ? at(h + 3, 1) : at(1, h + 3)) + '">' + pad2(h) + '</div>';
-      html += '<div class="hg-ctl" style="' + (vertical ? at(h + 3, 2) : at(2, h + 3)) + '">' + cb('h', h, pad2(h) + ':00: все дни') + '</div>';
+      html += '<div class="hg-lab hg-hr ' + (vertical ? 'hg-s1' : 'hg-t1') + '" style="' + (vertical ? at(h + 3, 1) : at(1, h + 3)) + '">' + pad2(h) + '</div>';
+      html += '<div class="hg-ctl ' + (vertical ? 'hg-s2' : 'hg-t2') + '" style="' + (vertical ? at(h + 3, 2) : at(2, h + 3)) + '">' + cb('h', h, pad2(h) + ':00: все дни') + '</div>';
     }
     HG_ORDER.forEach(function(d, di){
       for(var h = 0; h < 24; h++){
@@ -3350,7 +3355,7 @@
       }
     });
     box.innerHTML = '<div class="hg' + (vertical ? ' hg-v' : '') + '"><div class="hg-grid" style="' +
-      (vertical ? 'grid-template-columns:34px 24px repeat(7,minmax(0,1fr));' : 'grid-template-columns:24px 34px repeat(24,minmax(0,1fr));') + '">' + html + '</div>' +
+      (vertical ? 'grid-template-columns:34px 34px repeat(7,minmax(0,1fr));' : 'grid-template-columns:24px 44px repeat(24,minmax(0,1fr));') + '">' + html + '</div>' +
       '<div class="hg-sum" aria-live="polite"></div></div>';
     var root = box.querySelector('.hg');
     function sync(){
