@@ -396,8 +396,27 @@
   .fr-chips{margin:2px 0 0;}
   .fr-seg{margin-top:1px;}
   .fr-seg button{font-size:var(--fs-sm);padding:6px 12px;}
-  .hrs .fr{padding:5px 0;border-top:none;grid-template-columns:48px minmax(0,1fr);gap:0 12px;}
-  .hrs .fr-l{padding-top:9px;}
+  .hg{min-width:0;}
+  .hg-grid{display:grid;gap:3px;align-items:center;}
+  .hg-lab{font-size:var(--fs-xs);color:var(--text-3);text-align:center;line-height:1;}
+  .hg-day{font-size:var(--fs-sm);font-weight:600;color:var(--text-2);text-align:left;}
+  .hg-hr{font-family:var(--f-mono);}
+  .hg-v .hg-day{text-align:center;} .hg-v .hg-hr{text-align:right;padding-right:4px;}
+  .hg-ctl{display:flex;justify-content:center;align-items:center;}
+  .hg-cb{position:relative;width:18px;height:18px;padding:0;border:1.5px solid var(--line-strong);border-radius:5px;background:var(--surface);cursor:pointer;touch-action:manipulation;}
+  .hg-cb[aria-checked="true"]{background:var(--blue);border-color:var(--blue);}
+  .hg-cb[aria-checked="true"]::after{content:'';position:absolute;left:5px;top:1px;width:5px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);}
+  .hg-cb[aria-checked="mixed"]{border-color:var(--blue);}
+  .hg-cb[aria-checked="mixed"]::after{content:'';position:absolute;left:3px;top:6.5px;width:9px;height:2px;background:var(--blue);border-radius:1px;}
+  .hg-cell{width:100%;aspect-ratio:1;min-height:20px;padding:0;border:none;border-radius:6px;background:var(--bg);cursor:pointer;touch-action:manipulation;transition:background .1s;}
+  .hg-v .hg-cell{aspect-ratio:auto;height:26px;}
+  .hg-cell[aria-checked="true"]{background:var(--blue);}
+  .hg-cell:hover{filter:brightness(.94);}
+  .hg-cell:focus-visible,.hg-cb:focus-visible{outline:2px solid var(--blue);outline-offset:2px;}
+  .hg-sum{margin-top:12px;font-size:var(--fs-sm);color:var(--text-2);}
+  .hg-wrap{padding-top:6px;}
+  .hg-wrap .hg-sum{border-top:1px solid var(--line);padding-top:12px;}
+  @media (prefers-reduced-motion:reduce){ .hg-cell{transition:none;} }
   .pd-head{padding:4px 0 12px;}
   .pd{border-top:1px solid var(--line);}
   .pd .fr:first-child{border-top:none;}
@@ -1350,7 +1369,7 @@
 
     <div class="card" id="sec-hours" data-folder="main" data-owner-only="1">
       <h2>Часы работы</h2>
-      <div class="muted" style="margin-bottom:8px">Общие часы студии по дням недели, с шагом в час. Свой режим можно задать отдельному пространству — в его карточке. Закрыть день или часть дня — в разделе «Закрыть время».</div>
+      <div class="muted" style="margin-bottom:12px">Закрашенная клетка — рабочий час, тап включает или выключает её. Перерыв — это снятые часы внутри дня; выходной — день без закрашенных клеток. Флажки у строк и столбцов переключают сразу день или час. Свой режим можно задать отдельному пространству — в его карточке.</div>
       <div id="hoursEd"></div>
       <div class="note" id="hoursNote"></div>
     </div>
@@ -2254,7 +2273,7 @@
       videoTourUrl:h.videoTourUrl||'', tour3dUrl:h.tour3dUrl||'',
       address:h.address||null, city:h.city||null,
       lat:Number.isFinite(h.lat)?h.lat:null, lon:Number.isFinite(h.lon)?h.lon:null,
-      hours:Array.isArray(h.hours)&&h.hours.length===7 ? h.hours.map(function(d){return {start:d.start,end:d.end};}) : null};
+      hours:Array.isArray(h.hours)&&h.hours.length===7 ? h.hours.map(hgCopyDay) : null};
     HALL_BOOLS.forEach(function(f){ o[f] = !!h[f]; });
     // Описания — тоже через белый список: поле, забытое здесь, вернулось бы
     // с сервера, не попало в черновик и ушло обратно пустым, стерев текст.
@@ -2295,7 +2314,7 @@
       videoTourUrl:(h.videoTourUrl||'').trim(), tour3dUrl:(h.tour3dUrl||'').trim(),
       address:(h.address||'').trim(), city:(h.city||'').trim(),
       lat:Number.isFinite(h.lat)?h.lat:null, lon:Number.isFinite(h.lon)?h.lon:null,
-      hours:(Array.isArray(h.hours)&&h.hours.length===7) ? h.hours.map(function(d){return {start:d.start,end:d.end};}) : null,
+      hours:(Array.isArray(h.hours)&&h.hours.length===7) ? h.hours.map(hgCopyDay) : null,
     };
     HALL_BOOLS.forEach(function(f){ out[f] = !!h[f]; });
     HALL_ABOUT_FIELDS.forEach(function(x){ out[x.f] = (h[x.f]||'').trim(); });
@@ -2322,8 +2341,8 @@
   var PG = { i:-1, code:null, hours:[], price:{}, sel:{}, dirty:false, half:false, val:'', barOn:false };
 
   function pgKey(d, hr){ return d+':'+hr; }
-  function pgDayWin(d){ var w = hoursDraft[d]; return w ? {start:w.start, end:w.end} : {start:9, end:22}; }
-  function pgOpen(d, hr){ var w = pgDayWin(d); return hr >= w.start && hr < w.end; }
+  function pgDayWin(d){ var w = hoursDraft[d]; return w ? hgCopyDay(w) : {start:9, end:22}; }
+  function pgOpen(d, hr){ return hgOpenAt(pgDayWin(d), hr * 60, (hr + 1) * 60); }
   // Ось Y — от самого раннего открытия до самого позднего закрытия по всем
   // дням; часы, когда конкретный день закрыт, рисуем штриховкой (как в сетке
   // брони) и не даём выделять.
@@ -3257,24 +3276,117 @@
   // без него оно ни на что не влияет (и так каждая заявка ждёт владельца).
   // Значение чекбокса при этом не трогаем: выключил автоподтверждение —
   // настройка спряталась, но не сбросилась, включил обратно — она на месте.
+  // ---------- Сетка часов работы ----------
+  // Часы — по осям «день недели × час». Закрашенная клетка — рабочий час; тап по
+  // клетке включает/выключает только её (диапазонов нет), флажок у строки или
+  // столбца — сразу весь день или весь час. Перерыв — просто снятые часы
+  // внутри дня. В данных это {start, end, breaks:[{from,to}]}; выходной —
+  // {start:0, end:0}. На узком экране оси меняются местами (часы — строки),
+  // как в сетке бронирования.
+  function hgCopyDay(d){
+    var o = { start:d.start, end:d.end };
+    if(Array.isArray(d.breaks) && d.breaks.length) o.breaks = d.breaks.map(function(b){ return { from:b.from, to:b.to }; });
+    return o;
+  }
+  // Рабочие отрезки дня: [[9,13],[14,22]]; выходной — [].
+  function hgSegments(d){
+    if(!d || d.end <= d.start) return [];
+    var out = [], from = d.start;
+    (Array.isArray(d.breaks) ? d.breaks : []).forEach(function(b){ out.push([from, b.from]); from = b.to; });
+    out.push([from, d.end]);
+    return out;
+  }
+  // Работает ли день на всём отрезке [s0,e0) минут.
+  function hgOpenAt(w, s0, e0){
+    if(!w || w.end <= w.start) return false;
+    if(s0 < w.start * 60 || e0 > w.end * 60) return false;
+    return !(Array.isArray(w.breaks) ? w.breaks : []).some(function(b){ return s0 < b.to * 60 && e0 > b.from * 60; });
+  }
+  function hgCells(d){
+    var c = [];
+    for(var h = 0; h < 24; h++) c.push(hgOpenAt(d, h * 60, (h + 1) * 60));
+    return c;
+  }
+  function hgDay(cells){
+    var first = cells.indexOf(true), last = cells.lastIndexOf(true);
+    if(first === -1) return { start:0, end:0 };
+    var day = { start:first, end:last + 1 }, breaks = [], from = null;
+    for(var h = first; h <= last; h++){
+      if(!cells[h] && from === null) from = h;
+      if(cells[h] && from !== null){ breaks.push({ from:from, to:h }); from = null; }
+    }
+    if(breaks.length) day.breaks = breaks;
+    return day;
+  }
+  var HG_ORDER = [1,2,3,4,5,6,0];   // неделя с понедельника; индекс = getDay
+  // week — массив из 7 дней, правится на месте; onChange вызывается после каждого тапа.
+  function hgRender(box, week, onChange){
+    var m = week.map(hgCells);
+    var mq = window.matchMedia ? matchMedia('(max-width:700px)') : { matches:false };
+    var vertical = mq.matches;
+    var pad2 = function(h){ return (h < 10 ? '0' : '') + h; };
+    var cb = function(kind, i, label){ return '<button type="button" class="hg-cb" role="checkbox" aria-checked="false" data-' + kind + '="' + i + '" aria-label="' + esc(label) + '"></button>'; };
+    // (строка, столбец) клетки сетки зависят от ориентации
+    var at = function(r, c){ return 'grid-row:' + r + ';grid-column:' + c + ';'; };
+    var html = '';
+    // оси: «линии дней» и «линии часов» — какая из них строки, зависит от ориентации
+    HG_ORDER.forEach(function(d, di){
+      var pos = vertical ? at(1, di + 3) : at(di + 3, 2);
+      html += '<div class="hg-lab hg-day" style="' + pos + '">' + DAYS[d] + '</div>';
+      html += '<div class="hg-ctl" style="' + (vertical ? at(2, di + 3) : at(di + 3, 1)) + '">' + cb('d', d, DAYS[d] + ': весь день') + '</div>';
+    });
+    for(var h = 0; h < 24; h++){
+      html += '<div class="hg-lab hg-hr" style="' + (vertical ? at(h + 3, 1) : at(1, h + 3)) + '">' + pad2(h) + '</div>';
+      html += '<div class="hg-ctl" style="' + (vertical ? at(h + 3, 2) : at(2, h + 3)) + '">' + cb('h', h, pad2(h) + ':00: все дни') + '</div>';
+    }
+    HG_ORDER.forEach(function(d, di){
+      for(var h = 0; h < 24; h++){
+        html += '<button type="button" class="hg-cell" role="checkbox" aria-checked="false" data-d="' + d + '" data-h="' + h + '" style="' +
+          (vertical ? at(h + 3, di + 3) : at(di + 3, h + 3)) + '" aria-label="' + DAYS[d] + ' ' + pad2(h) + ':00"></button>';
+      }
+    });
+    box.innerHTML = '<div class="hg' + (vertical ? ' hg-v' : '') + '"><div class="hg-grid" style="' +
+      (vertical ? 'grid-template-columns:34px 24px repeat(7,minmax(0,1fr));' : 'grid-template-columns:24px 34px repeat(24,minmax(0,1fr));') + '">' + html + '</div>' +
+      '<div class="hg-sum" aria-live="polite"></div></div>';
+    var root = box.querySelector('.hg');
+    function sync(){
+      root.querySelectorAll('.hg-cell').forEach(function(c){ c.setAttribute('aria-checked', m[+c.dataset.d][+c.dataset.h] ? 'true' : 'false'); });
+      root.querySelectorAll('.hg-cb').forEach(function(b){
+        var vals = b.dataset.d != null ? m[+b.dataset.d] : m.map(function(row){ return row[+b.dataset.h]; });
+        var n = vals.filter(Boolean).length;
+        b.setAttribute('aria-checked', n === vals.length ? 'true' : n ? 'mixed' : 'false');
+      });
+      root.querySelector('.hg-sum').textContent = fmtWeek(week) || '';
+    }
+    function commit(d){ week[d] = hgDay(m[d]); sync(); if(onChange) onChange(); }
+    root.addEventListener('click', function(e){
+      var t = e.target.closest ? e.target.closest('button') : null; if(!t) return;
+      if(t.classList.contains('hg-cell')){
+        var d = +t.dataset.d, h = +t.dataset.h;
+        m[d][h] = !m[d][h]; commit(d);
+      } else if(t.dataset.d != null){
+        var dd = +t.dataset.d, allOn = m[dd].every(Boolean);
+        m[dd] = m[dd].map(function(){ return !allOn; }); commit(dd);
+      } else if(t.dataset.h != null){
+        var hh = +t.dataset.h, allOnH = m.every(function(row){ return row[hh]; });
+        m.forEach(function(row, d2){ row[hh] = !allOnH; week[d2] = hgDay(row); });
+        sync(); if(onChange) onChange();
+      }
+    });
+    // другая ширина экрана — другая ориентация осей
+    if(box._hgMq && box._hgFn) box._hgMq.removeEventListener('change', box._hgFn);
+    box._hgMq = mq;
+    box._hgFn = function(){ if(box.isConnected) hgRender(box, week, onChange); };
+    if(mq.addEventListener) mq.addEventListener('change', box._hgFn);
+    sync();
+  }
+
   function renderHours(){
     var c = $('hoursEd');
-    var ORDER = [1,2,3,4,5,6,0];   // неделя с понедельника; индекс = JS getDay
-    var opts = function(sel, from, to){
-      var o = ''; for(var x = from; x <= to; x++) o += '<option value="' + x + '"' + (x === sel ? ' selected' : '') + '>' + String(x).padStart(2, '0') + ':00</option>'; return o;
-    };
-    c.innerHTML = '<div class="hrs">' + ORDER.map(function(i){
-      var d = hoursDraft[i];
-      return frow(DAYS[i], '<span class="fr-hours"><select class="fr-in fr-sel" data-i="' + i + '" data-f="start" aria-label="' + DAYS[i] + ', с">' + opts(d.start, 0, 23) + '</select>' +
-        '<span class="fr-dash">—</span><select class="fr-in fr-sel" data-i="' + i + '" data-f="end" aria-label="' + DAYS[i] + ', до">' + opts(d.end, 1, 24) + '</select></span>');
-    }).join('') + '</div>';
-    c.querySelectorAll('select').forEach(function(sel){
-      sel.addEventListener('change', function(){
-        hoursDraft[+sel.dataset.i][sel.dataset.f] = parseInt(sel.value, 10);
-        c.querySelectorAll('.fr-err').forEach(function(x){ x.remove(); }); c.querySelectorAll('.invalid').forEach(function(x){ x.classList.remove('invalid'); });
-        $('hoursNote').textContent = '';
-        svCheck('hours');
-      });
+    hgRender(c, hoursDraft, function(){
+      c.querySelectorAll('.fr-err').forEach(function(x){ x.remove(); });
+      $('hoursNote').textContent = '';
+      svCheck('hours');
     });
     svSnap('hours');
   }
@@ -3667,7 +3779,7 @@
     QB.tz = cfg.timezone || 'Europe/Minsk';
     var h = cfg.hours;
     QB.hours = (Array.isArray(h) && h.length === 7)
-      ? h.map(function(d){ return {start:d.start, end:d.end}; })
+      ? h.map(hgCopyDay)
       : Array.from({length:7}, function(){ return {start:cfg.hoursStart, end:cfg.hoursEnd}; });
     QB.slotMin = cfg.slotStep === 30 ? 30 : 60;
     QB.minBookingMin = Number.isInteger(cfg.minBookingMin) ? cfg.minBookingMin : 60;
@@ -3816,7 +3928,7 @@
   function qbCellState(hallId, slot){
     var w = qbDayWindow(QB.date, qbHallById(hallId));
     var s0 = slot * QB.slotMin, e0 = s0 + QB.slotMin;
-    if(s0 < w.start*60 || e0 > w.end*60) return 'closed';
+    if(!hgOpenAt(w, s0, e0)) return 'closed';
     // busy проверяем ДО past (порядок отличается от клиентского cellState()
     // нарочно): клиенту прошедшая бронь не нужна вообще, а владельцу важно
     // видеть и открывать по клику уже прошедшие брони на сегодняшней сетке —
@@ -4788,19 +4900,15 @@
   });
 
   function saveHours(){
-    for(var i=0;i<7;i++){ var d=hoursDraft[i];
-      if(!Number.isInteger(d.start)||!Number.isInteger(d.end)||d.start<0||d.end>24||d.start>=d.end){
-        var el = $('hoursEd').querySelector('select[data-i="' + i + '"][data-f="end"]');
-        if(el && !$('hoursEd').querySelector('.fr-err')){
-          var er = document.createElement('div'); er.className = 'fr-err'; er.setAttribute('role', 'alert'); er.textContent = DAYS[i] + ': начало должно быть раньше конца';
-          el.closest('.fr-c').appendChild(er); el.classList.add('invalid'); el.focus({ preventScroll:true });
-          el.scrollIntoView({ block:'center', behavior: scReduced() ? 'auto' : 'smooth' });
-          flash($('hoursNote'), 'Проверьте отмеченное поле');
-        } else flash($('hoursNote'), DAYS[i]+': начало должно быть раньше конца');
-        return Promise.reject(new Error('validation'));
-      } }
-    return api('PUT','/admin/hours', hoursDraft.map(function(d){ return {start:d.start,end:d.end}; }))
-      .then(function(u){ hoursDraft = u.map(function(d){return {start:d.start,end:d.end};}); renderHours(); flash($('hoursNote'),'Часы обновлены',true); })
+    if(!hoursDraft.some(function(d){ return d.end > d.start; })){
+      var box = $('hoursEd'), er = document.createElement('div');
+      er.className = 'fr-err'; er.setAttribute('role', 'alert'); er.textContent = 'Отметьте хотя бы один рабочий час';
+      if(!box.querySelector('.fr-err')) box.appendChild(er);
+      flash($('hoursNote'), 'Проверьте отмеченное поле');
+      return Promise.reject(new Error('validation'));
+    }
+    return api('PUT','/admin/hours', hoursDraft.map(hgCopyDay))
+      .then(function(u){ hoursDraft = u.map(hgCopyDay); renderHours(); flash($('hoursNote'),'Часы обновлены',true); })
       .catch(function(e){ flash($('hoursNote'), e.message); throw e; });
   }
   svRegister('hours', function(){ return hoursDraft; }, saveHours);
@@ -5963,10 +6071,12 @@
     if(!Array.isArray(arr) || arr.length !== 7) return '';
     var order = [1,2,3,4,5,6,0], groups = [];
     order.forEach(function(d){
-      var v = arr[d].start + '–' + arr[d].end, last = groups[groups.length - 1];
+      var v = hgSegments(arr[d]).map(function(g){ return g[0] + '–' + g[1]; }).join(', ') || 'выходной', last = groups[groups.length - 1];
       if(last && last.v === v) last.to = d; else groups.push({ from:d, to:d, v:v });
     });
-    return groups.map(function(g){ return DAYS[g.from] + (g.to !== g.from ? '–' + DAYS[g.to] : '') + ' ' + g.v; }).join(', ');
+    // с перерывами внутри дня запятая уже занята — группы дней разделяем «;»
+    var sep = groups.some(function(g){ return g.v.indexOf(',') !== -1; }) ? '; ' : ', ';
+    return groups.map(function(g){ return DAYS[g.from] + (g.to !== g.from ? '–' + DAYS[g.to] : '') + ' ' + g.v; }).join(sep);
   }
   function kvHtml(rows){
     return '<dl class="sc-kv">' + rows.map(function(r){
@@ -6823,7 +6933,7 @@
   $('blkAllDay').addEventListener('click', function(){
     var d = $('blkDate').value;
     if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){ flash($('blkNoteMsg'), 'Сначала выберите дату'); return; }
-    var wd = new Date(d + 'T12:00:00').getDay(), h = hoursDraft[wd] || { start:9, end:21 };
+    var wd = new Date(d + 'T12:00:00').getDay(), h = hoursDraft[wd] && hoursDraft[wd].end > hoursDraft[wd].start ? hoursDraft[wd] : { start:0, end:24 };
     var pad = function(n){ return (n < 10 ? '0' : '') + n + ':00'; };
     $('blkFrom').value = pad(h.start);
     $('blkTo').value = h.end >= 24 ? '23:30' : pad(h.end);   // поле времени не умеет 24:00
@@ -7159,48 +7269,29 @@
   WZ_RENDERERS.hours = function(){
     var h = wzHall();
     var own = Array.isArray(h.hours);
-    var ORDER = [1,2,3,4,5,6,0], hourOpts = function(sel, from, to){
-      var o = ''; for(var x = from; x <= to; x++) o += '<option value="' + x + '"' + (x === sel ? ' selected' : '') + '>' + String(x).padStart(2, '0') + ':00</option>'; return o;
-    };
     $('wzBody').innerHTML =
       frow('Режим работы', frSeg('wzHoursSeg', [['studio','Как у студии'],['own','Свои часы']], own ? 'own' : 'studio') +
         '<input type="checkbox" id="wzOwnHours" hidden' + (own ? ' checked' : '') + '>',
         { note:'Часы студии: ' + esc(fmtWeek(hoursDraft)) }) +
-      '<div id="wzHoursWrap"' + (own ? '' : ' hidden') + '></div>';
-    function renderGrid(){
-      var arr = Array.isArray(h.hours) ? h.hours : hoursDraft;
-      $('wzHoursWrap').innerHTML = ORDER.map(function(idx){
-        var d = arr[idx];
-        return frow(DAYS[idx], '<span class="fr-hours"><select class="fr-in fr-sel" data-idx="' + idx + '" data-f="start" aria-label="' + DAYS[idx] + ', с">' + hourOpts(d.start, 0, 23) + '</select>' +
-          '<span class="fr-dash">—</span><select class="fr-in fr-sel" data-idx="' + idx + '" data-f="end" aria-label="' + DAYS[idx] + ', до">' + hourOpts(d.end, 1, 24) + '</select></span>');
-      }).join('');
-      $('wzHoursWrap').querySelectorAll('select').forEach(function(sel){
-        sel.addEventListener('change', function(){
-          if(!Array.isArray(h.hours)) return;
-          h.hours[+sel.dataset.idx][sel.dataset.f] = parseInt(sel.value, 10);
-        });
-      });
+      '<div id="wzHoursWrap" class="hg-wrap"' + (own ? '' : ' hidden') + '></div>';
+    function drawGrid(){
+      if(Array.isArray(h.hours)) hgRender($('wzHoursWrap'), h.hours, function(){ edClearErr(); $('wzNote').textContent = ''; });
     }
     $('wzHoursSeg').addEventListener('click', function(e){
       var b = e.target.closest('button[data-v]'); if(!b) return;
       $('wzHoursSeg').querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', x === b); });
       var on = b.dataset.v === 'own';
       $('wzOwnHours').checked = on;
-      h.hours = on ? (Array.isArray(h.hours) ? h.hours : DAYS.map(function(_, idx){ return {start:hoursDraft[idx].start, end:hoursDraft[idx].end}; })) : null;
+      h.hours = on ? (Array.isArray(h.hours) ? h.hours : hoursDraft.map(hgCopyDay)) : null;
       $('wzHoursWrap').hidden = !on;
-      renderGrid();
+      drawGrid();
     });
-    renderGrid();
+    drawGrid();
   };
   WZ_SAVERS.hours = function(){
     var h = wzHall();
-    if(Array.isArray(h.hours)){
-      for(var idx=0; idx<7; idx++){
-        var d = h.hours[idx];
-        if(!Number.isInteger(d.start) || !Number.isInteger(d.end) || d.start<0 || d.end>24 || d.start>=d.end){
-          return bad(DAYS[idx] + ': начало должно быть раньше конца', '#wzHoursWrap select[data-idx="' + idx + '"][data-f="end"]');
-        }
-      }
+    if(Array.isArray(h.hours) && !h.hours.some(function(d){ return d.end > d.start; })){
+      return bad('Отметьте хотя бы один рабочий час', '#wzHoursWrap');
     }
     return saveHallsNow();
   };
@@ -7223,7 +7314,7 @@
         $('sStatus').textContent = STUDIO_STATUS_RU[st] || st; $('sStatus').className = 'badge ' + st;
         var h = cfg.hours;
         hoursDraft = (Array.isArray(h) && h.length === 7)
-          ? h.map(function(d){ return {start:d.start, end:d.end}; })
+          ? h.map(hgCopyDay)
           : Array.from({length:7}, function(){ return {start:cfg.hoursStart, end:cfg.hoursEnd}; });
         renderHours();
         if(typeof cfg.currency === 'string' && cfg.currency) {
