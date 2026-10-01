@@ -83,8 +83,15 @@
   tr.sel td{background:var(--blue-bg);}
   .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px;}
   .bar .grow{flex:1;}
-  .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff;}
-  .btn.primary:hover{background:var(--blue-dark);color:#fff;}
+  .btn.primary{background:var(--blue-bg);border-color:transparent;color:var(--blue-dark);font-weight:600;}
+  .btn.primary:hover{background:#d4e5fd;color:var(--blue-dark);}
+  /* флажки — светлые, как в кабинете */
+  input[type=checkbox]{appearance:none;-webkit-appearance:none;position:relative;width:16px;height:16px;margin:0;vertical-align:-3px;
+    border:1.5px solid var(--border-strong);border-radius:4px;background:var(--surface);cursor:pointer;}
+  input[type=checkbox]:checked{background:var(--blue-bg);border-color:var(--blue);}
+  input[type=checkbox]:checked::after{content:'';position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid var(--blue);border-width:0 1.5px 1.5px 0;transform:rotate(45deg);}
+  input[type=checkbox]:disabled{opacity:.4;cursor:default;}
+  input[type=checkbox]:focus-visible{outline:2px solid var(--blue);outline-offset:2px;}
   .btn:disabled{opacity:.5;cursor:default;}
   .compose{border:1px solid var(--border-strong);border-radius:var(--r-sm);padding:16px;margin-top:14px;background:var(--surface-2);}
   .compose label{display:block;font-size:12px;color:var(--text-2);margin:12px 0 4px;}
