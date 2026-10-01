@@ -6068,9 +6068,6 @@
     if(card){
       var r = card.getBoundingClientRect();
       if(r.top < 12) window.scrollBy({ top: r.top - 12, behavior: scReduced() ? 'auto' : 'smooth' });
-      // Курсор — в первое поле, только если раздел начинается с текстового поля
-      var first = card.querySelector('#wzBody > .fr:first-child .fr-c > .fr-in');
-      if(first && first.focus) first.focus({ preventScroll:true });
     }
   }
   // Плавное раскрытие/сворачивание карточки: высота карточки переходит от
