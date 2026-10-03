@@ -434,6 +434,48 @@
   .pd-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:14px;margin-top:4px;}
   .pd-foot .purp-note{margin-left:8px;}
   .fr-pair-add{grid-template-columns:minmax(0,1fr) auto;}
+  /* экран назначения — карточки и редактор оснащения (0055) */
+  .pd-cards{margin-top:14px;}
+  .pd-edit{padding:4px 16px 16px;}
+  .pd-foot{display:flex;align-items:center;justify-content:flex-end;gap:8px;border-top:1px solid var(--line);padding-top:12px;margin-top:4px;}
+  .pd-foot .purp-note{margin:0 auto 0 0;}
+  .pd-gp{padding:12px 0 4px;border-top:1px solid var(--line);}
+  .pd-del-row{margin-top:4px;}
+  .linkish{background:none;border:none;padding:0;font:inherit;font-size:var(--fs-sm);color:var(--accent-dark);cursor:pointer;}
+  .linkish:hover{text-decoration:underline;}
+  .eq-blk{padding:12px 0;border-top:1px solid var(--line);}
+  .eq-blk:first-child{border-top:none;}
+  .eq-blk-t{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 12px;font-size:var(--fs-sm);color:var(--text-2);margin-bottom:8px;}
+  .eq-off{color:var(--text-3);}
+  .eq-hv{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:7px 0;border-top:1px solid var(--line);}
+  .eq-hv:first-child{border-top:none;}
+  .eq-hv-l{min-width:0;overflow-wrap:anywhere;}
+  .eq-hv-g{display:block;font-size:var(--fs-xs);color:var(--text-3);}
+  .eq-step{display:inline-flex;align-items:center;border:1px solid var(--line-strong);border-radius:var(--r-sm);overflow:hidden;}
+  .eq-step button{width:30px;height:30px;border:none;background:var(--surface);color:var(--accent-dark);font-size:16px;cursor:pointer;touch-action:manipulation;}
+  .eq-step button:hover{background:var(--accent-bg);}
+  .eq-step button:disabled{color:var(--text-3);cursor:default;background:var(--surface);}
+  #wzBody .eq-step input,.eq-step input{width:42px;height:30px;padding:0;border:none;border-left:1px solid var(--line);border-right:1px solid var(--line);border-radius:0;
+    text-align:center;font:inherit;font-size:var(--fs-sm);font-variant-numeric:tabular-nums;color:var(--text);background:var(--surface);-moz-appearance:textfield;}
+  .eq-step input::-webkit-outer-spin-button,.eq-step input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .eq-step-ph{width:104px;}
+  .eq-x{border:none;background:none;color:var(--text-3);font-size:18px;line-height:1;cursor:pointer;padding:4px 7px;border-radius:6px;}
+  .eq-x:hover{color:var(--red);background:var(--red-bg);}
+  .eq-empty{font-size:var(--fs-sm);color:var(--text-3);padding:4px 0;}
+  .eq-chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .eq-chip{font:inherit;font-size:var(--fs-sm);padding:6px 12px;border-radius:var(--r-pill);border:1px dashed var(--line-strong);background:var(--surface);color:var(--text);cursor:pointer;touch-action:manipulation;}
+  .eq-chip::before{content:'+ ';color:var(--accent);}
+  .eq-chip:hover{border-style:solid;border-color:var(--accent);background:var(--accent-bg);}
+  .eq-srch{position:relative;}
+  .eq-sugg{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:6;background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r-sm);
+    box-shadow:0 8px 24px rgba(20,22,28,.12);max-height:300px;overflow:auto;padding:4px;}
+  .eq-sugg[hidden]{display:none;}
+  .eq-sg{display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;font:inherit;font-size:var(--fs-md);padding:8px 10px;border:none;border-radius:6px;background:none;color:var(--text);cursor:pointer;}
+  .eq-sg small{color:var(--text-3);font-size:var(--fs-xs);white-space:nowrap;}
+  .eq-sg.hi,.eq-sg:hover{background:var(--accent-bg);}
+  .eq-sg.own{color:var(--accent-dark);}
+  .eq-sg[disabled]{color:var(--text-3);cursor:default;background:none;}
+  @media(max-width:600px){ .pd-foot{flex-wrap:wrap;} .eq-step-ph{width:0;} }
   .fr-more{margin-top:10px;}
   .fr-more[hidden]{display:none;}
   .fr-err{color:var(--red);font-size:var(--fs-sm);margin-top:6px;}
@@ -1757,40 +1799,36 @@
   // dictionaries(kind='space_type') с бэкенда, см. WZ_RENDERERS.basics ниже.
   // Какие свойства зала показывать — зависит от вертикали студии (П4-1), из /config.
   var HALL_PROPS = {hallType:true,areaM2:true,ceilingCm:true,floor:true,styles:true,
-    daylight:true,constantLight:true,strobeLight:true,lightModifiers:true,ceilingRail:true,blackout:true,
-    paperBackdrops:true,chromakey:true,fabricBackdrops:true,
+    daylight:true,blackout:true,
     panoramicWindows:true,texturedWall:true,fireplace:true,mezzanine:true,balcony:true,soundproofing:true,
-    airConditioning:true,bluetoothSpeaker:true,
+    airConditioning:true,makeupRoom:true,makeupMirror:true,
     whiteBackdrop:true,sink:true,outdoorArea:true,skylights:true,
     wheelchairAccessible:true,freightElevator:true,streetLevelAccess:true,publicTransport:true};
   // Удобства-чекбоксы зала, по группам. daylight = «дневной свет» в поиске.
+  //
+  // Свойства помещения — то, что нельзя вынести из комнаты. Свет, фоны и
+  // колонка с 0055 — оснащение назначения, гримёрная — у пространства.
   var HALL_AMENITY_GROUPS = [
-    {title:'Свет', items:[
+    {title:'Свет и окна', items:[
       {f:'daylight',label:'Естественный свет'},
-      {f:'constantLight',label:'Постоянный свет'},
-      {f:'strobeLight',label:'Импульсный свет'},
-      {f:'lightModifiers',label:'Модификаторы (софтбоксы и пр.)'},
-      {f:'ceilingRail',label:'Потолочная система'},
-      {f:'blackout',label:'Блэкаут'},
-      {f:'skylights',label:'Мансардные окна'},
-    ]},
-    {title:'Фоны', items:[
-      {f:'whiteBackdrop',label:'Белый фон'},
-      {f:'paperBackdrops',label:'Бумажные фоны'},
-      {f:'chromakey',label:'Хромакей'},
-      {f:'fabricBackdrops',label:'Тканевые фоны'},
-    ]},
-    {title:'Пространство и комфорт', items:[
       {f:'panoramicWindows',label:'Большие окна'},
+      {f:'skylights',label:'Мансардные окна'},
+      {f:'blackout',label:'Блэкаут'},
+    ]},
+    {title:'Интерьер', items:[
+      {f:'whiteBackdrop',label:'Циклорама / белый фон'},
       {f:'texturedWall',label:'Фактурная стена'},
       {f:'fireplace',label:'Камин'},
       {f:'mezzanine',label:'Второй свет / антресоль'},
       {f:'balcony',label:'Балкон / терраса'},
+      {f:'outdoorArea',label:'Открытая площадка'},
+    ]},
+    {title:'Комфорт', items:[
+      {f:'makeupRoom',label:'Гримёрная'},
+      {f:'makeupMirror',label:'Гримёрное зеркало с подсветкой'},
       {f:'soundproofing',label:'Звукоизоляция'},
       {f:'airConditioning',label:'Кондиционер'},
-      {f:'bluetoothSpeaker',label:'Bluetooth-колонка'},
       {f:'sink',label:'Раковина'},
-      {f:'outdoorArea',label:'Открытая площадка'},
     ]},
   ];
   // Доступ — свойство помещения (0053), не цели аренды: правится в разделе
@@ -1823,27 +1861,25 @@
   // именно под эту цель (проектор для встречи, стойка для одежды для съёмки).
   // Свойства самого помещения — доступ, кухня, естественный свет, Wi-Fi — сюда
   // больше не входят: это поля зала и студии (миграция 0053).
-  var HALL_EQUIPMENT_GROUPS = [
-    { title:'Мебель', items:[
-      {f:'tables',label:'Столы'},{f:'chairs',label:'Стулья'},
-      {f:'whiteboard',label:'Маркерная доска'},{f:'chalkboard',label:'Меловая доска'},
-      {f:'flipCharts',label:'Флипчарт'},{f:'wardrobeRack',label:'Стойка для одежды'},
-      {f:'sandbags',label:'Мешки с песком'},
-    ]},
-    { title:'Техника', items:[
-      {f:'projector',label:'Проектор'},{f:'screen',label:'Экран'},
-      {f:'monitor',label:'Монитор'},{f:'conferencePhone',label:'Конференц-связь'},
-      {f:'lightingEquipment',label:'Осветительное оборудование'},{f:'videoEquipment',label:'Видеооборудование'},
-      {f:'steamer',label:'Отпариватель'},
-    ]},
-  ];
-  function equipmentLabel(code){
-    for(var g=0;g<HALL_EQUIPMENT_GROUPS.length;g++){
-      var items = HALL_EQUIPMENT_GROUPS[g].items;
-      for(var k=0;k<items.length;k++){ if(items[k].f === code) return items[k].label; }
-    }
-    return code;
+  // Каталог оснащения (0055) приходит с бэкенда: /api/equipment-catalog —
+  // группы, позиции, у каких назначений позиция предлагается, есть ли
+  // количество. Пока не загрузился — подписи берём из словаря или кода.
+  var EQ_CAT = null, EQ_BY_CODE = {};
+  function loadEqCatalog(){
+    if(EQ_CAT) return Promise.resolve(EQ_CAT);
+    return fetch(API_BASE + '/api/equipment-catalog').then(function(r){ return r.json(); })
+      .then(function(groups){
+        EQ_CAT = Array.isArray(groups) ? groups : [];
+        EQ_CAT.forEach(function(g){ g.items.forEach(function(it){ it.group = g.title; EQ_BY_CODE[it.code] = it; }); });
+        return EQ_CAT;
+      }).catch(function(){ return []; });
   }
+  function equipmentLabel(code){
+    if(EQ_BY_CODE[code]) return EQ_BY_CODE[code].label;
+    var hit = (DICT_CACHE.equipment || []).find(function(d){ return d.code === code; });
+    return hit ? hit.labelRu : code;
+  }
+  function purposeGen(code){ return ({ photo:'съёмки', event:'праздника', leisure:'отдыха', meeting:'встречи' })[code] || 'этой цели'; }
   function purposeLabel(code){
     for(var k=0;k<HALL_PURPOSE_LIST.length;k++){ if(HALL_PURPOSE_LIST[k].v === code) return HALL_PURPOSE_LIST[k].label; }
     return code;
@@ -2014,7 +2050,7 @@
     var hasMin = Number.isInteger(p.minBookingMin);
     var hasCap = Number.isInteger(p.capacity);
     var hasStand = Number.isInteger(p.standingCapacity), hasSeat = Number.isInteger(p.seatedCapacity);
-    var hasEquip = Array.isArray(p.equipment) && p.equipment.length > 0;
+    var eqN = (Array.isArray(p.equipment) ? p.equipment.length : 0) + (Array.isArray(p.extras) ? p.extras.length : 0);
     // Цена есть всегда (0052); цель без цены — только недосохранённая новая.
     var onlyPeople = !gpRentApplies(p.guestPricing);
     var parts = onlyPeople ? [] : [hasOwnRate ? (hasRules ? 'от ' : '') + p.rate + ' ' + CUR + '/ч' : 'цена не указана'];
@@ -2024,7 +2060,7 @@
     if(hasCap) parts.push('до ' + p.capacity + ' чел.');
     if(hasStand) parts.push('стоя ' + p.standingCapacity);
     if(hasSeat) parts.push('сидя ' + p.seatedCapacity);
-    if(hasEquip) parts.push('оборудование: ' + p.equipment.length);
+    if(eqN) parts.push('оснащение: ' + eqN);
     return parts.join(' · ');
   }
 
@@ -2045,12 +2081,11 @@
   // Удобства и правила студии.
   var STUDIO_AMENITY_GROUPS = [
     {title:'Удобства', items:[
-      {f:'wifi',label:'Wi-Fi'},{f:'makeupRoom',label:'Гримёрная комната'},
-      {f:'makeupMirror',label:'Гримёрное зеркало с подсветкой'},{f:'restroom',label:'Санузел'},
+      {f:'wifi',label:'Wi-Fi'},{f:'restroom',label:'Санузел'},
       {f:'shower',label:'Душ'},{f:'kitchen',label:'Кухня / чай-кофе'},
       {f:'loungeArea',label:'Зона отдыха'},{f:'separateEntrance',label:'Отдельный вход'},
       {f:'elevator',label:'Лифт'},{f:'heating',label:'Отопление'},
-      {f:'onSiteManager',label:'Администратор на площадке'},{f:'garmentSteamer',label:'Отпариватель / вешалки'},
+      {f:'onSiteManager',label:'Администратор на площадке'},
     ]},
     {title:'Правила — что можно', items:[
       {f:'allowPets',label:'С животными'},{f:'allowKids',label:'С детьми'},
@@ -2273,7 +2308,9 @@
     'panoramicWindows','texturedWall','fireplace','mezzanine','balcony','soundproofing',
     // 0053 — свойства помещения, раньше отмечавшиеся в каждом назначении
     'whiteBackdrop','sink','outdoorArea','skylights',
-    'wheelchairAccessible','freightElevator','streetLevelAccess','publicTransport'];
+    'wheelchairAccessible','freightElevator','streetLevelAccess','publicTransport',
+    // 0055 — гримёрная у пространства
+    'makeupRoom','makeupMirror'];
   function mapHall(h){
     var o = {id:h.id,name:h.name,capacity:h.capacity,rate:h.rate,
       hallType:h.hallType||null,
@@ -2304,7 +2341,11 @@
         autoConfirm: typeof p.autoConfirm === 'boolean' ? p.autoConfirm : null,
         fullDayDiscountPct: Number.isInteger(p.fullDayDiscountPct) ? p.fullDayDiscountPct : null,
         guestPricing: p.guestPricing ? JSON.parse(JSON.stringify(p.guestPricing)) : null,
-        includes:p.includes || '', priceRules:Array.isArray(p.priceRules) ? p.priceRules.slice() : null };
+        equipmentQty: p.equipmentQty && typeof p.equipmentQty === 'object' ? Object.assign({}, p.equipmentQty) : {},
+        // старый текст «что ещё входит» (по строке на пункт) — теперь свои пункты
+        extras: (Array.isArray(p.extras) ? p.extras.map(function(x){ return { label:x.label, qty:Number.isInteger(x.qty) ? x.qty : null }; }) : [])
+          .concat(String(p.includes || '').split('\n').map(function(l){ return l.trim(); }).filter(Boolean).map(function(l){ return { label:l, qty:null }; })),
+        priceRules:Array.isArray(p.priceRules) ? p.priceRules.slice() : null };
     }) : [];
     // minMin (мин. бронь по окну) больше не редактируется: тарифы задаются
     // сеткой «дни × часы», минимальная длительность осталась общей по студии.
@@ -2639,155 +2680,7 @@
     var cur = code ? list.find(function(p){ return p.code === code; }) : null;
     if(code && !cur){ code = null; PG.code = null; }   // назначение удалили — падаем на пространство
 
-    if(cur){
-      // ---------- экран одного назначения ----------
-      // Тот же приём, что у самого зала (карточка → отдельный экран
-      // редактирования), только на уровень глубже: список назначений
-      // остаётся списком, а не разворачивается полями прямо под собой.
-      var equipHtml = HALL_EQUIPMENT_GROUPS.map(function(g){
-        return '<div class="amenity-group-t" style="margin-top:8px">'+esc(g.title)+'</div>' +
-          '<div class="check-grid">' + g.items.map(function(x){
-            return checkHtml('data-eq', x.f, x.label, Array.isArray(cur.equipment) && cur.equipment.indexOf(x.f) !== -1);
-          }).join('') + '</div>';
-      }).join('');
-
-      var eqLabel = function(code){
-        var hit = (DICT_CACHE.equipment || []).find(function(d){ return d.code === code; });
-        return hit ? hit.labelRu : code;
-      };
-      var extraEq = (Array.isArray(cur.equipment) ? cur.equipment : []).filter(function(code){
-        return !HALL_EQUIPMENT_GROUPS.some(function(g){ return g.items.some(function(x){ return x.f === code; }); });
-      });
-      var capNum = function(f, ph){ return frNum('', cur[f], f === 'standingCapacity' ? 'стоя' : f === 'seatedCapacity' ? 'сидя' : 'чел.', ' type="number" min="1" max="1000" step="1" data-f="' + f + '" placeholder="' + esc(ph) + '"', 'purp-f'); };
-
-      box.innerHTML =
-        '<div class="purp-detail-head pd-head">' +
-          '<button type="button" class="btn ghost small purp-back">← Назад</button>' +
-          '<div class="purp-detail-title"><span class="purp-icon">'+purposeIconSvg(cur.code)+'</span>' +
-            '<span>'+esc(purposeLabel(cur.code))+'</span>' +
-            (cur.active === false ? '<span class="purp-inactive-tag">Неактивно</span>' : '') +
-          '</div>' +
-        '</div>' +
-        '<div class="pd">' +
-        // Цена — только здесь: у зала своей «базовой» цены нет (0052).
-        frow('Цена за час', frNum('', cur.rate, CUR + '/ч', ' type="number" min="1" step="1" data-f="rate" placeholder="обязательно"', 'purp-f purp-rate'), { req:true, hint:'Цены по дням и часам — в сетке ниже' }) +
-        frow('Минимальная бронь', frNum('', cur.minBookingMin != null ? cur.minBookingMin / 60 : '', 'ч', ' type="number" min="0.5" max="8" step="0.5" data-f="minBookingMin" placeholder="как у студии"', 'purp-hours'), { hint:'Пусто — как у студии' }) +
-        frow('Вместимость', capNum('capacity', h.capacity), { hint:'Пусто — как у пространства' }) +
-        // Вместимость стоя/сидя — только у праздника: клиент увидит их
-        // вместо площади, остальным назначениям эти цифры не нужны.
-        (cur.code === 'event' ? frow('Стоя и сидя', '<span class="fr-hours">' + capNum('standingCapacity', '—') + capNum('seatedCapacity', '—') + '</span>', { hint:'Клиент увидит их вместо площади' }) : '') +
-        '<div class="pd-gp"><div class="gp"></div></div>' +
-        frow('Подтверждение брони', '<span class="seg fr-seg purp-autoconfirm">' +
-            '<button type="button" data-ac="inherit"'+(cur.autoConfirm==null?' class="on"':'')+'>Как у студии</button>' +
-            '<button type="button" data-ac="yes"'+(cur.autoConfirm===true?' class="on"':'')+'>Авто</button>' +
-            '<button type="button" data-ac="no"'+(cur.autoConfirm===false?' class="on"':'')+'>Вручную</button>' +
-          '</span>', { hint:'Своё для этой цели' }) +
-        frow('Скидка за 8 часов', frNum('', cur.fullDayDiscountPct, '%', ' type="number" min="0" max="100" step="1" data-f="fullDayDiscountPct" placeholder="0"', 'purp-f'), { hint:'За бронь на 8 часов и больше' }) +
-        HALL_EQUIPMENT_GROUPS.map(function(g){
-          return frow(g.title, '<div class="check-grid">' + g.items.map(function(x){
-            return checkHtml('data-eq', x.f, x.label, Array.isArray(cur.equipment) && cur.equipment.indexOf(x.f) !== -1);
-          }).join('') + '</div>');
-        }).join('') +
-        frow('Своё оборудование',
-          (extraEq.length ? '<div class="chip-row fr-chips">' + extraEq.map(function(code){
-            return '<button type="button" class="chip-tog on purp-eq-extra" data-eq-extra="'+esc(code)+'">'+esc(eqLabel(code))+' ×</button>';
-          }).join('') + '</div>' : '') +
-          '<div class="fr-pair fr-pair-add"><input class="fr-in purp-eq-custom" placeholder="Например, дым-машина" aria-label="Своё оборудование">' +
-            '<button type="button" class="btn ghost small purp-eq-add">Добавить</button></div>',
-          { hint:'Если нужного нет в списке' }) +
-        frow('Что ещё входит', frArea('', cur.includes, 3, ' maxlength="1000" placeholder="По строке на пункт" aria-label="Что ещё входит"').replace('class="fr-in"', 'class="fr-in purp-includes"'),
-          { hint:'По строке на пункт', note:'Мебель и техника — то, что клиент увидит при выборе цели. Свойства самого пространства (доступ, свет, кухня) — в его карточке.' }) +
-        '</div>' +
-        '<div class="pd-foot">' +
-          '<button type="button" class="btn primary small purp-save">Сохранить</button>' +
-          '<button type="button" class="btn ghost small purp-cancel">Отмена</button>' +
-          (cur._new ? '' : '<button type="button" class="btn ghost small danger purp-del">Убрать назначение</button>') +
-          '<span class="note purp-note"></span>' +
-        '</div>';
-      // ошибка в поле стирается, как только человек начал его править
-      box.querySelector('.pd').addEventListener('input', function(){ box.querySelectorAll('.fr-err').forEach(function(x){ x.remove(); }); box.querySelectorAll('.invalid').forEach(function(x){ x.classList.remove('invalid'); }); });
-
-      box.querySelector('.purp-back').addEventListener('click', function(){ purpCancel(i); });
-      box.querySelector('.purp-cancel').addEventListener('click', function(){ purpCancel(i); });
-      // «Только за людей» — почасовой цены у цели нет: поле цены выключаем.
-      renderGuestPricing(box.querySelector('.gp'), cur, function(onlyPeople){
-        var r = box.querySelector('.purp-rate');
-        if(!r) return;
-        r.disabled = onlyPeople;
-        r.placeholder = onlyPeople ? 'не нужна' : 'обязательно';
-        if(onlyPeople){ r.value = ''; cur.rate = null; }
-        renderHallPriceRules(i);
-      });
-      box.querySelectorAll('.purp-f').forEach(function(inp){
-        inp.addEventListener('input', function(){
-          var v = parseInt(inp.value, 10);
-          cur[inp.dataset.f] = Number.isInteger(v) ? v : null;
-          // ставка назначения — фон его сетки тарифов, перерисовываем сразу
-          if(inp.dataset.f === 'rate'){ renderHallPriceRules(i); renderGuestPricing(box.querySelector('.gp'), cur, null); }
-        });
-      });
-      // Минимум владелец задаёт в часах (как пакеты рядом и как это читает
-      // клиент), хранится он в минутах: «3» в поле минут означало три
-      // минуты и уезжало на бэкенд неваидным, а ошибка возвращалась про
-      // код назначения.
-      box.querySelectorAll('.purp-hours').forEach(function(inp){
-        inp.addEventListener('input', function(){
-          var v = parseFloat(inp.value);
-          cur.minBookingMin = (isFinite(v) && v > 0) ? Math.round(v * 60) : null;
-        });
-      });
-      box.querySelectorAll('[data-eq]').forEach(function(inp){
-        inp.addEventListener('change', function(){
-          var set = Array.isArray(cur.equipment) ? cur.equipment : (cur.equipment = []);
-          var f = inp.dataset.eq, idx = set.indexOf(f);
-          if(inp.checked){ if(idx === -1) set.push(f); }
-          else if(idx !== -1){ set.splice(idx, 1); }
-        });
-      });
-      // autoConfirm — своё на цель (0043): «Как у студии» = null, иначе явный
-      // true/false. Тот же трёхкнопочный сегмент, что и у парковки студии.
-      box.querySelectorAll('.purp-autoconfirm button[data-ac]').forEach(function(btn){
-        btn.addEventListener('click', function(){
-          cur.autoConfirm = btn.dataset.ac === 'inherit' ? null : (btn.dataset.ac === 'yes');
-          box.querySelectorAll('.purp-autoconfirm button').forEach(function(b){ b.classList.toggle('on', b === btn); });
-        });
-      });
-      // Оборудование вне фикс-списка (добавлено на лету, 0044) — чипом с
-      // крестиком; пишет и в общий словарь (следующий раз будет в чекбоксах).
-      box.querySelectorAll('.purp-eq-extra').forEach(function(btn){
-        btn.addEventListener('click', function(){
-          var set = Array.isArray(cur.equipment) ? cur.equipment : [];
-          var idx = set.indexOf(btn.dataset.eqExtra);
-          if(idx !== -1) set.splice(idx, 1);
-          renderHallPurposes(i);
-        });
-      });
-      var eqAdd = box.querySelector('.purp-eq-add');
-      if(eqAdd) eqAdd.addEventListener('click', function(){
-        var inp = box.querySelector('.purp-eq-custom');
-        var txt = inp.value.trim();
-        if(!txt) return;
-        registerDictEntry('equipment', txt).then(function(entry){
-          var set = Array.isArray(cur.equipment) ? cur.equipment : (cur.equipment = []);
-          if(set.indexOf(entry.code) === -1) set.push(entry.code);
-          renderHallPurposes(i);
-        }).catch(function(e){ flash(box.querySelector('.purp-note'), e.message); });
-      });
-      var ta = box.querySelector('.purp-includes');
-      if(ta) ta.addEventListener('input', function(){ cur.includes = ta.value; });
-      // Вкл/выкл — переключателем в строке назначения (renderHallPurposes,
-      // список), не здесь.
-      var del = box.querySelector('.purp-del');
-      if(del) del.addEventListener('click', function(){
-        if(!confirm('Убрать «' + purposeLabel(cur.code) + '» из пространства? Цена и настройки этой цели удалятся. Чтобы временно не сдавать — просто выключите её.')) return;
-        list.splice(list.indexOf(cur), 1);
-        saveHallPurposes(i).then(function(){ PURP_SNAP = null; pgLoad(i, null); renderHalls(); hallFlash('Назначение убрано', true); }).catch(function(){});
-      });
-      box.querySelector('.purp-save').addEventListener('click', function(){
-        saveHallPurposes(i).then(function(){ PURP_SNAP = null; pgLoad(i, null); renderHalls(); hallFlash('Сохранено', true); }).catch(function(){});
-      });
-      return;
-    }
+    if(cur){ renderPurposeDetail(i, box, h, list, cur); return; }
 
     // ---------- список назначений: на странице «Пространства», под карточкой зала ----------
     // Все четыре цели всегда видны: настроенная — с ценой и переключателем
@@ -2829,6 +2722,299 @@
     });
   }
 
+  // ---------- экран одного назначения: закрытые карточки со сводкой ----------
+  // Тот же приём, что у пространства: сводка → «Изменить» → поля этой части →
+  // «Сохранить» / «Отмена». Открыта не больше одной карточки; каждая
+  // сохраняет назначения целиком (saveHallPurposes).
+  var PD = { open:null, snap:null, popMore:false, hi:-1 };
+  var PD_CARDS = [
+    { key:'price', title:'Цена' },
+    { key:'terms', title:'Условия' },
+    { key:'equip', title:'Оснащение' },
+  ];
+  function pdEquipList(cur){
+    var out = [];
+    (cur.equipment || []).forEach(function(code){
+      var it = EQ_BY_CODE[code];
+      out.push({ kind:'cat', code:code, label:equipmentLabel(code), group: it ? it.group : 'своё из словаря',
+        qtyOn: it ? !!it.qty : false, qty: cur.equipmentQty && cur.equipmentQty[code] });
+    });
+    // порядок как в каталоге: свет к свету, мебель к мебели
+    var order = {}; var k = 0;
+    (EQ_CAT || []).forEach(function(g){ g.items.forEach(function(it){ order[it.code] = k++; }); });
+    out.sort(function(a, b){ return (order[a.code] != null ? order[a.code] : 1e6) - (order[b.code] != null ? order[b.code] : 1e6); });
+    (cur.extras || []).forEach(function(x, xi){ out.push({ kind:'own', i:xi, label:x.label, group:'своё', qtyOn:true, qty:x.qty }); });
+    return out;
+  }
+  function pdSummary(key, h, cur){
+    var onlyPeople = !gpRentApplies(cur.guestPricing);
+    if(key === 'price'){
+      var parts = [];
+      if(!onlyPeople) parts.push(typeof cur.rate === 'number' && isFinite(cur.rate) ? cur.rate + ' ' + CUR + '/ч' : '<span class="sc-empty">цена не указана</span>');
+      parts.push(cur.guestPricing ? esc(gpSummary(cur.guestPricing)) : 'число гостей на цену не влияет');
+      if(!onlyPeople && Array.isArray(cur.priceRules) && cur.priceRules.length) parts.push('цены по дням и часам — в сетке ниже');
+      return parts.join(' · ');
+    }
+    if(key === 'terms'){
+      var t = [];
+      t.push(Number.isInteger(cur.minBookingMin) ? 'мин. ' + String(cur.minBookingMin / 60).replace('.', ',') + ' ч' : 'мин. бронь как у студии');
+      t.push('до ' + (Number.isInteger(cur.capacity) ? cur.capacity : h.capacity) + ' чел.');
+      if(Number.isInteger(cur.standingCapacity)) t.push('стоя ' + cur.standingCapacity);
+      if(Number.isInteger(cur.seatedCapacity)) t.push('сидя ' + cur.seatedCapacity);
+      t.push(cur.autoConfirm == null ? 'подтверждение как у студии' : cur.autoConfirm ? 'подтверждение автоматически' : 'подтверждение вручную');
+      if(Number.isInteger(cur.fullDayDiscountPct) && cur.fullDayDiscountPct > 0) t.push('скидка за 8 ч: ' + cur.fullDayDiscountPct + '%');
+      return esc(t.join(' · '));
+    }
+    var l = pdEquipList(cur);
+    if(!l.length) return '<span class="sc-empty">Не заполнено — клиент не увидит, что входит в аренду</span>';
+    return esc(l.slice(0, 5).map(function(x){ return x.label.replace(/ \([^)]*\)$/, '') + (x.qtyOn && x.qty ? ' ×' + x.qty : ''); }).join(', ') +
+      (l.length > 5 ? ' · ещё ' + (l.length - 5) : ''));
+  }
+  function pdChip(key, cur){
+    if(key === 'price'){
+      var ok = !gpRentApplies(cur.guestPricing) || (typeof cur.rate === 'number' && cur.rate > 0);
+      return ok ? '<span class="sc-chip ok">заполнено</span>' : '<span class="sc-chip req">нужна цена</span>';
+    }
+    if(key === 'equip'){
+      var n = pdEquipList(cur).length;
+      return n ? '<span class="sc-chip ok">' + n + ' поз.</span>' : '<span class="sc-chip rec">рекомендуем</span>';
+    }
+    return '';
+  }
+  function renderPurposeDetail(i, box, h, list, cur){
+    var html = '<div class="purp-detail-head">' +
+        '<button type="button" class="btn ghost small purp-back">← Назад</button>' +
+        '<div class="purp-detail-title"><span class="purp-icon">' + purposeIconSvg(cur.code) + '</span>' +
+          '<span>' + esc(purposeLabel(cur.code)) + '</span>' +
+          (cur.active === false ? '<span class="purp-inactive-tag">Неактивно</span>' : '') +
+        '</div></div><div class="pd-cards">';
+    PD_CARDS.forEach(function(c){
+      var open = PD.open === c.key;
+      var title = c.key === 'equip' ? 'Оснащение для ' + purposeGen(cur.code) : c.title;
+      html += '<div class="sc' + (open ? ' open' : '') + '" data-sec="pd-' + c.key + '">' +
+        '<div class="sc-h"><span class="sc-t">' + esc(title) + '</span>' + pdChip(c.key, cur) +
+          (open ? '' : '<button class="btn ghost small" type="button" data-pd-edit="' + c.key + '">Изменить</button>') + '</div>' +
+        '<div class="sc-sum">' + pdSummary(c.key, h, cur) + '</div>' +
+        (open ? '<div class="sc-edit pd-edit"><div class="pd-body"></div>' +
+          '<div class="pd-foot"><span class="note purp-note"></span>' +
+            '<button type="button" class="btn ghost pd-cancel">Отмена</button>' +
+            '<button type="button" class="btn primary pd-save">Сохранить</button></div></div>' : '') +
+        '</div>';
+    });
+    html += '</div>' + (cur._new ? '' : '<div class="pd-del-row"><button type="button" class="btn ghost small danger purp-del">Убрать назначение</button></div>');
+    box.innerHTML = html;
+
+    box.querySelector('.purp-back').addEventListener('click', function(){ purpCancel(i); });
+    box.querySelectorAll('[data-pd-edit]').forEach(function(b){ b.addEventListener('click', function(){ pdOpen(i, cur, b.dataset.pdEdit); }); });
+    var del = box.querySelector('.purp-del');
+    if(del) del.addEventListener('click', function(){
+      if(!confirm('Убрать «' + purposeLabel(cur.code) + '» из пространства? Цена и настройки этой цели удалятся. Чтобы временно не сдавать — просто выключите её.')) return;
+      list.splice(list.indexOf(cur), 1);
+      saveHallPurposes(i).then(function(){ PURP_SNAP = null; pgLoad(i, null); renderHalls(); hallFlash('Назначение убрано', true); }).catch(function(){});
+    });
+    if(!PD.open) return;
+    var body = box.querySelector('.pd-body');
+    if(PD.open === 'price') pdPriceEditor(i, body, h, cur);
+    else if(PD.open === 'terms') pdTermsEditor(i, body, h, cur);
+    else pdEquipEditor(i, body, h, cur);
+    box.querySelector('.pd-cancel').addEventListener('click', function(){ pdCancel(i, cur); });
+    box.querySelector('.pd-save').addEventListener('click', function(){
+      var btn = this; btn.disabled = true;
+      saveHallPurposes(i).then(function(){
+        var key = PD.open;
+        scAnimate('pd-' + key, function(){ PD = { open:null, snap:null, popMore:false, hi:-1 }; renderHalls(); });
+        hallFlash('Сохранено', true);
+      }).catch(function(){ btn.disabled = false; });
+    });
+  }
+  function pdOpen(i, cur, key){
+    if(PD.open) pdCancel(i, cur, true);
+    var list = hallPurposes(hallsDraft[i]);
+    cur = list.filter(function(p){ return p.code === PG.code; })[0] || cur;
+    PD = { open:key, snap:JSON.stringify(cur), popMore:false, hi:-1 };
+    scAnimate('pd-' + key, function(){ renderHallPurposes(i); });
+  }
+  // «Отмена» карточки: назначение — как было при открытии. Новая цель, которую
+  // ни разу не сохранили, при отмене цены просто убирается (как «Назад»).
+  function pdCancel(i, cur, quiet){
+    var list = hallPurposes(hallsDraft[i]);
+    var now = list.filter(function(p){ return p.code === PG.code; })[0];
+    if(now && now._new){ purpCancel(i); return; }
+    if(now && PD.snap){ list[list.indexOf(now)] = JSON.parse(PD.snap); }
+    var key = PD.open;
+    PD = { open:null, snap:null, popMore:false, hi:-1 };
+    if(quiet) return;
+    scAnimate('pd-' + key, function(){ renderHallPurposes(i); renderHallPriceRules(i); });
+  }
+  function pdCurOf(i){ return hallPurposes(hallsDraft[i]).filter(function(p){ return p.code === PG.code; })[0]; }
+
+  function pdPriceEditor(i, body, h, cur){
+    body.innerHTML =
+      frow('Цена за час', frNum('', cur.rate != null ? cur.rate : '', CUR + '/ч', ' type="number" min="1" step="1" data-f="rate" placeholder="обязательно"', 'purp-f purp-rate'),
+        { req:true, hint:'Цены по дням и часам — в сетке ниже' }) +
+      '<div class="pd-gp"><div class="gp"></div></div>';
+    renderGuestPricing(body.querySelector('.gp'), cur, function(onlyPeople){
+      var r = body.querySelector('.purp-rate');
+      if(!r) return;
+      r.disabled = onlyPeople;
+      r.placeholder = onlyPeople ? 'не нужна' : 'обязательно';
+      if(onlyPeople){ r.value = ''; cur.rate = null; }
+      renderHallPriceRules(i);
+    });
+    body.querySelector('.purp-rate').addEventListener('input', function(){
+      var v = parseInt(this.value, 10); cur.rate = Number.isInteger(v) ? v : null;
+      renderHallPriceRules(i); renderGuestPricing(body.querySelector('.gp'), cur, null);
+    });
+  }
+  function pdTermsEditor(i, body, h, cur){
+    var capNum = function(f, ph, unit){ return frNum('', cur[f] != null ? cur[f] : '', unit, ' type="number" min="1" max="1000" step="1" data-f="' + f + '" placeholder="' + esc(ph) + '"', 'purp-f'); };
+    body.innerHTML =
+      frow('Минимальная бронь', frNum('', cur.minBookingMin != null ? cur.minBookingMin / 60 : '', 'ч', ' type="number" min="0.5" max="8" step="0.5" placeholder="как у студии"', 'purp-hours'), { hint:'Пусто — как у студии' }) +
+      frow('Вместимость', capNum('capacity', h.capacity, 'чел.'), { hint:'Пусто — как у пространства' }) +
+      (cur.code === 'event' ? frow('Стоя и сидя', '<span class="fr-hours">' + capNum('standingCapacity', '—', 'стоя') + capNum('seatedCapacity', '—', 'сидя') + '</span>', { hint:'Клиент увидит их вместо площади' }) : '') +
+      frow('Подтверждение брони', '<span class="seg fr-seg purp-autoconfirm">' +
+          '<button type="button" data-ac="inherit"' + (cur.autoConfirm == null ? ' class="on"' : '') + '>Как у студии</button>' +
+          '<button type="button" data-ac="yes"' + (cur.autoConfirm === true ? ' class="on"' : '') + '>Авто</button>' +
+          '<button type="button" data-ac="no"' + (cur.autoConfirm === false ? ' class="on"' : '') + '>Вручную</button></span>', { hint:'Своё для этой цели' }) +
+      frow('Скидка за 8 часов', frNum('', cur.fullDayDiscountPct != null ? cur.fullDayDiscountPct : '', '%', ' type="number" min="0" max="100" step="1" data-f="fullDayDiscountPct" placeholder="0"', 'purp-f'), { hint:'За бронь на 8 часов и больше' });
+    body.querySelectorAll('.purp-f').forEach(function(inp){ inp.addEventListener('input', function(){
+      var v = parseInt(inp.value, 10); cur[inp.dataset.f] = Number.isInteger(v) ? v : null; }); });
+    body.querySelector('.purp-hours').addEventListener('input', function(){
+      var v = parseFloat(this.value); cur.minBookingMin = (isFinite(v) && v > 0) ? Math.round(v * 60) : null; });
+    body.querySelectorAll('.purp-autoconfirm button[data-ac]').forEach(function(btn){ btn.addEventListener('click', function(){
+      cur.autoConfirm = btn.dataset.ac === 'inherit' ? null : (btn.dataset.ac === 'yes');
+      body.querySelectorAll('.purp-autoconfirm button').forEach(function(b){ b.classList.toggle('on', b === btn); }); }); });
+  }
+
+  // ---------- редактор оснащения: «что есть» + «часто добавляют» + поиск ----------
+  // Не 140 галочек каталога, а только то, что у владельца уже есть; добавлять —
+  // из подборки для этой цели или поиском по всему каталогу (или своё).
+  function pdPopular(cur, n){
+    var have = {}; (cur.equipment || []).forEach(function(c){ have[c] = 1; });
+    var out = [];
+    function pass(primary){
+      var queues = (EQ_CAT || []).map(function(g){
+        return g.items.filter(function(it){ var k = (it.purposes || []).indexOf(cur.code);
+          return !it.legacy && !have[it.code] && (primary ? k === 0 : k > 0); });
+      }).filter(function(q){ return q.length; });
+      while(out.length < n && queues.some(function(q){ return q.length; })){
+        queues.forEach(function(q){ if(q.length && out.length < n) out.push(q.shift()); });
+      }
+    }
+    pass(true); pass(false);
+    return out;
+  }
+  function pdAddCode(cur, code){
+    cur.equipment = cur.equipment || [];
+    if(cur.equipment.indexOf(code) === -1) cur.equipment.push(code);
+    var it = EQ_BY_CODE[code];
+    cur.equipmentQty = cur.equipmentQty || {};
+  }
+  // Количество не задано — поле пустое («—»): клиент увидит позицию без «шт.».
+  function pdStep(key, v){
+    v = Number.isInteger(v) && v >= 1 ? v : null;
+    return '<span class="eq-step"><button type="button" data-st="' + key + '" data-d="-1"' + (!v || v <= 1 ? ' disabled' : '') + ' aria-label="Меньше">−</button>' +
+      '<input type="number" min="1" max="999" data-sq="' + key + '" value="' + (v || '') + '" placeholder="—" aria-label="Количество">' +
+      '<button type="button" data-st="' + key + '" data-d="1" aria-label="Больше">+</button></span>';
+  }
+  function pdEquipEditor(i, body, h, cur){
+    if(!EQ_CAT){ body.innerHTML = '<div class="muted">Загружаем каталог…</div>'; loadEqCatalog().then(function(){ renderHallPurposes(i); }); return; }
+    var have = pdEquipList(cur);
+    var others = hallPurposes(h).filter(function(p){ return p.code !== cur.code; });
+    var html = '<div class="eq-blk"><div class="eq-blk-t"><span>Что входит в аренду · ' + have.length + '</span>' +
+      (others.length ? '<span>Скопировать из: ' + others.map(function(p){
+        var n = (p.equipment || []).length + (p.extras || []).length;
+        return n ? '<button type="button" class="linkish" data-copy="' + p.code + '">' + esc(purposeLabel(p.code).toLowerCase()) + ' (' + n + ')</button>' : '<span class="eq-off">' + esc(purposeLabel(p.code).toLowerCase()) + '</span>';
+      }).join(' · ') + '</span>' : '') + '</div>' +
+      (have.length ? '<div class="eq-have">' + have.map(function(x){
+        var key = x.kind === 'cat' ? 'c:' + x.code : 'o:' + x.i;
+        return '<div class="eq-hv"><span class="eq-hv-l">' + esc(x.label) + '<span class="eq-hv-g">' + esc(x.group) + '</span></span>' +
+          (x.qtyOn ? pdStep(key, x.qty) : '<span class="eq-step-ph"></span>') +
+          '<button type="button" class="eq-x" data-rm="' + key + '" aria-label="Убрать «' + esc(x.label) + '»">×</button></div>';
+      }).join('') + '</div>' : '<div class="eq-empty">Пока пусто. Добавьте из подборки ниже или найдите в каталоге.</div>') + '</div>';
+    var pop = pdPopular(cur, PD.popMore ? 24 : 10);
+    if(pop.length){
+      html += '<div class="eq-blk"><div class="eq-blk-t"><span>Часто добавляют для ' + purposeGen(cur.code) + '</span>' +
+        (pdPopular(cur, 11).length > 10 ? '<button type="button" class="linkish" data-popmore>' + (PD.popMore ? 'меньше' : 'ещё') + '</button>' : '') + '</div>' +
+        '<div class="eq-chips">' + pop.map(function(it){ return '<button type="button" class="eq-chip" data-add="' + esc(it.code) + '">' + esc(it.label) + '</button>'; }).join('') + '</div></div>';
+    }
+    var total = 0; EQ_CAT.forEach(function(g){ g.items.forEach(function(it){ if(!it.legacy) total++; }); });
+    html += '<div class="eq-blk"><div class="eq-blk-t"><span>Найти в каталоге или добавить своё</span><span>' + total + ' позиций</span></div>' +
+      '<div class="eq-srch"><input class="fr-in" id="eqQ" placeholder="Например: проектор, хромакей, аэрохоккей…" autocomplete="off" aria-label="Поиск оснащения">' +
+      '<div class="eq-sugg" id="eqS" hidden></div></div></div>';
+    body.innerHTML = html;
+
+    var rerender = function(){ renderHallPurposes(i); var q = document.getElementById('eqQ'); return q; };
+    body.querySelectorAll('[data-st]').forEach(function(b){ b.addEventListener('click', function(){
+      var key = b.dataset.st, d = +b.dataset.d;
+      // из пустого «+» ставит 1
+      if(key.charAt(0) === 'c'){ var c = key.slice(2); cur.equipmentQty[c] = Math.max(1, Math.min(999, cur.equipmentQty[c] ? cur.equipmentQty[c] + d : 1)); }
+      else { var x = cur.extras[+key.slice(2)]; x.qty = Math.max(1, Math.min(999, x.qty ? x.qty + d : 1)); }
+      rerender(); }); });
+    body.querySelectorAll('[data-sq]').forEach(function(inp){ inp.addEventListener('change', function(){
+      var v = parseInt(inp.value, 10), n = v >= 1 ? Math.min(999, v) : null, key = inp.dataset.sq;
+      if(key.charAt(0) === 'c'){ if(n) cur.equipmentQty[key.slice(2)] = n; else delete cur.equipmentQty[key.slice(2)]; }
+      else cur.extras[+key.slice(2)].qty = n;
+      rerender(); }); });
+    body.querySelectorAll('[data-rm]').forEach(function(b){ b.addEventListener('click', function(){
+      var key = b.dataset.rm;
+      if(key.charAt(0) === 'c'){ var c = key.slice(2); cur.equipment.splice(cur.equipment.indexOf(c), 1); delete cur.equipmentQty[c]; }
+      else cur.extras.splice(+key.slice(2), 1);
+      rerender(); }); });
+    body.querySelectorAll('[data-add]').forEach(function(b){ b.addEventListener('click', function(){ pdAddCode(cur, b.dataset.add); rerender(); }); });
+    var pm = body.querySelector('[data-popmore]'); if(pm) pm.addEventListener('click', function(){ PD.popMore = !PD.popMore; rerender(); });
+    body.querySelectorAll('[data-copy]').forEach(function(b){ b.addEventListener('click', function(){
+      var src = hallPurposes(h).filter(function(p){ return p.code === b.dataset.copy; })[0]; if(!src) return;
+      var before = pdEquipList(cur).length;
+      (src.equipment || []).forEach(function(c){ pdAddCode(cur, c); if(src.equipmentQty && src.equipmentQty[c]) cur.equipmentQty[c] = cur.equipmentQty[c] > 1 ? cur.equipmentQty[c] : src.equipmentQty[c]; });
+      cur.extras = cur.extras || [];
+      (src.extras || []).forEach(function(x){ if(!cur.extras.some(function(y){ return y.label.toLowerCase() === x.label.toLowerCase(); })) cur.extras.push({ label:x.label, qty:x.qty }); });
+      rerender();
+      var n = body.ownerDocument.querySelector('.hall-purposes[data-i="' + i + '"] .purp-note');
+      if(n) flash(n, 'Добавлено из «' + purposeLabel(src.code) + '»: ' + (pdEquipList(cur).length - before), true);
+    }); });
+
+    // поиск с подсказками; последняя строка — «добавить своё»
+    var q = body.querySelector('#eqQ'), box = body.querySelector('#eqS'), opts = [];
+    function draw(){
+      var t = q.value.trim().toLowerCase();
+      if(!t){ box.hidden = true; opts = []; return; }
+      var hits = [];
+      EQ_CAT.forEach(function(g){ g.items.forEach(function(it){ if(!it.legacy && it.label.toLowerCase().indexOf(t) !== -1) hits.push(it); }); });
+      hits.sort(function(a, b){ return ((b.purposes || []).indexOf(cur.code) !== -1) - ((a.purposes || []).indexOf(cur.code) !== -1); });
+      hits = hits.slice(0, 8);
+      var exact = hits.some(function(it){ return it.label.toLowerCase() === t; }) ||
+        (cur.extras || []).some(function(x){ return x.label.toLowerCase() === t; });
+      opts = hits.map(function(it){ return { kind:'cat', it:it, has:(cur.equipment || []).indexOf(it.code) !== -1 }; });
+      if(!exact && q.value.trim().length <= 100) opts.push({ kind:'own', label:q.value.trim() });
+      if(PD.hi >= opts.length) PD.hi = opts.length - 1;
+      box.innerHTML = opts.map(function(o, k){
+        if(o.kind === 'own') return '<button type="button" class="eq-sg own' + (k === PD.hi ? ' hi' : '') + '" data-k="' + k + '">+ Добавить «' + esc(o.label) + '» как своё</button>';
+        return '<button type="button" class="eq-sg' + (k === PD.hi ? ' hi' : '') + '" data-k="' + k + '"' + (o.has ? ' disabled' : '') + '>' + esc(o.it.label) +
+          '<small>' + (o.has ? 'уже есть' : esc(o.it.group)) + '</small></button>';
+      }).join('');
+      box.hidden = !opts.length;
+    }
+    function choose(k){
+      var o = opts[k]; if(!o || o.has) return;
+      if(o.kind === 'own'){ cur.extras = cur.extras || []; cur.extras.push({ label:o.label, qty:null }); }
+      else pdAddCode(cur, o.it.code);
+      PD.hi = -1;
+      var nq = rerender(); if(nq) nq.focus();
+    }
+    q.addEventListener('input', function(){ PD.hi = 0; draw(); });
+    q.addEventListener('keydown', function(e){
+      if(box.hidden) return;
+      if(e.key === 'ArrowDown'){ e.preventDefault(); PD.hi = Math.min(opts.length - 1, PD.hi + 1); draw(); }
+      else if(e.key === 'ArrowUp'){ e.preventDefault(); PD.hi = Math.max(0, PD.hi - 1); draw(); }
+      else if(e.key === 'Enter'){ e.preventDefault(); choose(PD.hi < 0 ? 0 : PD.hi); }
+      else if(e.key === 'Escape'){ box.hidden = true; }
+    });
+    box.addEventListener('mousedown', function(e){ e.preventDefault(); });
+    box.addEventListener('click', function(e){ var b = e.target.closest('.eq-sg'); if(b) choose(+b.dataset.k); });
+    q.addEventListener('blur', function(){ setTimeout(function(){ box.hidden = true; }, 120); });
+  }
+
   // Открыть цель на правку (или добавить новую). Снимок — чтобы «Отмена»
   // вернула всё как было, в том числе убрала недосохранённую новую цель.
   var PURP_SNAP = null;
@@ -2837,11 +3023,14 @@
     var h = hallsDraft[i];
     PURP_SNAP = { i:i, purposes:clone(hallPurposes(h)) };
     if(isNew && !hallPurposes(h).some(function(p){ return p.code === code; })){
-      hallPurposes(h).push({ code:code, rate:null, minBookingMin:null, capacity:null, includes:'', priceRules:null, active:true, _new:true });
+      hallPurposes(h).push({ code:code, rate:null, minBookingMin:null, capacity:null, equipment:[], equipmentQty:{}, extras:[], priceRules:null, active:true, _new:true });
     }
+    PD = { open: isNew ? 'price' : null, snap:null, popMore:false, hi:-1 };
+    if(isNew) PD.snap = JSON.stringify(hallPurposes(h).filter(function(p){ return p.code === code; })[0]);
     pgLoad(i, code);
     renderHallPurposes(i);
     renderHallPriceRules(i);
+    loadEqCatalog().then(function(){ if(PG.i === i && PG.code === code) renderHallPurposes(i); });
     loadDict('equipment').then(function(){ if(PG.i === i && PG.code === code) renderHallPurposes(i); });
     var box = document.querySelector('.hall-purposes[data-i="' + i + '"]');
     if(box && box.scrollIntoView) box.scrollIntoView({ block:'start', behavior:'smooth' });
@@ -2849,6 +3038,7 @@
   function purpCancel(i){
     if(PURP_SNAP && PURP_SNAP.i === i) hallsDraft[i].purposes = PURP_SNAP.purposes;
     PURP_SNAP = null;
+    PD = { open:null, snap:null, popMore:false, hi:-1 };
     pgLoad(i, null);
     renderHallPurposes(i);
     renderHallPriceRules(i);
@@ -2899,8 +3089,15 @@
       if(Number.isInteger(p.capacity)) out.capacity = p.capacity;
       if(Number.isInteger(p.standingCapacity)) out.standingCapacity = p.standingCapacity;
       if(Number.isInteger(p.seatedCapacity)) out.seatedCapacity = p.seatedCapacity;
-      if(Array.isArray(p.equipment) && p.equipment.length) out.equipment = p.equipment.slice();
-      if((p.includes||'').trim()) out.includes = p.includes.trim();
+      if(Array.isArray(p.equipment) && p.equipment.length){
+        out.equipment = p.equipment.slice();
+        var q = {};
+        out.equipment.forEach(function(c){ var n = p.equipmentQty && p.equipmentQty[c]; if(Number.isInteger(n) && n >= 1) q[c] = n; });
+        if(Object.keys(q).length) out.equipmentQty = q;
+      }
+      var ex = (p.extras || []).filter(function(x){ return x && (x.label || '').trim(); })
+        .map(function(x){ var o = { label:x.label.trim().slice(0, 100) }; if(Number.isInteger(x.qty) && x.qty >= 1) o.qty = x.qty; return o; });
+      if(ex.length) out.extras = ex;
       if(Array.isArray(p.priceRules) && p.priceRules.length) out.priceRules = p.priceRules;
       // autoConfirm null = «как у студии» — поле просто не шлём, а не шлём null
       // явно: бэкенд трактует отсутствие и null одинаково, но так короче payload.
@@ -7131,7 +7328,8 @@
     var h = wzHall();
     // Текст «подробнее» стоит в той же строке, что и чипсы темы (Свет — к свету),
     // чтобы одна подпись не повторялась дважды.
-    var aboutOf = function(title){ return HALL_ABOUT_FIELDS.filter(function(y){ return y.label === title && /^about(Lighting|Sound|Electrical)$/.test(y.f); })[0]; };
+    var ABOUT_BY_GROUP = { 'Свет и окна':'aboutLighting', 'Свет':'aboutLighting' };
+    var aboutOf = function(title){ return HALL_ABOUT_FIELDS.filter(function(y){ return y.f === ABOUT_BY_GROUP[title]; })[0]; };
     var aboutArea = function(x){ return frArea('wz_' + x.f, h[x.f], 2, ' maxlength="1000" placeholder="' + esc(x.ph) + '" aria-label="' + esc(x.label) + ', подробности"'); };
     var used = {};
     var html = HALL_AMENITY_GROUPS.map(function(g){
