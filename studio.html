@@ -2506,7 +2506,7 @@
     if(!(PG.i === i && PG.code)){ box.innerHTML = ''; return; }
     var gpCur = hallPurposes(h).filter(function(p){ return p.code === PG.code; })[0];
     if(gpCur && !gpRentApplies(gpCur.guestPricing)){
-      box.innerHTML = '<div class="muted">Цена этой цели считается только за людей — сетка цен по часам не нужна.</div>';
+      box.innerHTML = '<div class="muted">Цена этой цели считается только за гостей — сетка цен по часам не нужна.</div>';
       return;
     }
     var base = pgBaseRate(i, PG.code);
@@ -2711,7 +2711,7 @@
       var g = cur.guestPricing, parts = [];
       var rateTxt = typeof cur.rate === 'number' && isFinite(cur.rate) ? cur.rate + ' ' + CUR + '/ч' : '<span class="sc-empty">цена не указана</span>';
       if(g && g.mode === 'perPerson'){
-        parts.push('за человека: ' + esc(g.tiers.map(function(t){ return gpMoney(t.price); }).join(' / ')) + ' ' + CUR + (g.unit === 'hour' ? ' в час' : ' за бронь'));
+        parts.push('за гостя: ' + esc(g.tiers.map(function(t){ return gpMoney(t.price); }).join(' / ')) + ' ' + CUR + (g.unit === 'hour' ? ' в час' : ' за бронь'));
         parts.push(onlyPeople ? 'без аренды' : 'плюс аренда ' + rateTxt);
       } else {
         parts.push(rateTxt);
@@ -2855,7 +2855,7 @@
       return frow('Лимит гостей', frNum('', cur.capacity != null ? cur.capacity : '', 'чел.', ' type="number" min="1" max="1000" step="1" data-f="capacity" placeholder="' + esc(h.capacity) + '"', 'purp-f'),
         { hint:'Больше людей клиент выбрать не сможет. Пусто — как у пространства' });
     };
-    var html = frow('Как считаем цену', frSeg('pdMode', [['hour','За час'],['person','За человека']], person ? 'person' : 'hour'),
+    var html = frow('Как считаем цену', frSeg('pdMode', [['hour','За час'],['person','За гостя']], person ? 'person' : 'hour'),
       { hint: person ? 'Каждый гость платит свою цену' : 'Одна цена за час аренды' });
     if(!person){
       html += rateRow() + capRow() +
@@ -2867,10 +2867,10 @@
             frSeg('pdUnit', [['booking','за бронь'],['hour','за час']], g.unit) + '</span>');
       }
     } else {
-      html += frow('Аренда пространства', frSeg('pdRent', [['0','Только за людей'],['1','Плюс аренда']], rentOn ? '1' : '0'),
+      html += frow('Аренда пространства', frSeg('pdRent', [['0','Только за гостей'],['1','Плюс аренда']], rentOn ? '1' : '0'),
         { hint: rentOn ? 'Цена за час плюс цена за каждого гостя' : 'Часовой цены нет — платят только гости' });
       if(rentOn) html += rateRow();
-      html += frow('Цена за человека', '<div class="pp-tiers">' + g.tiers.map(function(t, k){
+      html += frow('Цена за гостя', '<div class="pp-tiers">' + g.tiers.map(function(t, k){
           var who = k === 0 ? '<b>' + (g.tiers.length > 1 && g.tiers[1].from === 2 ? '1 гость' : 'от 1 гостя') + '</b>'
             : 'от <input class="fr-in pp-from" type="text" inputmode="numeric" data-gp="tf" data-k="' + k + '" value="' + esc(t.from) + '"> гостей';
           return '<div class="pp-tier"><span class="pp-who">' + who + '</span>' +
@@ -6734,10 +6734,10 @@
           return '<div class="nh-purp"><label class="chk"><input type="checkbox" data-np="' + p.v + '"' + (x.on ? ' checked' : '') + '> ' + esc(p.label) + '</label>' +
             '<span class="seg nh-per" data-per-for="' + p.v + '"' + (x.on ? '' : ' data-off="1"') + '>' +
               '<button type="button" data-per="hour"' + (per === 'hour' ? ' class="on"' : '') + '>за час</button>' +
-              '<button type="button" data-per="person"' + (per === 'person' ? ' class="on"' : '') + '>за человека</button></span>' +
+              '<button type="button" data-per="person"' + (per === 'person' ? ' class="on"' : '') + '>за гостя</button></span>' +
             '<span class="unitwrap"><input class="num" type="number" min="1" data-npr="' + p.v + '" value="' + esc(x.rate) + '" placeholder="цена"' + (x.on ? '' : ' disabled') + '><span class="u" data-npu="' + p.v + '">' + CUR + (per === 'person' ? '/чел. в час' : '/ч') + '</span></span></div>';
         }).join('') + '</div>' +
-        '<div class="nh-hint">«За человека» — цена складывается из числа людей в брони (например, 5 ' + CUR + ' с каждого за час), аренда пространства отдельно не берётся. Доплату сверх лимита, ступени по числу людей, цены по дням и часам и минимальную бронь настроите позже, на странице «Пространства».</div>';
+        '<div class="nh-hint">«За гостя» — цена складывается из числа гостей в брони (например, 5 ' + CUR + ' с каждого за час), аренда пространства отдельно не берётся. Доплату сверх лимита, ступени по числу людей, цены по дням и часам и минимальную бронь настроите позже, на странице «Пространства».</div>';
       b.querySelectorAll('[data-np]').forEach(function(c){ c.addEventListener('change', function(){
         d.purposes[c.dataset.np] = d.purposes[c.dataset.np] || { on:false, rate:'', per:'hour' };
         d.purposes[c.dataset.np].on = c.checked;
