@@ -435,7 +435,22 @@
   .pd-foot .purp-note{margin-left:8px;}
   .fr-pair-add{grid-template-columns:minmax(0,1fr) auto;}
   /* экран назначения — карточки и редактор оснащения (0055) */
-  .pd-cards{margin-top:14px;}
+  .pt-tabs{margin:8px 0 12px;overflow-x:auto;scrollbar-width:none;}
+  .pt-tabs::-webkit-scrollbar{display:none;}
+  .pt-seg{display:inline-flex;}
+  .hall-purposes .pt-seg button{white-space:nowrap;padding:8px 16px;}
+  .pt-seg button small{font-size:var(--fs-xs);margin-left:6px;color:var(--text-3);font-weight:500;}
+  .pt-seg button.pt-none:not(.on),.pt-seg button.pt-off:not(.on){color:var(--text-3);}
+  @media(max-width:600px){
+    .pt-seg{display:flex;width:100%;}
+    .hall-purposes .pt-seg button{flex:1 1 0;min-width:0;padding:8px 2px;font-size:var(--fs-sm);line-height:1.2;}
+    .pt-seg button small{display:block;margin:2px 0 0;}
+  }
+  .pt-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-bottom:10px;font-size:var(--fs-sm);}
+  .pt-on{display:inline-flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:var(--fs-md);}
+  .pt-empty{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:16px;border:1px dashed var(--line-strong);border-radius:var(--r-md);color:var(--text-2);font-size:var(--fs-sm);}
+  .pd-del-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+  .pd-cards{margin-top:0;}
   .pd-edit{padding:4px 16px 16px;}
   .pd-foot{display:flex;align-items:center;justify-content:flex-end;gap:8px;border-top:1px solid var(--line);padding-top:12px;margin-top:4px;}
   .pd-foot .purp-note{margin:0 auto 0 0;}
@@ -2670,63 +2685,56 @@
   // сетки тарифов ниже: «Зал» правит базовые цены, назначение — свои.
   // Пустые поля назначения означают «как у зала», поэтому плейсхолдеры в
   // них — зальные значения, а не нули.
+  // Назначения пространства: сверху переключатель целей, под ним — настройки
+  // выбранной (как в песочнице). Выбранная вкладка помнится на пространство.
+  var PTAB = {};
+  function ptabOf(i){
+    var list = hallPurposes(hallsDraft[i]);
+    if(PTAB[i] && HALL_PURPOSE_LIST.some(function(x){ return x.v === PTAB[i]; })) return PTAB[i];
+    var on = list.filter(function(p){ return p.active !== false; })[0] || list[0];
+    return on ? on.code : HALL_PURPOSE_LIST[0].v;
+  }
   function renderHallPurposes(i){
     var h = hallsDraft[i];
     var box = document.querySelector('.hall-purposes[data-i="'+i+'"]');
     if(!box) return;
     if(!h.id){ box.innerHTML = '<div class="amenity-group-t">Назначения</div><span class="muted">Сохраните пространство, чтобы задать назначения.</span>'; return; }
     var list = hallPurposes(h);
-    var code = (PG.i === i) ? PG.code : null;
-    var cur = code ? list.find(function(p){ return p.code === code; }) : null;
-    if(code && !cur){ code = null; PG.code = null; }   // назначение удалили — падаем на пространство
-
-    if(cur){ renderPurposeDetail(i, box, h, list, cur); return; }
-
-    // ---------- список назначений: на странице «Пространства», под карточкой зала ----------
-    // Все четыре цели всегда видны: настроенная — с ценой и переключателем
-    // «сдаётся/нет», ненастроенная — с «Добавить». Цена зала — это цены его
-    // назначений, отдельной «базовой» нет (0052).
-    box.innerHTML = '<div class="hp-purp-t">Назначения и цены</div>' + HALL_PURPOSE_LIST.map(function(x){
-      var p = list.filter(function(y){ return y.code === x.v; })[0];
-      if(!p){
-        return '<div class="hcp-row off"><span class="hcp-icon">' + purposeIconSvg(x.v) + '</span>' +
-          '<div class="hcp-body"><div class="hcp-name">' + esc(x.label) + '</div><div class="hcp-meta">Не сдаётся для этого</div></div>' +
-          '<div class="hcp-actions"><button class="hcp-edit" type="button" data-purp-add="' + esc(x.v) + '">Добавить</button></div></div>';
-      }
-      var off = p.active === false;
-      return '<div class="hcp-row' + (off ? ' off' : '') + '"><span class="hcp-icon">' + purposeIconSvg(p.code) + '</span>' +
-        '<div class="hcp-body"><div class="hcp-name">' + esc(purposeLabel(p.code)) + '</div>' +
-          '<div class="hcp-meta">' + (off ? 'Выключено · ' : '') + esc(purposeMetaLine(h, p)) + '</div></div>' +
-        '<div class="hcp-actions">' +
-          '<input class="hcp-toggle" type="checkbox" data-purp-toggle="' + esc(p.code) + '"' + (off ? '' : ' checked') +
-            ' aria-label="' + (off ? 'Включить' : 'Выключить') + ' «' + esc(purposeLabel(p.code)) + '»">' +
-          '<button class="hcp-edit" type="button" data-purp-edit="' + esc(p.code) + '">Изменить</button></div></div>';
-    }).join('') + '<div class="note purp-note"></div>';
-
-    box.querySelectorAll('[data-purp-edit]').forEach(function(b){
-      b.addEventListener('click', function(){ purpOpen(i, b.dataset.purpEdit, false); });
-    });
-    box.querySelectorAll('[data-purp-add]').forEach(function(b){
-      b.addEventListener('click', function(){ purpOpen(i, b.dataset.purpAdd, true); });
-    });
-    box.querySelectorAll('[data-purp-toggle]').forEach(function(t){
-      t.addEventListener('change', function(){
-        var p = list.filter(function(y){ return y.code === t.dataset.purpToggle; })[0];
-        if(!p) return;
-        var othersOn = list.some(function(y){ return y !== p && y.active !== false; });
-        if(!t.checked && !othersOn && !confirm('Это последняя включённая цель — пространство перестанет быть доступно для брони. Выключить?')){ t.checked = true; return; }
-        p.active = t.checked;
-        saveHallPurposes(i).then(function(){ renderHalls(); })
-          .catch(function(){ p.active = !t.checked; renderHalls(); });
-      });
-    });
+    var code = ptabOf(i);
+    var cur = list.filter(function(p){ return p.code === code; })[0] || null;
+    box.innerHTML = '<div class="hp-purp-t">Назначения и цены</div>' +
+      '<div class="pt-tabs"><span class="seg pt-seg" role="tablist" aria-label="Назначение">' + HALL_PURPOSE_LIST.map(function(x){
+        var p = list.filter(function(y){ return y.code === x.v; })[0];
+        var st = !p ? 'none' : p.active === false ? 'off' : 'on';
+        return '<button type="button" role="tab" data-pt="' + x.v + '" class="pt-' + st + (x.v === code ? ' on' : '') + '" aria-selected="' + (x.v === code) + '">' +
+          esc(x.label) + (st === 'off' ? '<small>выкл</small>' : st === 'none' ? '<small>+</small>' : '') + '</button>';
+      }).join('') + '</span></div>' +
+      '<div class="pt-panel"></div>';
+    box.querySelectorAll('[data-pt]').forEach(function(b){ b.addEventListener('click', function(){
+      if(b.dataset.pt === code) return;
+      if(PD.open && PD.i === i) pdCancel(true);
+      PTAB[i] = b.dataset.pt;
+      var has = hallPurposes(hallsDraft[i]).some(function(p){ return p.code === PTAB[i]; });
+      // сетка цен по часам следует за выбранной целью этого пространства
+      if(PG.i === i || PG.i < 0){ if(has) pgLoad(i, PTAB[i]); else { PG.i = -1; PG.code = null; } }
+      renderHallPurposes(i); renderHallPriceRules(i);
+    }); });
+    var panel = box.querySelector('.pt-panel');
+    if(!cur){
+      panel.innerHTML = '<div class="pt-empty"><span>Для ' + esc(purposeGen(code)) + ' это пространство пока не сдаётся.</span>' +
+        '<button type="button" class="btn small" data-purp-add="' + code + '">Сдавать для ' + esc(purposeGen(code)) + '</button></div>' +
+        '<div class="note purp-note"></div>';
+      panel.querySelector('[data-purp-add]').addEventListener('click', function(){ purpOpen(i, code, true); });
+      return;
+    }
+    renderPurposeDetail(i, panel, h, list, cur);
   }
 
   // ---------- экран одного назначения: закрытые карточки со сводкой ----------
   // Тот же приём, что у пространства: сводка → «Изменить» → поля этой части →
   // «Сохранить» / «Отмена». Открыта не больше одной карточки; каждая
   // сохраняет назначения целиком (saveHallPurposes).
-  var PD = { open:null, snap:null, popMore:false, hi:-1 };
+  var PD = { i:-1, code:null, open:null, snap:null, popMore:false, hi:-1 };
   var PD_CARDS = [
     { key:'price', title:'Цена' },
     { key:'terms', title:'Условия' },
@@ -2782,16 +2790,16 @@
     return '';
   }
   function renderPurposeDetail(i, box, h, list, cur){
-    var html = '<div class="purp-detail-head">' +
-        '<button type="button" class="btn ghost small purp-back">← Назад</button>' +
-        '<div class="purp-detail-title"><span class="purp-icon">' + purposeIconSvg(cur.code) + '</span>' +
-          '<span>' + esc(purposeLabel(cur.code)) + '</span>' +
-          (cur.active === false ? '<span class="purp-inactive-tag">Неактивно</span>' : '') +
-        '</div></div><div class="pd-cards">';
+    var mine = PD.i === i && PD.code === cur.code;
+    var html = (cur._new ? '' : '<div class="pt-head"><label class="pt-on">' +
+        '<input class="hcp-toggle" type="checkbox" data-purp-toggle="' + esc(cur.code) + '"' + (cur.active === false ? '' : ' checked') + '>' +
+        '<span>' + (cur.active === false ? 'Не сдаётся для ' : 'Сдаётся для ') + esc(purposeGen(cur.code)) + '</span></label>' +
+        (cur.active === false ? '<span class="muted">клиенты эту цель не видят, настройки сохранены</span>' : '') + '</div>') +
+      '<div class="pd-cards">';
     PD_CARDS.forEach(function(c){
-      var open = PD.open === c.key;
+      var open = mine && PD.open === c.key;
       var title = c.key === 'equip' ? 'Оснащение для ' + purposeGen(cur.code) : c.title;
-      html += '<div class="sc' + (open ? ' open' : '') + '" data-sec="pd-' + c.key + '">' +
+      html += '<div class="sc' + (open ? ' open' : '') + '" data-sec="pd' + i + '-' + c.key + '">' +
         '<div class="sc-h"><span class="sc-t">' + esc(title) + '</span>' + pdChip(c.key, cur) +
           (open ? '' : '<button class="btn ghost small" type="button" data-pd-edit="' + c.key + '">Изменить</button>') + '</div>' +
         '<div class="sc-sum">' + pdSummary(c.key, h, cur) + '</div>' +
@@ -2801,52 +2809,75 @@
             '<button type="button" class="btn primary pd-save">Сохранить</button></div></div>' : '') +
         '</div>';
     });
-    html += '</div>' + (cur._new ? '' : '<div class="pd-del-row"><button type="button" class="btn ghost small danger purp-del">Убрать назначение</button></div>');
+    var gridOn = PG.i === i && PG.code === cur.code;
+    html += '</div><div class="pd-del-row">' +
+      (!cur._new && gpRentApplies(cur.guestPricing) && !gridOn ? '<button type="button" class="linkish" data-pg-open>Цены по дням и часам →</button>' : '<span></span>') +
+      (cur._new ? '' : '<button type="button" class="btn ghost small danger purp-del">Убрать назначение</button>') + '</div>' +
+      '<div class="note purp-note"></div>';
     box.innerHTML = html;
 
-    box.querySelector('.purp-back').addEventListener('click', function(){ purpCancel(i); });
-    box.querySelectorAll('[data-pd-edit]').forEach(function(b){ b.addEventListener('click', function(){ pdOpen(i, cur, b.dataset.pdEdit); }); });
+    box.querySelectorAll('[data-pd-edit]').forEach(function(b){ b.addEventListener('click', function(){ pdOpen(i, cur.code, b.dataset.pdEdit); }); });
+    var pgo = box.querySelector('[data-pg-open]');
+    if(pgo) pgo.addEventListener('click', function(){
+      var prev = PG.i;
+      pgLoad(i, cur.code);
+      if(prev >= 0 && prev !== i){ renderHallPurposes(prev); renderHallPriceRules(prev); }
+      renderHallPurposes(i); renderHallPriceRules(i);
+      var g = document.querySelector('.hall-prules[data-i="' + i + '"]');
+      if(g && g.scrollIntoView) g.scrollIntoView({ block:'nearest', behavior: scReduced() ? 'auto' : 'smooth' });
+    });
+    var tg = box.querySelector('[data-purp-toggle]');
+    if(tg) tg.addEventListener('change', function(){
+      var othersOn = list.some(function(y){ return y !== cur && y.active !== false; });
+      if(!tg.checked && !othersOn && !confirm('Это последняя включённая цель — пространство перестанет быть доступно для брони. Выключить?')){ tg.checked = true; return; }
+      cur.active = tg.checked;
+      saveHallPurposes(i).then(function(){ renderHalls(); })
+        .catch(function(){ cur.active = !tg.checked; renderHalls(); });
+    });
     var del = box.querySelector('.purp-del');
     if(del) del.addEventListener('click', function(){
       if(!confirm('Убрать «' + purposeLabel(cur.code) + '» из пространства? Цена и настройки этой цели удалятся. Чтобы временно не сдавать — просто выключите её.')) return;
       list.splice(list.indexOf(cur), 1);
-      saveHallPurposes(i).then(function(){ PURP_SNAP = null; pgLoad(i, null); renderHalls(); hallFlash('Назначение убрано', true); }).catch(function(){});
+      if(PG.i === i){ PG.i = -1; PG.code = null; }
+      pdReset();
+      saveHallPurposes(i).then(function(){ renderHalls(); hallFlash('Назначение убрано', true); }).catch(function(){});
     });
-    if(!PD.open) return;
+    if(!mine || !PD.open) return;
     var body = box.querySelector('.pd-body');
     if(PD.open === 'price') pdPriceEditor(i, body, h, cur);
     else if(PD.open === 'terms') pdTermsEditor(i, body, h, cur);
     else pdEquipEditor(i, body, h, cur);
-    box.querySelector('.pd-cancel').addEventListener('click', function(){ pdCancel(i, cur); });
+    box.querySelector('.pd-cancel').addEventListener('click', function(){ pdCancel(false); });
     box.querySelector('.pd-save').addEventListener('click', function(){
       var btn = this; btn.disabled = true;
       saveHallPurposes(i).then(function(){
         var key = PD.open;
-        scAnimate('pd-' + key, function(){ PD = { open:null, snap:null, popMore:false, hi:-1 }; renderHalls(); });
+        scAnimate('pd' + i + '-' + key, function(){ pdReset(); renderHalls(); });
         hallFlash('Сохранено', true);
       }).catch(function(){ btn.disabled = false; });
     });
   }
-  function pdOpen(i, cur, key){
-    if(PD.open) pdCancel(i, cur, true);
-    var list = hallPurposes(hallsDraft[i]);
-    cur = list.filter(function(p){ return p.code === PG.code; })[0] || cur;
-    PD = { open:key, snap:JSON.stringify(cur), popMore:false, hi:-1 };
-    scAnimate('pd-' + key, function(){ renderHallPurposes(i); });
+  function pdReset(){ PD = { i:-1, code:null, open:null, snap:null, popMore:false, hi:-1 }; }
+  function pdOpen(i, code, key){
+    if(PD.open) pdCancel(true);
+    var cur = hallPurposes(hallsDraft[i]).filter(function(p){ return p.code === code; })[0];
+    if(!cur) return;
+    PD = { i:i, code:code, open:key, snap:JSON.stringify(cur), popMore:false, hi:-1 };
+    scAnimate('pd' + i + '-' + key, function(){ renderHallPurposes(i); });
   }
   // «Отмена» карточки: назначение — как было при открытии. Новая цель, которую
-  // ни разу не сохранили, при отмене цены просто убирается (как «Назад»).
-  function pdCancel(i, cur, quiet){
+  // ни разу не сохранили, при отмене просто убирается.
+  function pdCancel(quiet){
+    var i = PD.i, key = PD.open;
+    if(i < 0){ pdReset(); return; }
     var list = hallPurposes(hallsDraft[i]);
-    var now = list.filter(function(p){ return p.code === PG.code; })[0];
-    if(now && now._new){ purpCancel(i); return; }
-    if(now && PD.snap){ list[list.indexOf(now)] = JSON.parse(PD.snap); }
-    var key = PD.open;
-    PD = { open:null, snap:null, popMore:false, hi:-1 };
+    var now = list.filter(function(p){ return p.code === PD.code; })[0];
+    if(now && now._new) list.splice(list.indexOf(now), 1);
+    else if(now && PD.snap) list[list.indexOf(now)] = JSON.parse(PD.snap);
+    pdReset();
     if(quiet) return;
-    scAnimate('pd-' + key, function(){ renderHallPurposes(i); renderHallPriceRules(i); });
+    scAnimate('pd' + i + '-' + key, function(){ renderHallPurposes(i); renderHallPriceRules(i); });
   }
-  function pdCurOf(i){ return hallPurposes(hallsDraft[i]).filter(function(p){ return p.code === PG.code; })[0]; }
 
   function pdPriceEditor(i, body, h, cur){
     body.innerHTML =
@@ -3015,33 +3046,21 @@
     q.addEventListener('blur', function(){ setTimeout(function(){ box.hidden = true; }, 120); });
   }
 
-  // Открыть цель на правку (или добавить новую). Снимок — чтобы «Отмена»
-  // вернула всё как было, в том числе убрала недосохранённую новую цель.
+  // Добавить цель: новая (ещё не сохранённая) цель сразу с открытой «Ценой»;
+  // «Отмена» её убирает.
   var PURP_SNAP = null;
-  function purpOpen(i, code, isNew){
-    if(PURP_SNAP && PG.i >= 0 && PG.code) purpCancel(PG.i);
+  function purpOpen(i, code){
+    if(PD.open) pdCancel(true);
     var h = hallsDraft[i];
-    PURP_SNAP = { i:i, purposes:clone(hallPurposes(h)) };
-    if(isNew && !hallPurposes(h).some(function(p){ return p.code === code; })){
+    if(!hallPurposes(h).some(function(p){ return p.code === code; })){
       hallPurposes(h).push({ code:code, rate:null, minBookingMin:null, capacity:null, equipment:[], equipmentQty:{}, extras:[], priceRules:null, active:true, _new:true });
     }
-    PD = { open: isNew ? 'price' : null, snap:null, popMore:false, hi:-1 };
-    if(isNew) PD.snap = JSON.stringify(hallPurposes(h).filter(function(p){ return p.code === code; })[0]);
-    pgLoad(i, code);
-    renderHallPurposes(i);
-    renderHallPriceRules(i);
-    loadEqCatalog().then(function(){ if(PG.i === i && PG.code === code) renderHallPurposes(i); });
-    loadDict('equipment').then(function(){ if(PG.i === i && PG.code === code) renderHallPurposes(i); });
-    var box = document.querySelector('.hall-purposes[data-i="' + i + '"]');
-    if(box && box.scrollIntoView) box.scrollIntoView({ block:'start', behavior:'smooth' });
-  }
-  function purpCancel(i){
-    if(PURP_SNAP && PURP_SNAP.i === i) hallsDraft[i].purposes = PURP_SNAP.purposes;
-    PURP_SNAP = null;
-    PD = { open:null, snap:null, popMore:false, hi:-1 };
-    pgLoad(i, null);
-    renderHallPurposes(i);
-    renderHallPriceRules(i);
+    PTAB[i] = code;
+    var cur = hallPurposes(h).filter(function(p){ return p.code === code; })[0];
+    PD = { i:i, code:code, open:'price', snap:JSON.stringify(cur), popMore:false, hi:-1 };
+    scAnimate('pd' + i + '-price', function(){ renderHallPurposes(i); renderHallPriceRules(i); });
+    loadEqCatalog();
+    loadDict('equipment');
   }
 
   // Назначения уезжают своим запросом (как тарифы и пакеты): внутри них лежат
@@ -3055,7 +3074,7 @@
     var bad = null, badSel = null;
     hallPurposes(h).forEach(function(p){
       if(bad) return;
-      var open = PG.code === p.code;   // поле подсветим, только если открыт именно этот экран
+      var open = PD.i === i && PD.code === p.code;   // поле подсветим, только если открыта эта цель
       var at = '«' + purposeLabel(p.code) + '»';
       var onlyPeople = !gpRentApplies(p.guestPricing), ge = gpError(p.guestPricing);
       if(ge) bad = at + ': ' + ge;
@@ -3388,6 +3407,7 @@
       g.appendChild(card);
       renderHallPurposes(i);
       renderHallPriceRules(i);
+      if(!EQ_CAT) loadEqCatalog().then(function(){ renderHallPurposes(i); });
     });
     g.querySelectorAll('[data-pk]').forEach(function(b){
       b.addEventListener('click', function(){
