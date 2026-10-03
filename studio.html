@@ -430,7 +430,6 @@
   .pd-head{padding:4px 0 12px;}
   .pd{border-top:1px solid var(--line);}
   .pd .fr:first-child{border-top:none;}
-  .pd-gp{padding:12px 0;border-top:1px solid var(--line);}
   .pd-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:14px;margin-top:4px;}
   .pd-foot .purp-note{margin-left:8px;}
   .fr-pair-add{grid-template-columns:minmax(0,1fr) auto;}
@@ -454,7 +453,15 @@
   .pd-edit{padding:4px 16px 16px;}
   .pd-foot{display:flex;align-items:center;justify-content:flex-end;gap:8px;border-top:1px solid var(--line);padding-top:12px;margin-top:4px;}
   .pd-foot .purp-note{margin:0 auto 0 0;}
-  .pd-gp{padding:12px 0 4px;border-top:1px solid var(--line);}
+  .pd-gp{padding:4px 0 4px;border-top:1px solid var(--line);}
+  .pd-gp .gp-calc{margin-top:12px;}
+  .pp-tiers{display:flex;flex-direction:column;}
+  .pp-tier{display:flex;align-items:center;flex-wrap:wrap;gap:6px 14px;padding:6px 0;border-top:1px solid var(--line);}
+  .pp-tier:first-child{border-top:none;padding-top:0;}
+  .pp-who{width:150px;flex:none;display:inline-flex;align-items:center;gap:8px;}
+  .pp-from{width:64px;padding:6px 10px;}
+  .fr-unit > span:first-child:not(:last-child):not(.fr-num){color:var(--text-2);}
+  #wzBody .gp-step{display:inline-flex;}
   .pd-del-row{margin-top:4px;}
   .linkish{background:none;border:none;padding:0;font:inherit;font-size:var(--fs-sm);color:var(--accent-dark);cursor:pointer;}
   .linkish:hover{text-decoration:underline;}
@@ -1947,116 +1954,49 @@
   }
   // Проверка перед сохранением — те же правила, что guestPricingError на сервере.
   function gpError(g){
+    gpError.sel = null;
     if(!g) return null;
     if(g.mode === 'extra'){
-      if(!(Number.isInteger(g.included) && g.included >= 1 && g.included <= 1000)) return 'сколько гостей входит в цену — от 1 до 1000';
-      if(!(g.price > 0 && g.price <= 100000)) return 'укажите доплату за гостя';
+      if(!(Number.isInteger(g.included) && g.included >= 1 && g.included <= 1000)){ gpError.sel = '[data-gp="included"]'; return 'сколько гостей входит в цену — от 1 до 1000'; }
+      if(!(g.price > 0 && g.price <= 100000)){ gpError.sel = '[data-gp="price"]'; return 'укажите доплату за гостя'; }
       return null;
     }
     for(var k = 0; k < g.tiers.length; k++){
       var t = g.tiers[k];
-      if(!(Number.isInteger(t.from) && t.from >= 1)) return 'ступень цены за гостя — число людей от 1';
-      if(k > 0 && t.from <= g.tiers[k-1].from) return 'ступени — по возрастанию числа людей';
-      if(!(t.price >= 0 && t.price <= 100000)) return 'укажите цену за гостя в каждой ступени';
+      if(!(Number.isInteger(t.from) && t.from >= 1)){ gpError.sel = '[data-gp="tf"][data-k="' + k + '"]'; return 'ступень цены за гостя — число людей от 1'; }
+      if(k > 0 && t.from <= g.tiers[k-1].from){ gpError.sel = '[data-gp="tf"][data-k="' + k + '"]'; return 'ступени — по возрастанию числа людей'; }
+      if(!(t.price >= 0 && t.price <= 100000)){ gpError.sel = '[data-gp="tp"][data-k="' + k + '"]'; return 'укажите цену за гостя в каждой ступени'; }
     }
     return null;
   }
   var GP_CALC = { people:3, hours:2 };
-  // Блок «Цена за гостей» внутри редактора цели. Пишет прямо в cur.guestPricing
-  // (черновик цели) — сохраняется общей кнопкой «Сохранить» цели.
-  function renderGuestPricing(box, cur, onRate){
-    var g = cur.guestPricing;
-    var seg = function(cls, opts, val){
-      return '<span class="seg ' + cls + '">' + opts.map(function(o){
-        return '<button type="button" data-v="' + o[0] + '"' + (String(val) === o[0] ? ' class="on"' : '') + '>' + o[1] + '</button>'; }).join('') + '</span>';
-    };
-    var html = '<div class="gp-head"><div class="about-f-t" style="margin:0">Цена за гостей</div>' +
-      seg('gp-mode', [['none','Не влияет'],['extra','Доплата сверх лимита'],['perPerson','Цена за каждого']], g ? g.mode : 'none') + '</div>';
-    if(!g){
-      html += '<div class="muted">Сейчас число людей в брони на цену не влияет.</div>';
-    } else if(g.mode === 'extra'){
-      html += '<div class="gp-row"><span>В цену входит</span><span class="unitwrap"><input class="num gp-in" data-f="included" inputmode="numeric" value="' + esc(g.included) + '"><span class="u">гостей</span></span></div>' +
-        '<div class="gp-row"><span>Каждый следующий</span><span class="unitwrap">+ <input class="num gp-in" data-f="price" inputmode="decimal" value="' + esc(gpMoney(g.price || 0)) + '"><span class="u">' + CUR + '</span></span>' +
-          seg('gp-unit', [['booking','за бронь'],['hour','за час']], g.unit) + '</div>';
-    } else {
-      html += '<div class="gp-row"><span>Аренда пространства</span>' + seg('gp-rent', [['1','плюс аренда'],['0','только за людей']], g.withRent === false ? '0' : '1') + '</div>' +
-        '<div class="gp-tiers">' + g.tiers.map(function(t, k){
-          var last = k === g.tiers.length - 1;
-          var who = k === 0 ? '<b>' + (g.tiers.length > 1 && g.tiers[1].from === 2 ? '1 гость' : 'от 1 гостя') + '</b>'
-            : 'от <input class="num gp-tf" data-k="' + k + '" inputmode="numeric" value="' + esc(t.from) + '"> гостей';
-          return '<div class="gp-tier"><span class="gp-who">' + who + '</span>' +
-            '<span class="unitwrap"><input class="num gp-tp" data-k="' + k + '" inputmode="decimal" value="' + esc(gpMoney(t.price)) + '"><span class="u">' + CUR + ' за каждого</span></span>' +
-            (k > 0 ? '<button class="bk-del gp-del" type="button" data-k="' + k + '" aria-label="Убрать ступень">×</button>' : '') + '</div>';
-        }).join('') + '</div>' +
-        (g.tiers.length < 8 ? '<button class="linkish gp-add" type="button">+ Ступень</button>' : '') +
-        '<div class="gp-row"><span>Считать</span>' + seg('gp-unit', [['hour','за час'],['booking','за бронь']], g.unit) + '</div>';
+  // Калькулятор «пример»: как цена зависит от числа гостей и часов. Рисуется в
+  // c (.gp-calc) по черновику цели.
+  function gpFillCalc(c, cur){
+    var g = cur.guestPricing; if(!c || !g) return;
+    var rate = typeof cur.rate === 'number' ? cur.rate : 0, h = GP_CALC.hours, n = GP_CALC.people;
+    var rent = gpRentApplies(g) ? rate * h : 0, guests = gpCharge(g, n, h);
+    var guestWhy = g.mode === 'extra'
+      ? (n > g.included ? (n - g.included) + ' × ' + gpMoney(g.price) + (g.unit === 'hour' ? ' × ' + h + ' ч' : '') : 'в пределах ' + g.included)
+      : (function(){ var pr = g.tiers[0].price; g.tiers.forEach(function(t){ if(n >= t.from) pr = t.price; });
+          return n + ' × ' + gpMoney(pr) + (g.unit === 'hour' ? ' × ' + h + ' ч' : ''); })();
+    c.querySelector('.gp-lines').innerHTML =
+      (gpRentApplies(g) ? '<div><span>Аренда · ' + h + ' ч × ' + gpMoney(rate) + '</span><b>' + gpMoney(rent) + ' ' + CUR + '</b></div>' : '<div><span>Аренда</span><b>не берётся</b></div>') +
+      '<div><span>Гости · ' + esc(guestWhy) + '</span><b>' + gpMoney(guests) + ' ' + CUR + '</b></div>' +
+      '<div class="gp-total"><span>Итого</span><b>' + gpMoney(rent + guests) + ' ' + CUR + '</b></div>';
+    // Таблица «сколько людей → итог» за те же часы: видно, где цена меняется.
+    var maxN = Math.min(12, Math.max(6, g.mode === 'extra' ? (g.included || 0) + 3 : g.tiers[g.tiers.length - 1].from + 2));
+    var cells = '';
+    for(var k = 1; k <= maxN; k++){
+      cells += '<div class="gp-cell' + (k === n ? ' on' : '') + '"><span>' + k + '</span><b>' + gpMoney((gpRentApplies(g) ? rate * h : 0) + gpCharge(g, k, h)) + '</b></div>';
     }
-    if(g){
-      html += '<div class="gp-calc"><div class="gp-calc-in">Пример: ' +
-          '<span class="gp-step"><button type="button" data-c="people" data-d="-1">−</button><b>' + esc(gpGuests(GP_CALC.people)) + '</b><button type="button" data-c="people" data-d="1">+</button></span>' +
-          '<span class="gp-step"><button type="button" data-c="hours" data-d="-1">−</button><b>' + GP_CALC.hours + ' ч</b><button type="button" data-c="hours" data-d="1">+</button></span></div>' +
-        '<div class="gp-lines"></div><div class="gp-table"></div></div>';
-    }
-    box.innerHTML = html;
-    function calc(){
-      var c = box.querySelector('.gp-calc'); if(!c) return;
-      var rate = typeof cur.rate === 'number' ? cur.rate : 0, h = GP_CALC.hours, n = GP_CALC.people;
-      var rent = gpRentApplies(g) ? rate * h : 0, guests = gpCharge(g, n, h);
-      var guestWhy = g.mode === 'extra'
-        ? (n > g.included ? (n - g.included) + ' × ' + gpMoney(g.price) + (g.unit === 'hour' ? ' × ' + h + ' ч' : '') : 'в пределах ' + g.included)
-        : (function(){ var pr = g.tiers[0].price; g.tiers.forEach(function(t){ if(n >= t.from) pr = t.price; });
-            return n + ' × ' + gpMoney(pr) + (g.unit === 'hour' ? ' × ' + h + ' ч' : ''); })();
-      c.querySelector('.gp-lines').innerHTML =
-        (gpRentApplies(g) ? '<div><span>Аренда · ' + h + ' ч × ' + gpMoney(rate) + '</span><b>' + gpMoney(rent) + ' ' + CUR + '</b></div>' : '<div><span>Аренда</span><b>не берётся</b></div>') +
-        '<div><span>Гости · ' + esc(guestWhy) + '</span><b>' + gpMoney(guests) + ' ' + CUR + '</b></div>' +
-        '<div class="gp-total"><span>Итого</span><b>' + gpMoney(rent + guests) + ' ' + CUR + '</b></div>';
-      // Таблица «сколько людей → итог» за те же часы: видно, где цена меняется.
-      var maxN = Math.max(6, g.mode === 'extra' ? g.included + 3 : g.tiers[g.tiers.length - 1].from + 2);
-      maxN = Math.min(maxN, 12);
-      var cells = '';
-      for(var k = 1; k <= maxN; k++){
-        cells += '<div class="gp-cell' + (k === n ? ' on' : '') + '"><span>' + k + '</span><b>' + gpMoney((gpRentApplies(g) ? rate * h : 0) + gpCharge(g, k, h)) + '</b></div>';
-      }
-      c.querySelector('.gp-table').innerHTML = '<div class="gp-table-t">Итог за ' + h + ' ч при разном числе гостей, ' + CUR + '</div><div class="gp-cells">' + cells + '</div>';
-      if(onRate) onRate(!gpRentApplies(g));
-    }
-    box.querySelectorAll('.seg button').forEach(function(b){
-      b.addEventListener('click', function(){
-        var sg = b.parentNode, v = b.dataset.v;
-        if(sg.classList.contains('gp-mode')){
-          if(v === 'none') cur.guestPricing = null;
-          else if(!g || g.mode !== v){
-            cur.guestPricing = v === 'extra'
-              ? { mode:'extra', unit:'booking', included: Number.isInteger(cur.capacity) ? Math.min(4, cur.capacity) : 4, price: 5 }
-              : { mode:'perPerson', unit:'hour', withRent:true, tiers:[{ from:1, price:10 }, { from:2, price:7.5 }, { from:3, price:5 }] };
-          }
-        } else if(sg.classList.contains('gp-unit')) g.unit = v;
-        else if(sg.classList.contains('gp-rent')) g.withRent = v === '1';
-        renderGuestPricing(box, cur, onRate);
-      });
-    });
-    box.querySelectorAll('.gp-in').forEach(function(inp){
-      inp.addEventListener('input', function(){
-        g[inp.dataset.f] = inp.dataset.f === 'included' ? parseInt(inp.value, 10) : gpNum(inp.value); calc();
-      });
-    });
-    box.querySelectorAll('.gp-tp').forEach(function(inp){ inp.addEventListener('input', function(){ g.tiers[+inp.dataset.k].price = gpNum(inp.value); calc(); }); });
-    box.querySelectorAll('.gp-tf').forEach(function(inp){ inp.addEventListener('input', function(){ g.tiers[+inp.dataset.k].from = parseInt(inp.value, 10); calc(); }); });
-    box.querySelectorAll('.gp-del').forEach(function(b){ b.addEventListener('click', function(){ g.tiers.splice(+b.dataset.k, 1); renderGuestPricing(box, cur, onRate); }); });
-    var add = box.querySelector('.gp-add');
-    if(add) add.addEventListener('click', function(){
-      var last = g.tiers[g.tiers.length - 1];
-      g.tiers.push({ from:(last.from || 1) + 1, price: Math.max(0, (last.price || 0)) });
-      renderGuestPricing(box, cur, onRate);
-    });
-    box.querySelectorAll('[data-c]').forEach(function(b){
-      b.addEventListener('click', function(){
-        var k = b.dataset.c, d = +b.dataset.d;
-        GP_CALC[k] = Math.max(1, Math.min(k === 'hours' ? 8 : 50, GP_CALC[k] + d));
-        renderGuestPricing(box, cur, onRate);
-      });
-    });
-    if(g) calc(); else if(onRate) onRate(false);
+    c.querySelector('.gp-table').innerHTML = '<div class="gp-table-t">Итог за ' + h + ' ч при разном числе гостей, ' + CUR + '</div><div class="gp-cells">' + cells + '</div>';
+  }
+  function gpCalcHtml(){
+    return '<div class="gp-calc"><div class="gp-calc-in">Пример: ' +
+        '<span class="gp-step"><button type="button" data-c="people" data-d="-1" aria-label="Меньше гостей">−</button><b>' + esc(gpGuests(GP_CALC.people)) + '</b><button type="button" data-c="people" data-d="1" aria-label="Больше гостей">+</button></span>' +
+        '<span class="gp-step"><button type="button" data-c="hours" data-d="-1" aria-label="Меньше часов">−</button><b>' + GP_CALC.hours + ' ч</b><button type="button" data-c="hours" data-d="1" aria-label="Больше часов">+</button></span></div>' +
+      '<div class="gp-lines"></div><div class="gp-table"></div></div>';
   }
 
   function purposeMetaLine(h, p){
@@ -2757,9 +2697,15 @@
   function pdSummary(key, h, cur){
     var onlyPeople = !gpRentApplies(cur.guestPricing);
     if(key === 'price'){
-      var parts = [];
-      if(!onlyPeople) parts.push(typeof cur.rate === 'number' && isFinite(cur.rate) ? cur.rate + ' ' + CUR + '/ч' : '<span class="sc-empty">цена не указана</span>');
-      parts.push(cur.guestPricing ? esc(gpSummary(cur.guestPricing)) : 'число гостей на цену не влияет');
+      var g = cur.guestPricing, parts = [];
+      var rateTxt = typeof cur.rate === 'number' && isFinite(cur.rate) ? cur.rate + ' ' + CUR + '/ч' : '<span class="sc-empty">цена не указана</span>';
+      if(g && g.mode === 'perPerson'){
+        parts.push('за человека: ' + esc(g.tiers.map(function(t){ return gpMoney(t.price); }).join(' / ')) + ' ' + CUR + (g.unit === 'hour' ? ' в час' : ' за бронь'));
+        parts.push(onlyPeople ? 'без аренды' : 'плюс аренда ' + rateTxt);
+      } else {
+        parts.push(rateTxt);
+        if(g) parts.push(esc(gpSummary(g)));
+      }
       parts.push('до ' + (Number.isInteger(cur.capacity) ? cur.capacity : h.capacity) + ' чел.');
       if(!onlyPeople && Array.isArray(cur.priceRules) && cur.priceRules.length) parts.push('цены по дням и часам — в сетке ниже');
       return parts.join(' · ');
@@ -2879,30 +2825,99 @@
     scAnimate('pd' + i + '-' + key, function(){ renderHallPurposes(i); renderHallPriceRules(i); });
   }
 
+  // «Цена»: первым выбирается, как считаем — за час или за человека; под выбором
+  // только то, что к этому способу относится.
+  //   За час:     цена за час · лимит гостей · [доплата за гостей сверх лимита]
+  //   За человека: [плюс аренда → цена за час] · ступени цены за гостя · считать за час/бронь · лимит
+  // В данных это guestPricing: «за час» — null или {mode:'extra'}, «за человека» —
+  // {mode:'perPerson'}. Переключение туда-обратно не теряет введённое (PD.memo).
   function pdPriceEditor(i, body, h, cur){
-    body.innerHTML =
-      frow('Цена за час', frNum('', cur.rate != null ? cur.rate : '', CUR + '/ч', ' type="number" min="1" step="1" data-f="rate" placeholder="обязательно"', 'purp-f purp-rate'),
-        { req:true, hint:'Цены по дням и часам — в сетке ниже' }) +
-      // Лимит людей живёт рядом с ценой за гостей: «в цену входит N», «доплата
-      // сверх» и «максимум» — одна и та же шкала.
-      frow('Лимит гостей', frNum('', cur.capacity != null ? cur.capacity : '', 'чел.', ' type="number" min="1" max="1000" step="1" data-f="capacity" placeholder="' + esc(h.capacity) + '"', 'purp-f'),
-        { hint:'Больше людей клиент выбрать не сможет. Пусто — как у пространства' }) +
-      '<div class="pd-gp"><div class="gp"></div></div>';
-    renderGuestPricing(body.querySelector('.gp'), cur, function(onlyPeople){
-      var r = body.querySelector('.purp-rate');
-      if(!r) return;
-      r.disabled = onlyPeople;
-      r.placeholder = onlyPeople ? 'не нужна' : 'обязательно';
-      if(onlyPeople){ r.value = ''; cur.rate = null; }
-      renderHallPriceRules(i);
+    var g = cur.guestPricing, person = !!g && g.mode === 'perPerson', extra = !!g && g.mode === 'extra';
+    var rentOn = gpRentApplies(g);
+    var cap = Number.isInteger(cur.capacity) ? cur.capacity : h.capacity;
+    PD.memo = PD.memo || {};
+    var rateRow = function(){
+      return frow('Цена за час', frNum('', cur.rate != null ? cur.rate : '', CUR + '/ч', ' type="number" min="1" step="1" data-f="rate" placeholder="обязательно"', 'purp-f purp-rate'),
+        { req:true, hint:'Цены по дням и часам — в сетке ниже' });
+    };
+    var capRow = function(){
+      return frow('Лимит гостей', frNum('', cur.capacity != null ? cur.capacity : '', 'чел.', ' type="number" min="1" max="1000" step="1" data-f="capacity" placeholder="' + esc(h.capacity) + '"', 'purp-f'),
+        { hint:'Больше людей клиент выбрать не сможет. Пусто — как у пространства' });
+    };
+    var html = frow('Как считаем цену', frSeg('pdMode', [['hour','За час'],['person','За человека']], person ? 'person' : 'hour'),
+      { hint: person ? 'Каждый гость платит свою цену' : 'Одна цена за час аренды' });
+    if(!person){
+      html += rateRow() + capRow() +
+        frow('Доплата за гостей', frSeg('pdExtra', [['0','Нет'],['1','Сверх лимита']], extra ? '1' : '0'),
+          { hint: extra ? '' : 'Гости сверх входящих в цену платят отдельно' });
+      if(extra){
+        html += frow('В цену входит', frNum('', g.included, 'гостей', ' type="number" min="1" max="1000" data-gp="included"'), { hint:'Остальные — с доплатой' }) +
+          frow('Каждый следующий', '<span class="fr-hours"><span class="fr-unit"><span>+</span><input class="fr-in fr-num" type="text" inputmode="decimal" data-gp="price" value="' + esc(gpMoney(g.price || 0)) + '"><span>' + CUR + '</span></span>' +
+            frSeg('pdUnit', [['booking','за бронь'],['hour','за час']], g.unit) + '</span>');
+      }
+    } else {
+      html += frow('Аренда пространства', frSeg('pdRent', [['0','Только за людей'],['1','Плюс аренда']], rentOn ? '1' : '0'),
+        { hint: rentOn ? 'Цена за час плюс цена за каждого гостя' : 'Часовой цены нет — платят только гости' });
+      if(rentOn) html += rateRow();
+      html += frow('Цена за человека', '<div class="pp-tiers">' + g.tiers.map(function(t, k){
+          var who = k === 0 ? '<b>' + (g.tiers.length > 1 && g.tiers[1].from === 2 ? '1 гость' : 'от 1 гостя') + '</b>'
+            : 'от <input class="fr-in pp-from" type="text" inputmode="numeric" data-gp="tf" data-k="' + k + '" value="' + esc(t.from) + '"> гостей';
+          return '<div class="pp-tier"><span class="pp-who">' + who + '</span>' +
+            '<span class="fr-unit"><input class="fr-in fr-num" type="text" inputmode="decimal" data-gp="tp" data-k="' + k + '" value="' + esc(gpMoney(t.price)) + '"><span>' + CUR + ' за каждого</span></span>' +
+            (k > 0 ? '<button type="button" class="eq-x" data-gp-del="' + k + '" aria-label="Убрать ступень">×</button>' : '') + '</div>';
+        }).join('') + '</div>' + (g.tiers.length < 8 ? '<button type="button" class="linkish" data-gp-add>+ Ступень</button>' : ''),
+        { hint:'Чем больше гостей, тем дешевле можно сделать каждому' }) +
+        frow('Считать', frSeg('pdUnit', [['hour','за час'],['booking','за бронь']], g.unit), { hint:'«За час» умножает цену гостя на длительность' }) +
+        capRow();
+    }
+    if(g) html += '<div class="pd-gp">' + gpCalcHtml() + '</div>';
+    body.innerHTML = html;
+
+    var again = function(){ renderHallPurposes(i); renderHallPriceRules(i); };
+    var rerender = function(){ pdPriceEditor(i, body, h, cur); renderHallPriceRules(i); };
+    var memoPut = function(){ if(g) PD.memo[g.mode] = g; };
+    var segOf = function(id, fn){ var el = body.querySelector('#' + id); if(el) el.addEventListener('click', function(e){
+      var b = e.target.closest('button[data-v]'); if(!b) return; fn(b.dataset.v); }); };
+    segOf('pdMode', function(v){
+      if((v === 'person') === person) return;
+      memoPut();
+      if(v === 'person') cur.guestPricing = PD.memo.perPerson || { mode:'perPerson', unit:'hour', withRent:false, tiers:[{ from:1, price:10 }, { from:2, price:7.5 }, { from:3, price:5 }] };
+      else cur.guestPricing = PD.memo.extra || null;
+      rerender();
     });
-    body.querySelector('.purp-rate').addEventListener('input', function(){
+    segOf('pdExtra', function(v){
+      if((v === '1') === extra) return;
+      if(v === '1') cur.guestPricing = PD.memo.extra || { mode:'extra', unit:'booking', included: Math.max(1, Math.min(4, cap)), price:5 };
+      else { memoPut(); cur.guestPricing = null; }
+      rerender();
+    });
+    segOf('pdRent', function(v){ g.withRent = v === '1'; rerender(); });
+    segOf('pdUnit', function(v){ g.unit = v; rerender(); });
+    body.querySelectorAll('[data-gp-del]').forEach(function(b){ b.addEventListener('click', function(){ g.tiers.splice(+b.dataset.gpDel, 1); rerender(); }); });
+    var add = body.querySelector('[data-gp-add]');
+    if(add) add.addEventListener('click', function(){
+      var last = g.tiers[g.tiers.length - 1];
+      g.tiers.push({ from:(last.from || 1) + 1, price:Math.max(0, last.price || 0) }); rerender();
+    });
+    body.querySelectorAll('[data-c]').forEach(function(b){ b.addEventListener('click', function(){
+      var k = b.dataset.c, d = +b.dataset.d;
+      GP_CALC[k] = Math.max(1, Math.min(k === 'hours' ? 8 : 50, GP_CALC[k] + d));
+      rerender(); }); });
+    var calc = function(){ gpFillCalc(body.querySelector('.gp-calc'), cur); };
+    body.querySelectorAll('[data-gp]').forEach(function(inp){ inp.addEventListener('input', function(){
+      var f = inp.dataset.gp, k = +inp.dataset.k;
+      if(f === 'included') g.included = parseInt(inp.value, 10);
+      else if(f === 'price') g.price = gpNum(inp.value);
+      else if(f === 'tp') g.tiers[k].price = gpNum(inp.value);
+      else if(f === 'tf') g.tiers[k].from = parseInt(inp.value, 10);
+      calc(); }); });
+    var rt = body.querySelector('.purp-rate');
+    if(rt) rt.addEventListener('input', function(){
       var v = parseInt(this.value, 10); cur.rate = Number.isInteger(v) ? v : null;
-      renderHallPriceRules(i); renderGuestPricing(body.querySelector('.gp'), cur, null);
-    });
+      renderHallPriceRules(i); calc(); });
     body.querySelector('[data-f="capacity"]').addEventListener('input', function(){
-      var v = parseInt(this.value, 10); cur.capacity = Number.isInteger(v) ? v : null;
-    });
+      var v = parseInt(this.value, 10); cur.capacity = Number.isInteger(v) ? v : null; });
+    calc();
   }
   function pdTermsEditor(i, body, h, cur){
     var capNum = function(f, ph, unit){ return frNum('', cur[f] != null ? cur[f] : '', unit, ' type="number" min="1" max="1000" step="1" data-f="' + f + '" placeholder="' + esc(ph) + '"', 'purp-f'); };
@@ -3083,7 +3098,7 @@
       var open = PD.i === i && PD.code === p.code;   // поле подсветим, только если открыта эта цель
       var at = '«' + purposeLabel(p.code) + '»';
       var onlyPeople = !gpRentApplies(p.guestPricing), ge = gpError(p.guestPricing);
-      if(ge) bad = at + ': ' + ge;
+      if(ge){ bad = at + ': ' + ge; if(open) badSel = gpError.sel; }
       else if(!onlyPeople && !(typeof p.rate === 'number' && p.rate > 0 && p.rate <= 100000)) { bad = at + ': укажите цену за час'; if(open) badSel = '.purp-rate'; }
       else if(p.capacity != null && !(p.capacity >= 1 && p.capacity <= 1000)) { bad = at + ': вместимость — целое от 1 до 1000'; if(open) badSel = '[data-f="capacity"]'; }
       else if(p.minBookingMin != null && !(p.minBookingMin >= 30 && p.minBookingMin <= 480 && p.minBookingMin % 30 === 0)) {
