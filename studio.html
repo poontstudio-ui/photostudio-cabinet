@@ -2760,13 +2760,13 @@
       var parts = [];
       if(!onlyPeople) parts.push(typeof cur.rate === 'number' && isFinite(cur.rate) ? cur.rate + ' ' + CUR + '/ч' : '<span class="sc-empty">цена не указана</span>');
       parts.push(cur.guestPricing ? esc(gpSummary(cur.guestPricing)) : 'число гостей на цену не влияет');
+      parts.push('до ' + (Number.isInteger(cur.capacity) ? cur.capacity : h.capacity) + ' чел.');
       if(!onlyPeople && Array.isArray(cur.priceRules) && cur.priceRules.length) parts.push('цены по дням и часам — в сетке ниже');
       return parts.join(' · ');
     }
     if(key === 'terms'){
       var t = [];
       t.push(Number.isInteger(cur.minBookingMin) ? 'мин. ' + String(cur.minBookingMin / 60).replace('.', ',') + ' ч' : 'мин. бронь как у студии');
-      t.push('до ' + (Number.isInteger(cur.capacity) ? cur.capacity : h.capacity) + ' чел.');
       if(Number.isInteger(cur.standingCapacity)) t.push('стоя ' + cur.standingCapacity);
       if(Number.isInteger(cur.seatedCapacity)) t.push('сидя ' + cur.seatedCapacity);
       t.push(cur.autoConfirm == null ? 'подтверждение как у студии' : cur.autoConfirm ? 'подтверждение автоматически' : 'подтверждение вручную');
@@ -2883,6 +2883,10 @@
     body.innerHTML =
       frow('Цена за час', frNum('', cur.rate != null ? cur.rate : '', CUR + '/ч', ' type="number" min="1" step="1" data-f="rate" placeholder="обязательно"', 'purp-f purp-rate'),
         { req:true, hint:'Цены по дням и часам — в сетке ниже' }) +
+      // Лимит людей живёт рядом с ценой за гостей: «в цену входит N», «доплата
+      // сверх» и «максимум» — одна и та же шкала.
+      frow('Лимит гостей', frNum('', cur.capacity != null ? cur.capacity : '', 'чел.', ' type="number" min="1" max="1000" step="1" data-f="capacity" placeholder="' + esc(h.capacity) + '"', 'purp-f'),
+        { hint:'Больше людей клиент выбрать не сможет. Пусто — как у пространства' }) +
       '<div class="pd-gp"><div class="gp"></div></div>';
     renderGuestPricing(body.querySelector('.gp'), cur, function(onlyPeople){
       var r = body.querySelector('.purp-rate');
@@ -2896,12 +2900,14 @@
       var v = parseInt(this.value, 10); cur.rate = Number.isInteger(v) ? v : null;
       renderHallPriceRules(i); renderGuestPricing(body.querySelector('.gp'), cur, null);
     });
+    body.querySelector('[data-f="capacity"]').addEventListener('input', function(){
+      var v = parseInt(this.value, 10); cur.capacity = Number.isInteger(v) ? v : null;
+    });
   }
   function pdTermsEditor(i, body, h, cur){
     var capNum = function(f, ph, unit){ return frNum('', cur[f] != null ? cur[f] : '', unit, ' type="number" min="1" max="1000" step="1" data-f="' + f + '" placeholder="' + esc(ph) + '"', 'purp-f'); };
     body.innerHTML =
       frow('Минимальная бронь', frNum('', cur.minBookingMin != null ? cur.minBookingMin / 60 : '', 'ч', ' type="number" min="0.5" max="8" step="0.5" placeholder="как у студии"', 'purp-hours'), { hint:'Пусто — как у студии' }) +
-      frow('Вместимость', capNum('capacity', h.capacity, 'чел.'), { hint:'Пусто — как у пространства' }) +
       (cur.code === 'event' ? frow('Стоя и сидя', '<span class="fr-hours">' + capNum('standingCapacity', '—', 'стоя') + capNum('seatedCapacity', '—', 'сидя') + '</span>', { hint:'Клиент увидит их вместо площади' }) : '') +
       frow('Подтверждение брони', '<span class="seg fr-seg purp-autoconfirm">' +
           '<button type="button" data-ac="inherit"' + (cur.autoConfirm == null ? ' class="on"' : '') + '>Как у студии</button>' +
