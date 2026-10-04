@@ -324,46 +324,9 @@
     .bk-tl-axis{display:none;}
   }
   .hall-purposes{margin-top:14px;}
-  .hp-purp-t{font-size:var(--fs-sm);font-weight:600;color:var(--text-2);margin:4px 0 2px;}
   .hall-prules:not(:empty){margin-top:12px;}
-  .hp-pk{margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:var(--fs-sm);}
-  .hp-pk .hall-packages{margin-top:8px;}
   .hp-purp-hint{margin-top:8px;font-size:var(--fs-sm);color:var(--text-2);}
-  .purp-fields{display:flex;gap:10px 16px;flex-wrap:wrap;margin-top:12px;}
-  .purp-lbl{display:flex;flex-direction:column;gap:4px;font-size:var(--fs-sm);font-weight:600;color:var(--text-2);}
-  .purp-lbl input.num{width:110px;background:var(--bg);border:1px solid transparent;border-radius:var(--r-sm);padding:9px 10px;font:inherit;font-size:var(--fs-md);color:var(--text);}
-  .purp-lbl input.num:focus{outline:none;border-color:var(--blue);background:var(--surface);box-shadow:0 0 0 3px var(--blue-bg);}
   /* цена за гостей */
-  .gp{margin-top:16px;padding:14px;border:1px solid var(--line);border-radius:var(--r-md);}
-  .gp-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
-  .gp-head .seg button{font-size:var(--fs-sm);padding:6px 11px;}
-  .gp .seg button{font-size:var(--fs-sm);padding:5px 10px;}
-  .gp-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0;}
-  .gp-row > span:first-child{min-width:140px;color:var(--text-2);}
-  .gp input.num{width:72px;background:var(--bg);border:1px solid transparent;border-radius:var(--r-sm);padding:7px 9px;font:inherit;color:var(--text);}
-  .gp input.num:focus{outline:none;border-color:var(--blue);background:var(--surface);}
-  .gp-tiers{margin:4px 0;}
-  .gp-tier{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--line);flex-wrap:wrap;}
-  .gp-tier:first-child{border-top:none;}
-  .gp-who{min-width:140px;display:flex;align-items:center;gap:6px;}
-  .gp-who input.num{width:56px;}
-  .gp-calc{margin-top:12px;background:var(--surface-2);border-radius:var(--r-sm);padding:12px;}
-  .gp-calc-in{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:var(--fs-sm);color:var(--text-2);}
-  .gp-step{display:inline-flex;align-items:center;gap:8px;}
-  .gp-step button{width:26px;height:26px;border-radius:50%;border:1px solid var(--line-strong);background:var(--surface);cursor:pointer;font:inherit;line-height:1;}
-  .gp-step b{min-width:64px;text-align:center;color:var(--text);}
-  .gp-lines{margin-top:10px;font-size:var(--fs-sm);}
-  .gp-lines div{display:flex;justify-content:space-between;gap:10px;padding:3px 0;color:var(--text-2);}
-  .gp-lines b{color:var(--text);font-variant-numeric:tabular-nums;white-space:nowrap;}
-  .gp-lines .gp-total{border-top:1px solid var(--line);margin-top:4px;padding-top:6px;}
-  .gp-lines .gp-total span,.gp-lines .gp-total b{color:var(--text);font-weight:700;}
-  .gp-table{margin-top:12px;}
-  .gp-table-t{font-size:var(--fs-xs);color:var(--text-3);margin-bottom:6px;}
-  .gp-cells{display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:4px;}
-  .gp-cell{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:5px 4px;text-align:center;font-variant-numeric:tabular-nums;}
-  .gp-cell span{display:block;font-size:var(--fs-xs);color:var(--text-3);}
-  .gp-cell b{font-size:var(--fs-sm);}
-  .gp-cell.on{border-color:var(--blue);background:var(--blue-bg);}
 
   /* ---------- редактор раздела: та же карточка, строки «подпись | поле» ---------- */
   .sc{transition:border-color .15s,box-shadow .15s;}
@@ -427,53 +390,8 @@
   .hg-wrap{padding-top:6px;}
   .hg-wrap .hg-sum{border-top:1px solid var(--line);padding-top:12px;}
   @media (prefers-reduced-motion:reduce){ .hg-cell{transition:none;} }
-  .pd-head{padding:4px 0 12px;}
-  .pd{border-top:1px solid var(--line);}
-  .pd .fr:first-child{border-top:none;}
-  .pd-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:14px;margin-top:4px;}
-  .pd-foot .purp-note{margin-left:8px;}
   .fr-pair-add{grid-template-columns:minmax(0,1fr) auto;}
-  /* экран назначения — карточки и редактор оснащения (0055) */
-  .pt-tabs{margin:8px 0 12px;overflow-x:auto;scrollbar-width:none;}
-  .pt-tabs::-webkit-scrollbar{display:none;}
-  .pt-seg{display:inline-flex;}
-  .hall-purposes .pt-seg button{white-space:nowrap;padding:8px 16px;}
-  .pt-seg button small{font-size:var(--fs-xs);margin-left:6px;color:var(--text-3);font-weight:500;}
-  .pt-seg button.pt-none:not(.on),.pt-seg button.pt-off:not(.on){color:var(--text-3);}
-  @media(max-width:600px){
-    .pt-seg{display:flex;width:100%;}
-    .hall-purposes .pt-seg button{flex:1 1 0;min-width:0;padding:8px 2px;font-size:var(--fs-sm);line-height:1.2;}
-    .pt-seg button small{display:block;margin:2px 0 0;}
-  }
-  .pt-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-bottom:10px;font-size:var(--fs-sm);}
-  .pt-on{display:inline-flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:var(--fs-md);}
-  .pt-empty{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:16px;border:1px dashed var(--line-strong);border-radius:var(--r-md);color:var(--text-2);font-size:var(--fs-sm);}
-  .pd-del-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
-  .pd-cards{margin-top:0;}
-  .pd-edit{padding:4px 16px 16px;}
-  .pd-foot{display:flex;align-items:center;justify-content:flex-end;gap:8px;border-top:1px solid var(--line);padding-top:12px;margin-top:4px;}
-  .pd-foot .purp-note{margin:0 auto 0 0;}
-  .pd-gp{padding:4px 0 4px;border-top:1px solid var(--line);}
-  .pd-gp .gp-calc{margin-top:12px;}
-  .pp-tiers{display:flex;flex-direction:column;}
-  .pp-tier{display:flex;align-items:center;flex-wrap:wrap;gap:6px 14px;padding:6px 0;border-top:1px solid var(--line);}
-  .pp-tier:first-child{border-top:none;padding-top:0;}
-  .pp-who{width:150px;flex:none;display:inline-flex;align-items:center;gap:8px;}
-  .pp-from{width:64px;padding:6px 10px;}
-  @media(max-width:600px){
-    /* ступень в одну строку: «от [2] гостей | [7,5] BYN ×» */
-    .pp-tier{flex-wrap:nowrap;gap:8px;}
-    .pp-who{width:122px;gap:6px;}
-    .pp-from{width:50px;padding:6px 8px;}
-    .pp-tier .fr-unit{gap:6px;min-width:0;}
-    .pp-tier .fr-unit .fr-num{width:68px;padding:8px;}
-    .pp-each{display:none;}
-    .pp-x-ph{width:26px;flex:none;}
-    .pp-tier .eq-x{flex:none;}
-  }
   .fr-unit > span:first-child:not(:last-child):not(.fr-num){color:var(--text-2);}
-  #wzBody .gp-step{display:inline-flex;}
-  .pd-del-row{margin-top:4px;}
   .linkish{background:none;border:none;padding:0;font:inherit;font-size:var(--fs-sm);color:var(--accent-dark);cursor:pointer;}
   .linkish:hover{text-decoration:underline;}
   .eq-blk{padding:12px 0;border-top:1px solid var(--line);}
@@ -509,6 +427,175 @@
   .eq-sg.own{color:var(--accent-dark);}
   .eq-sg[disabled]{color:var(--text-3);cursor:default;background:none;}
   @media(max-width:600px){ .pd-foot{flex-wrap:wrap;} .eq-step-ph{width:0;} }
+  /* ---------- назначения пространства: плитки + форма + предпросмотр (2026-10-04) ---------- */
+  .hall-purposes{--pm-t1:#d4e5fd;--pm-t2:#b9d4fb;--pm-t3:#9cc2f8;--pm-t4:#7eaff4;margin-top:18px;}
+  .pm-head{display:flex;align-items:baseline;justify-content:space-between;gap:6px 12px;flex-wrap:wrap;margin-bottom:10px;}
+  .pm-head b{font-size:var(--fs-md);}
+  .pm-head span{font-size:var(--fs-sm);color:var(--text-3);}
+  .pm-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}
+  .pm-tile{position:relative;text-align:left;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);padding:12px 12px 10px;cursor:pointer;
+    display:flex;flex-direction:column;gap:5px;min-width:0;font:inherit;color:inherit;transition:border-color .15s,box-shadow .15s;touch-action:manipulation;}
+  .pm-tile:hover{border-color:var(--line-strong);}
+  .pm-tile.sel{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg);}
+  .pm-tile.none{border-style:dashed;background:var(--surface-2);}
+  .pm-tile.off .pm-tile-p,.pm-tile.off .pm-tile-n{color:var(--text-3);}
+  .pm-tile-top{display:flex;align-items:center;gap:8px;}
+  .pm-ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none;background:var(--bg);color:var(--text);}
+  .pm-ic svg{width:17px;height:17px;}
+  .pm-ic.big{width:38px;height:38px;background:var(--accent-bg);color:var(--accent-dark);}
+  .pm-tile.none .pm-ic{color:var(--text-3);}
+  .pm-tile-n{font-weight:600;flex:1;min-width:0;}
+  .pm-pill{font-size:var(--fs-xs);font-weight:600;padding:2px 8px;border-radius:var(--r-pill);white-space:nowrap;}
+  .pm-pill.on{background:var(--green-bg);color:var(--green);}
+  .pm-pill.off{background:var(--bg);color:var(--text-3);}
+  .pm-pill.warn{background:var(--amber-bg);color:var(--amber);}
+  .pm-tile-p{font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
+  .pm-tile-m{font-size:var(--fs-sm);color:var(--text-2);overflow-wrap:anywhere;}
+  .pm-tile.none .pm-tile-p{color:var(--accent-dark);font-weight:500;}
+  .pm-dot{position:absolute;top:9px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--amber);}
+
+  .pm-work{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:28px;align-items:start;margin-top:18px;animation:scIn .2s ease-out;}
+  .pm-ed-h{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid var(--line);}
+  .pm-ed-h h3{margin:0;font-size:var(--fs-lg);flex:1;min-width:110px;}
+  .pm-ed-h .pm-pv-btn{display:none;}
+  .pm-seg button{white-space:nowrap;}
+  .pm-sw{display:inline-flex;align-items:center;gap:10px;cursor:pointer;font-size:var(--fs-sm);color:var(--text-2);user-select:none;}
+  .pm-sw input{appearance:none;-webkit-appearance:none;width:36px;height:22px;border-radius:var(--r-pill);background:var(--line-strong);position:relative;cursor:pointer;margin:0;flex:none;transition:background .15s;}
+  .pm-sw input::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--surface);box-shadow:0 1px 2px rgba(20,22,28,.25);transition:transform .15s;}
+  .pm-sw input:checked{background:var(--accent-soft);}
+  .pm-sw input:checked::after{transform:translateX(14px);background:var(--accent);box-shadow:none;}
+  .pm-sw input:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .pm-sw b{color:var(--text);font-weight:600;}
+  .pm-blk{padding:20px 0;border-bottom:1px solid var(--line);}
+  .pm-blk-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+  .pm-blk-h h4{margin:0;font-size:var(--fs-md);}
+  .pm-blk-h span{font-size:var(--fs-sm);color:var(--text-3);}
+  .pm-models{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:14px;}
+  .pm-model{text-align:left;border:1px solid var(--line-strong);border-radius:var(--r-md);background:var(--surface);padding:12px 14px;cursor:pointer;
+    display:grid;grid-template-columns:18px minmax(0,1fr);gap:3px 10px;font:inherit;color:inherit;touch-action:manipulation;}
+  .pm-model .pm-rd{grid-column:1;grid-row:1;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--line-strong);margin-top:1px;display:grid;place-items:center;}
+  .pm-model b{grid-column:2;font-weight:600;}
+  .pm-model > span:not(.pm-rd){grid-column:2;font-size:var(--fs-sm);color:var(--text-2);}
+  .pm-model .pm-eg{font-family:var(--f-mono);font-size:var(--fs-xs) !important;color:var(--text-3) !important;}
+  .pm-model.on{border-color:var(--accent);background:var(--accent-bg);}
+  .pm-model.on .pm-rd{border-color:var(--accent);}
+  .pm-model.on .pm-rd::after{content:'';width:8px;height:8px;border-radius:50%;background:var(--accent);}
+  .pm-model:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .pm-row{display:grid;grid-template-columns:170px minmax(0,1fr);gap:6px 18px;align-items:center;padding:8px 0;}
+  .pm-row-l{font-size:var(--fs-sm);color:var(--text-2);}
+  .pm-row-l small{display:block;font-size:var(--fs-xs);color:var(--text-3);line-height:1.35;margin-top:2px;}
+  .pm-row-c{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;min-width:0;}
+  .pm-row-c.nowrap{flex-wrap:nowrap;}
+  .pm-in{width:92px;padding:8px 10px;border:1px solid var(--line-strong);border-radius:var(--r-sm);background:var(--surface);font:inherit;font-size:var(--fs-md);color:var(--text);font-variant-numeric:tabular-nums;}
+  .pm-in.sm{width:60px;padding:7px 8px;}
+  .pm-in:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg);}
+  .pm-in.bad{border-color:var(--red);box-shadow:0 0 0 3px var(--red-bg);}
+  .pm-u{font-size:var(--fs-sm);color:var(--text-3);}
+  .pm-err{grid-column:2;font-size:var(--fs-sm);color:var(--red);margin-top:-2px;}
+  .pm-hint{grid-column:2;font-size:var(--fs-sm);color:var(--text-3);margin-top:-2px;}
+  .pm-sub{padding:2px 0 2px 16px;margin-left:2px;border-left:2px solid var(--accent-soft);}
+  .pm-seg button{font-size:var(--fs-sm);padding:6px 12px;}
+  .pm-scale-row{display:flex;flex-wrap:wrap;gap:4px;}
+  .pm-gd{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:10px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--text-2);}
+  .pm-gd.in{background:var(--accent-soft);color:var(--accent-dark);}
+  .pm-gd.paid{background:var(--surface);border:1px dashed var(--line-strong);}
+  .pm-gd.t1{background:var(--pm-t1);} .pm-gd.t2{background:var(--pm-t2);} .pm-gd.t3{background:var(--pm-t3);} .pm-gd.t4{background:var(--pm-t4);}
+  .pm-gd.t1,.pm-gd.t2,.pm-gd.t3,.pm-gd.t4{color:var(--text);}
+  .pm-scale-cap{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:8px;font-size:var(--fs-sm);color:var(--text-2);}
+  .pm-scale-cap span{display:inline-flex;align-items:center;gap:6px;}
+  .pm-scale-cap i,.pm-tier-who i{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none;}
+  .pm-scale-cap i.in{background:var(--accent-soft);} .pm-scale-cap i.paid{border:1px dashed var(--line-strong);}
+  i.t1{background:var(--pm-t1);} i.t2{background:var(--pm-t2);} i.t3{background:var(--pm-t3);} i.t4{background:var(--pm-t4);}
+  .pm-tiers{display:flex;flex-direction:column;gap:6px;width:100%;}
+  .pm-tier{display:grid;grid-template-columns:150px auto 28px;gap:10px;align-items:center;justify-content:start;}
+  .pm-tier-who{display:flex;align-items:center;gap:6px;font-size:var(--fs-sm);color:var(--text-2);}
+  .pm-tier-who b{color:var(--text);font-weight:600;}
+  .pm-tiers .pm-err{grid-column:1;}
+  .pm-summ{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap;width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface-2);}
+  .pm-summ span{font-size:var(--fs-sm);color:var(--text-2);}
+  .pm-summ b{color:var(--text);font-weight:600;}
+  .pm-grid{margin:4px 0 8px;}
+  .pm-pk{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .pm-pk-i{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-strong);border-radius:var(--r-sm);padding:4px 4px 4px 8px;}
+  .pm-pk-i.bad{border-color:var(--red);}
+  .pm-pk-i .pm-in{width:54px;padding:5px 7px;}
+  .pm-start{border:1px dashed var(--line-strong);border-radius:var(--r-md);padding:24px;margin-top:16px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px;background:var(--surface-2);}
+  .pm-start p{margin:0;color:var(--text-2);max-width:440px;}
+  .pm-foot{padding-top:16px;}
+  .linkish.danger{color:var(--red);}
+
+  /* предпросмотр */
+  .pm-pv{position:sticky;top:16px;}
+  .pm-pv-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
+  .pm-pv-h b{font-size:var(--fs-sm);}
+  .pm-pv-h span{font-size:var(--fs-xs);color:var(--text-3);}
+  .pm-phone{border:1px solid var(--line-strong);border-radius:26px;background:var(--bg);overflow:hidden;box-shadow:0 1px 2px rgba(20,22,28,.06),0 4px 14px rgba(20,22,28,.06);}
+  .pm-phone-in{max-height:620px;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;}
+  .pm-cl-hero{height:140px;flex:none;background:linear-gradient(160deg,#dfe3ea,#eef0f4) center/cover no-repeat;position:relative;}
+  .pm-cl-hero span{position:absolute;left:14px;bottom:10px;font-size:var(--fs-xs);color:var(--text-3);font-family:var(--f-mono);}
+  .pm-cl-body{padding:14px 14px 16px;display:flex;flex-direction:column;gap:14px;}
+  .pm-cl-name{font-size:var(--fs-xl);font-weight:700;line-height:1.2;}
+  .pm-cl-sub{font-size:var(--fs-sm);color:var(--text-2);margin-top:2px;}
+  .pm-cl-pur{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -14px;padding:0 14px;}
+  .pm-cl-pur::-webkit-scrollbar{display:none;}
+  .pm-cp{flex:none;display:flex;align-items:center;gap:8px;border:1px solid var(--line-strong);background:var(--surface);border-radius:var(--r-md);padding:7px 11px 7px 7px;cursor:pointer;text-align:left;font:inherit;color:inherit;}
+  .pm-cp .pm-ic{width:26px;height:26px;border-radius:8px;}
+  .pm-cp .pm-ic svg{width:15px;height:15px;}
+  .pm-cp b{display:block;font-size:var(--fs-sm);font-weight:600;line-height:1.2;}
+  .pm-cp small{display:block;font-size:var(--fs-xs);color:var(--text-3);font-variant-numeric:tabular-nums;}
+  .pm-cp.on{border-color:var(--accent);background:var(--accent-bg);}
+  .pm-cp.on .pm-ic{background:var(--surface);color:var(--accent-dark);}
+  .pm-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}
+  .pm-facts div{background:var(--surface);border-radius:var(--r-sm);padding:8px 10px;}
+  .pm-facts small{display:block;font-size:var(--fs-xs);color:var(--text-3);}
+  .pm-facts b{font-size:var(--fs-sm);font-weight:600;font-variant-numeric:tabular-nums;}
+  .pm-cl-sl{font-family:var(--f-mono);font-size:var(--fs-xs);letter-spacing:.12em;text-transform:uppercase;color:var(--text-2);margin-bottom:8px;}
+  .pm-price{background:var(--surface);border-radius:var(--r-md);padding:12px 14px;display:flex;flex-direction:column;gap:6px;}
+  .pm-price-big{font-size:var(--fs-lg);font-weight:700;font-variant-numeric:tabular-nums;}
+  .pm-price-big small{font-size:var(--fs-sm);font-weight:500;color:var(--text-2);}
+  .pm-price p{margin:0;font-size:var(--fs-sm);color:var(--text-2);}
+  .pm-ptiers{display:flex;flex-wrap:wrap;gap:6px;}
+  .pm-ptiers span{font-size:var(--fs-xs);background:var(--bg);border-radius:var(--r-pill);padding:3px 9px;font-variant-numeric:tabular-nums;color:var(--text-2);}
+  .pm-ptiers b{color:var(--text);}
+  .pm-ck{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 12px;}
+  .pm-ck li{position:relative;padding-left:18px;font-size:var(--fs-sm);overflow-wrap:anywhere;}
+  .pm-ck li::before{content:'✓';position:absolute;left:0;color:var(--text-2);}
+  .pm-ck li span{color:var(--text-3);white-space:nowrap;}
+  .pm-more{border:none;background:none;padding:8px 0 0;font:inherit;font-weight:600;font-size:var(--fs-sm);text-decoration:underline;cursor:pointer;color:var(--text);}
+  .pm-bar{position:sticky;bottom:0;margin-top:auto;background:var(--surface);border-top:1px solid var(--line);padding:10px 12px 12px;display:flex;flex-direction:column;gap:8px;box-shadow:0 -6px 24px rgba(20,22,28,.08);}
+  .pm-bar-ctl{display:flex;justify-content:space-between;gap:8px;}
+  .pm-bar-ctl span{display:flex;align-items:center;gap:7px;font-size:var(--fs-sm);color:var(--text-2);}
+  .pm-bar-ctl b{min-width:20px;text-align:center;color:var(--text);font-variant-numeric:tabular-nums;}
+  .pm-rb{width:28px;height:28px;border-radius:50%;border:1px solid var(--line-strong);background:var(--surface);color:var(--accent-dark);font-size:15px;line-height:1;cursor:pointer;touch-action:manipulation;}
+  .pm-rb:disabled{opacity:.45;cursor:default;}
+  .pm-bar-sum{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+  .pm-tot{font-size:var(--fs-xl);font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1;}
+  .pm-tot-b{font-size:var(--fs-xs);color:var(--text-3);font-variant-numeric:tabular-nums;margin-top:2px;}
+  .pm-go{background:var(--accent);color:#fff;border-radius:var(--r-sm);padding:10px 12px;font-weight:600;font-size:var(--fs-sm);white-space:nowrap;}
+  .pm-sheet{position:fixed;inset:0;z-index:60;background:rgba(20,22,28,.45);display:flex;align-items:flex-end;justify-content:center;}
+  .pm-sheet-in{width:100%;max-width:440px;max-height:92vh;display:flex;flex-direction:column;background:var(--bg);border-radius:var(--r-md) var(--r-md) 0 0;overflow:hidden;padding-bottom:env(safe-area-inset-bottom,0px);}
+  .pm-sheet-h{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--line);}
+  .pm-sheet .pm-phone-in{max-height:none;flex:1;}
+  .sv-bar-revert{flex:none;}
+  .pm-toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:70;background:var(--text);color:#fff;
+    padding:9px 16px;border-radius:var(--r-sm);font-size:var(--fs-sm);opacity:0;transition:opacity .2s;pointer-events:none;max-width:calc(100vw - 32px);text-align:center;}
+  .pm-toast.on{opacity:1;}
+  @media (max-width:1180px){
+    .pm-work{grid-template-columns:minmax(0,1fr);}
+    .pm-pv{display:none;}
+    .pm-ed-h .pm-pv-btn{display:inline-flex;}
+  }
+  @media (max-width:760px){
+    .pm-tiles{grid-template-columns:repeat(2,minmax(0,1fr));}
+    .pm-tile-top{flex-wrap:wrap;row-gap:6px;}
+    .pm-tile-top .pm-pill{order:3;}
+    .pm-models{grid-template-columns:minmax(0,1fr);}
+    .pm-row{grid-template-columns:minmax(0,1fr);gap:6px;}
+    .pm-err,.pm-hint{grid-column:1;}
+    .pm-tier{grid-template-columns:132px auto 28px;}
+    .pm-tier .pm-in.sm{width:46px;}
+  }
+  @media (prefers-reduced-motion:reduce){ .pm-work{animation:none;} .pm-tile,.pm-sw input,.pm-sw input::after{transition:none;} }
   .fr-more{margin-top:10px;}
   .fr-more[hidden]{display:none;}
   .fr-err{color:var(--red);font-size:var(--fs-sm);margin-top:6px;}
@@ -640,50 +727,12 @@
      стрелка), клик открывает её собственный экран редактирования, а не
      разворачивает поля тут же — тот же приём «список → отдельный экран»,
      что и у самих пространств (halls-list → визард), только на уровень глубже. */
-  .purp-list{display:flex;flex-direction:column;gap:8px;margin-bottom:8px;}
-  .purp-card{
-    display:flex;align-items:center;gap:12px;width:100%;text-align:left;
-    font:inherit;color:inherit;cursor:pointer;
-    background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);
-    padding:11px 13px;
-  }
-  .purp-card:hover{border-color:var(--border-strong);}
   /* Деактивировано — не удалено: карточка остаётся в списке, просто тусклая,
      клик по ней всё так же открывает редактирование (в т.ч. для обратного
      включения). */
-  .purp-card[data-active="false"]{opacity:.55;}
-  .purp-inactive-tag{
-    display:inline-block;margin-left:6px;font-size:var(--fs-xs);font-weight:400;
-    color:var(--text-3);border:1px solid var(--border-strong);border-radius:var(--r-pill);
-    padding:1px 7px;vertical-align:middle;
-  }
-  .purp-icon{
-    flex:0 0 auto;width:36px;height:36px;border-radius:50%;
-    background:var(--blue-bg);color:var(--blue-dark);
-    display:flex;align-items:center;justify-content:center;
-  }
-  .purp-icon svg{width:18px;height:18px;}
-  .purp-card-body{flex:1 1 auto;min-width:0;}
-  .purp-card-name{font-weight:600;font-size:var(--fs-md);display:block;}
-  .purp-card-meta{font-size:var(--fs-sm);color:var(--text-2);margin-top:2px;display:block;}
-  .purp-card-chev{flex:0 0 auto;color:var(--text-3);font-size:var(--fs-lg);}
   /* Пунктирная рамка — та же логика, что «+ Добавить зал», только со
      встроенным select: цель выбирают из фиксированного словаря, а не пишут
      руками. */
-  .purp-add-row{
-    display:flex;align-items:center;gap:8px;
-    border:1px dashed var(--border-strong);border-radius:var(--r-sm);padding:2px 13px;
-  }
-  .purp-add-plus{color:var(--text-2);font-weight:700;font-size:var(--fs-lg);}
-  .purp-add-row select{
-    flex:1 1 auto;border:none;background:none;font:inherit;font-size:var(--fs-md);
-    color:var(--blue);font-weight:600;padding:10px 0;cursor:pointer;
-  }
-  .purp-add-row select:focus{outline:none;}
-  .purp-detail-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
-  .purp-detail-title{display:flex;align-items:center;gap:10px;font-weight:700;font-size:var(--fs-lg);}
-  .purp-detail-title .purp-icon{width:32px;height:32px;}
-  .purp-detail-title .purp-icon svg{width:16px;height:16px;}
   .addr-suggest{position:absolute;left:0;right:0;top:calc(100% + 2px);z-index:20;
     background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--r-sm);
     box-shadow:var(--shadow);max-height:220px;overflow-y:auto;}
@@ -784,33 +833,9 @@
      иконка в квадрате, имя + мета, действие справа. Неактивные — приглушены,
      с быстрым «Активировать» вместо «Редактировать» (без захода в редактор). */
   .listing-purposes-t{font-size:var(--fs-sm);font-weight:600;color:var(--text-2);margin:18px 0 4px;}
-  .hcp-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);flex-wrap:wrap;}
-  .hcp-icon{width:38px;height:38px;flex:none;border-radius:var(--r-sm);border:1px solid var(--line);
-    display:flex;align-items:center;justify-content:center;color:var(--text-2);}
-  .hcp-icon svg{width:18px;height:18px;}
-  .hcp-row.off .hcp-icon{color:var(--text-3);border-color:var(--line);}
-  .hcp-body{flex:1;min-width:140px;}
-  .hcp-name{font-weight:600;color:var(--text);}
-  .hcp-row.off .hcp-name{color:var(--text-3);}
-  .hcp-meta{font-size:var(--fs-sm);color:var(--text-3);margin-top:2px;overflow-wrap:anywhere;}
-  .hcp-actions{display:flex;gap:8px;align-items:center;flex:none;}
-  .hcp-edit{border:none;background:none;color:var(--blue);font:inherit;font-size:var(--fs-sm);
-    cursor:pointer;padding:2px 0;}
-  .hcp-edit:hover{text-decoration:underline;}
   /* Тумблер «активно/деактивировано» — тот же приём переключателя, что и у
      чекбоксов формы (.row input[type=checkbox]), но не завязан на .row:
      здесь он живёт в строке действий рядом с «Редактировать», не в форме. */
-  .hcp-toggle{appearance:none;-webkit-appearance:none;flex:none;cursor:pointer;
-    width:36px;min-width:36px;height:22px;padding:0;margin:0;border:none;border-radius:var(--r-pill);
-    background:var(--border-strong);position:relative;transition:background .15s;}
-  .hcp-toggle::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;
-    border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(20,22,28,.25);transition:transform .15s;}
-  .hcp-toggle:checked{background:#c9ebd7;}
-  .hcp-toggle:checked::after{background:var(--green);box-shadow:none;}
-  .hcp-toggle:focus{box-shadow:none;}
-  .hcp-toggle:focus-visible{outline:2px solid var(--blue);outline-offset:2px;}
-  .hcp-toggle::after{transform:translateX(0);}
-  .hcp-toggle:checked::after{transform:translateX(14px);}
   @media (prefers-reduced-motion:reduce){ .hcp-toggle,.hcp-toggle::after{transition:none;} }
   @media(max-width:600px){
     .listing-head{flex-wrap:wrap;}
@@ -1620,6 +1645,7 @@
      папку с незакрытой правкой — кнопка не потерялась. -->
 <div class="sv-bar" id="svBar" hidden>
   <span class="sv-bar-text" id="svBarText">Есть несохранённые изменения</span>
+  <button class="btn ghost sv-bar-revert" id="svBarRevert" type="button" hidden>Отменить</button>
   <button class="btn primary sv-bar-btn" id="svBarBtn" type="button">Сохранить</button>
 </div>
 
@@ -1980,36 +2006,6 @@
     }
     return null;
   }
-  var GP_CALC = { people:3, hours:2 };
-  // Калькулятор «пример»: как цена зависит от числа гостей и часов. Рисуется в
-  // c (.gp-calc) по черновику цели.
-  function gpFillCalc(c, cur){
-    var g = cur.guestPricing; if(!c || !g) return;
-    var rate = typeof cur.rate === 'number' ? cur.rate : 0, h = GP_CALC.hours, n = GP_CALC.people;
-    var rent = gpRentApplies(g) ? rate * h : 0, guests = gpCharge(g, n, h);
-    var guestWhy = g.mode === 'extra'
-      ? (n > g.included ? (n - g.included) + ' × ' + gpMoney(g.price) + (g.unit === 'hour' ? ' × ' + h + ' ч' : '') : 'в пределах ' + g.included)
-      : (function(){ var pr = g.tiers[0].price; g.tiers.forEach(function(t){ if(n >= t.from) pr = t.price; });
-          return n + ' × ' + gpMoney(pr) + (g.unit === 'hour' ? ' × ' + h + ' ч' : ''); })();
-    c.querySelector('.gp-lines').innerHTML =
-      (gpRentApplies(g) ? '<div><span>Аренда · ' + h + ' ч × ' + gpMoney(rate) + '</span><b>' + gpMoney(rent) + ' ' + CUR + '</b></div>' : '<div><span>Аренда</span><b>не берётся</b></div>') +
-      '<div><span>Гости · ' + esc(guestWhy) + '</span><b>' + gpMoney(guests) + ' ' + CUR + '</b></div>' +
-      '<div class="gp-total"><span>Итого</span><b>' + gpMoney(rent + guests) + ' ' + CUR + '</b></div>';
-    // Таблица «сколько людей → итог» за те же часы: видно, где цена меняется.
-    var maxN = Math.min(12, Math.max(6, g.mode === 'extra' ? (g.included || 0) + 3 : g.tiers[g.tiers.length - 1].from + 2));
-    var cells = '';
-    for(var k = 1; k <= maxN; k++){
-      cells += '<div class="gp-cell' + (k === n ? ' on' : '') + '"><span>' + k + '</span><b>' + gpMoney((gpRentApplies(g) ? rate * h : 0) + gpCharge(g, k, h)) + '</b></div>';
-    }
-    c.querySelector('.gp-table').innerHTML = '<div class="gp-table-t">Итог за ' + h + ' ч при разном числе гостей, ' + CUR + '</div><div class="gp-cells">' + cells + '</div>';
-  }
-  function gpCalcHtml(){
-    return '<div class="gp-calc"><div class="gp-calc-in">Пример: ' +
-        '<span class="gp-step"><button type="button" data-c="people" data-d="-1" aria-label="Меньше гостей">−</button><b>' + esc(gpGuests(GP_CALC.people)) + '</b><button type="button" data-c="people" data-d="1" aria-label="Больше гостей">+</button></span>' +
-        '<span class="gp-step"><button type="button" data-c="hours" data-d="-1" aria-label="Меньше часов">−</button><b>' + GP_CALC.hours + ' ч</b><button type="button" data-c="hours" data-d="1" aria-label="Больше часов">+</button></span></div>' +
-      '<div class="gp-lines"></div><div class="gp-table"></div></div>';
-  }
-
   function purposeMetaLine(h, p){
     var hasOwnRate = typeof p.rate === 'number' && isFinite(p.rate);
     var hasRules = Array.isArray(p.priceRules) && p.priceRules.length > 0;
@@ -2213,7 +2209,8 @@
   // обратно — значит откатили руками, и это ничем не отличается от «ничего
   // не трогали».
   var SV = { snaps:{}, dirty:{}, savers:{} };
-  function svRegister(key, draftFn, saveFn){ SV.savers[key] = { draftFn:draftFn, saveFn:saveFn }; }
+  // opt.label() — что именно не сохранено (для текста плашки), opt.revert() — «Отменить».
+  function svRegister(key, draftFn, saveFn, opt){ SV.savers[key] = { draftFn:draftFn, saveFn:saveFn, label:opt && opt.label, revert:opt && opt.revert }; }
   function svSnap(key){
     var s = SV.savers[key];
     if(!s) return;
@@ -2233,6 +2230,9 @@
     var dirtyKeys = Object.keys(SV.dirty).filter(function(k){ return SV.dirty[k]; });
     var wasOn = !bar.hidden;
     bar.hidden = !dirtyKeys.length;
+    var labels = dirtyKeys.map(function(k){ return SV.savers[k].label ? SV.savers[k].label() : ''; });
+    $('svBarText').innerHTML = labels.length && labels.every(Boolean) ? 'Не сохранено: <b>' + esc(labels.join('; ')) + '</b>' : 'Есть несохранённые изменения';
+    $('svBarRevert').hidden = !(dirtyKeys.length && dirtyKeys.every(function(k){ return SV.savers[k].revert; }));
     if(!wasOn && !bar.hidden) bar.classList.add('sv-bar-in');
     if(bar.hidden) bar.classList.remove('sv-bar-in');
   }
@@ -2255,6 +2255,9 @@
     });
   }
   $('svBarBtn').addEventListener('click', svSaveAll);
+  $('svBarRevert').addEventListener('click', function(){
+    Object.keys(SV.dirty).filter(function(k){ return SV.dirty[k] && SV.savers[k].revert; }).forEach(function(k){ SV.savers[k].revert(); });
+  });
 
   var hallsDraft = [], equipDraft = [], hoursDraft = [];
   var settingsDraft = { autoConfirm:false, bufferMin:10, minBookingMin:60, cancelFreeHours:24,
@@ -2298,21 +2301,10 @@
     // с сервера, не попало в черновик и ушло обратно пустым, стерев текст.
     o.description = h.description || '';
     HALL_ABOUT_FIELDS.forEach(function(x){ o[x.f] = h[x.f] || ''; });
-    o.purposes = Array.isArray(h.purposes) ? h.purposes.map(function(p){
-      return { code:p.code, rate:p.rate, minBookingMin:p.minBookingMin, capacity:p.capacity,
-        standingCapacity:p.standingCapacity, seatedCapacity:p.seatedCapacity,
-        equipment:Array.isArray(p.equipment) ? p.equipment.slice() : [],
-        active:p.active !== false,
-        // autoConfirm: null — «как у студии» (0043), явное true/false — своё на цель.
-        autoConfirm: typeof p.autoConfirm === 'boolean' ? p.autoConfirm : null,
-        fullDayDiscountPct: Number.isInteger(p.fullDayDiscountPct) ? p.fullDayDiscountPct : null,
-        guestPricing: p.guestPricing ? JSON.parse(JSON.stringify(p.guestPricing)) : null,
-        equipmentQty: p.equipmentQty && typeof p.equipmentQty === 'object' ? Object.assign({}, p.equipmentQty) : {},
-        // старый текст «что ещё входит» (по строке на пункт) — теперь свои пункты
-        extras: (Array.isArray(p.extras) ? p.extras.map(function(x){ return { label:x.label, qty:Number.isInteger(x.qty) ? x.qty : null }; }) : [])
-          .concat(String(p.includes || '').split('\n').map(function(l){ return l.trim(); }).filter(Boolean).map(function(l){ return { label:l, qty:null }; })),
-        priceRules:Array.isArray(p.priceRules) ? p.priceRules.slice() : null };
-    }) : [];
+    o.purposes = Array.isArray(h.purposes) ? h.purposes.map(mapPurpose) : [];
+    // Старые пакеты «на всё пространство» показываем у каждой цели без своих (0056):
+    // так они и считаются у клиента, а после сохранения станут своими у цели.
+    o.purposes.forEach(function(p){ if(p.packages == null) p.packages = (Array.isArray(h.packages) ? h.packages : []).map(function(x){ return { hours:x.hours, price:x.price }; }); });
     // minMin (мин. бронь по окну) больше не редактируется: тарифы задаются
     // сеткой «дни × часы», минимальная длительность осталась общей по студии.
     o.priceRules = Array.isArray(h.priceRules)?h.priceRules.map(function(r){return {dow:Array.isArray(r.dow)?r.dow.slice():null,from:r.from,to:r.to,rate:r.rate};}):[];
@@ -2571,8 +2563,8 @@
       '</div>' +
       '<div class="pg-scroll"><div class="pg-grid">' + cells + '</div></div>' +
       '<div style="margin-top:10px;display:flex;gap:8px;align-items:center">' +
-        '<button type="button" class="btn primary small pr-save">Сохранить тарифы</button>' +
-        (PG.dirty ? '<span class="muted" style="font-size:12px">есть несохранённые изменения</span>' : '') +
+        (PG.code ? '<button type="button" class="btn small pr-save">Применить</button>' : '<button type="button" class="btn primary small pr-save">Сохранить тарифы</button>') +
+        (PG.dirty ? '<span class="muted" style="font-size:12px">' + (PG.code ? 'есть неприменённые изменения' : 'есть несохранённые изменения') + '</span>' : '') +
       '</div><div class="note pr-note"></div>' +
       // Цена и действия живут в липкой панели снизу и появляются только при
       // выделении: пока ничего не выбрано, они всё равно ничего не делают, а
@@ -2632,445 +2624,547 @@
     }
     box.querySelector('.pr-save').addEventListener('click', function(){ saveHallPriceRules(i); });
   }
-  // Назначения зала. Тот же чип, что выбран здесь, определяет и адресата
-  // сетки тарифов ниже: «Зал» правит базовые цены, назначение — свои.
-  // Пустые поля назначения означают «как у зала», поэтому плейсхолдеры в
-  // них — зальные значения, а не нули.
-  // Назначения пространства: сверху переключатель целей, под ним — настройки
-  // выбранной (как в песочнице). Выбранная вкладка помнится на пространство.
-  var PTAB = {};
-  function ptabOf(i){
-    var list = hallPurposes(hallsDraft[i]);
-    if(PTAB[i] && HALL_PURPOSE_LIST.some(function(x){ return x.v === PTAB[i]; })) return PTAB[i];
-    var on = list.filter(function(p){ return p.active !== false; })[0] || list[0];
-    return on ? on.code : HALL_PURPOSE_LIST[0].v;
-  }
-  function renderHallPurposes(i){
-    var h = hallsDraft[i];
-    var box = document.querySelector('.hall-purposes[data-i="'+i+'"]');
-    if(!box) return;
-    if(!h.id){ box.innerHTML = '<div class="amenity-group-t">Назначения</div><span class="muted">Сохраните пространство, чтобы задать назначения.</span>'; return; }
-    var list = hallPurposes(h);
-    var code = ptabOf(i);
-    var cur = list.filter(function(p){ return p.code === code; })[0] || null;
-    box.innerHTML = '<div class="hp-purp-t">Назначения и цены</div>' +
-      '<div class="pt-tabs"><span class="seg pt-seg" role="tablist" aria-label="Назначение">' + HALL_PURPOSE_LIST.map(function(x){
-        var p = list.filter(function(y){ return y.code === x.v; })[0];
-        var st = !p ? 'none' : p.active === false ? 'off' : 'on';
-        return '<button type="button" role="tab" data-pt="' + x.v + '" class="pt-' + st + (x.v === code ? ' on' : '') + '" aria-selected="' + (x.v === code) + '">' +
-          esc(x.label) + (st === 'off' ? '<small>выкл</small>' : st === 'none' ? '<small>+</small>' : '') + '</button>';
-      }).join('') + '</span></div>' +
-      '<div class="pt-panel"></div>';
-    box.querySelectorAll('[data-pt]').forEach(function(b){ b.addEventListener('click', function(){
-      if(b.dataset.pt === code) return;
-      if(PD.open && PD.i === i) pdCancel(true);
-      PTAB[i] = b.dataset.pt;
-      var has = hallPurposes(hallsDraft[i]).some(function(p){ return p.code === PTAB[i]; });
-      // сетка цен по часам следует за выбранной целью этого пространства
-      if(PG.i === i || PG.i < 0){ if(has) pgLoad(i, PTAB[i]); else { PG.i = -1; PG.code = null; } }
-      renderHallPurposes(i); renderHallPriceRules(i);
-    }); });
-    var panel = box.querySelector('.pt-panel');
-    if(!cur){
-      panel.innerHTML = '<div class="pt-empty"><span>Для ' + esc(purposeGen(code)) + ' это пространство пока не сдаётся.</span>' +
-        '<button type="button" class="btn small" data-purp-add="' + code + '">Сдавать для ' + esc(purposeGen(code)) + '</button></div>' +
-        '<div class="note purp-note"></div>';
-      panel.querySelector('[data-purp-add]').addEventListener('click', function(){ purpOpen(i, code, true); });
-      return;
-    }
-    renderPurposeDetail(i, panel, h, list, cur);
-  }
+  // ================= Назначения пространства (песочница 2026-10-04) =================
+  // У каждого пространства на странице «Пространства» — плитки всех четырёх
+  // назначений: цена, статус и что не заполнено видны сразу. Тап по плитке
+  // раскрывает под ними одну форму назначения: Цена · Бронирование · Что входит.
+  // Правки копятся в черновике (hallsDraft[i].purposes) и сохраняются общей
+  // плашкой «Сохранить» внизу (svBar), «Отменить» возвращает как было. Справа —
+  // живой предпросмотр «как увидит клиент» с посчитанной суммой.
+  var PM = { i:-1, code:null, popMore:false, hi:-1, grid:false, pv:{ n:3, h:2, all:false }, tried:{} };
+  var PMEMO = {};    // введённое в другой модели цены — чтобы переключение туда-обратно ничего не теряло
+  var PMSNAP = {};   // hallId -> purposes как на сервере (для «Отменить»)
+  function pmKey(h){ return 'purp:' + h.id; }
+  function pmIdx(id){ for(var k = 0; k < hallsDraft.length; k++) if(hallsDraft[k].id === id) return k; return -1; }
+  function pmCur(i, code){ return hallsDraft[i] ? hallPurposes(hallsDraft[i]).filter(function(p){ return p.code === code; })[0] || null : null; }
+  function pmCap(h, p){ return Number.isInteger(p.capacity) ? p.capacity : h.capacity; }
+  function pmModel(p){ return p.guestPricing && p.guestPricing.mode === 'perPerson' ? 'guest' : 'hour'; }
+  function pmRent(p){ return gpRentApplies(p.guestPricing); }
+  function pmStudioMin(){ return settingsDraft.minBookingMin === 30 ? 30 : 60; }
+  function pmMinTxt(m){ return m < 60 ? m + ' мин' : (m % 60 ? String(m / 60).replace('.', ',') : m / 60) + ' ч'; }
+  function pmPl(n, a, b, c){ var m10 = n % 10, m100 = n % 100; return m10 === 1 && m100 !== 11 ? a : (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? b : c); }
+  function pmFrom(n){ return 'от ' + n + ' ' + (n % 10 === 1 && n % 100 !== 11 ? 'гостя' : 'гостей'); }
+  function pmNum(v){ var n = parseFloat(String(v).replace(',', '.').replace(/\s/g, '')); return isFinite(n) ? n : null; }
+  function pmInt(v){ var n = parseInt(String(v).replace(/\s/g, ''), 10); return isFinite(n) ? n : null; }
 
-  // ---------- экран одного назначения: закрытые карточки со сводкой ----------
-  // Тот же приём, что у пространства: сводка → «Изменить» → поля этой части →
-  // «Сохранить» / «Отмена». Открыта не больше одной карточки; каждая
-  // сохраняет назначения целиком (saveHallPurposes).
-  var PD = { i:-1, code:null, open:null, snap:null, popMore:false, hi:-1 };
-  var PD_CARDS = [
-    { key:'price', title:'Цена' },
-    { key:'terms', title:'Условия' },
-    { key:'equip', title:'Оснащение' },
-  ];
-  function pdEquipList(cur){
-    var out = [];
-    (cur.equipment || []).forEach(function(code){
-      var it = EQ_BY_CODE[code];
-      out.push({ kind:'cat', code:code, label:equipmentLabel(code), group: it ? it.group : 'своё из словаря',
-        qtyOn: it ? !!it.qty : false, qty: cur.equipmentQty && cur.equipmentQty[code] });
-    });
-    // порядок как в каталоге: свет к свету, мебель к мебели
-    var order = {}; var k = 0;
-    (EQ_CAT || []).forEach(function(g){ g.items.forEach(function(it){ order[it.code] = k++; }); });
-    out.sort(function(a, b){ return (order[a.code] != null ? order[a.code] : 1e6) - (order[b.code] != null ? order[b.code] : 1e6); });
-    (cur.extras || []).forEach(function(x, xi){ out.push({ kind:'own', i:xi, label:x.label, group:'своё', qtyOn:true, qty:x.qty }); });
+  // Черновик цели с сервера — белый список полей (и для mapHall, и после сохранения).
+  function mapPurpose(p){
+    return { code:p.code, rate:p.rate, minBookingMin:p.minBookingMin, capacity:p.capacity,
+      standingCapacity:p.standingCapacity, seatedCapacity:p.seatedCapacity,
+      equipment:Array.isArray(p.equipment) ? p.equipment.slice() : [],
+      active:p.active !== false,
+      // autoConfirm: null — «как у студии» (0043), явное true/false — своё на цель.
+      autoConfirm: typeof p.autoConfirm === 'boolean' ? p.autoConfirm : null,
+      fullDayDiscountPct: Number.isInteger(p.fullDayDiscountPct) ? p.fullDayDiscountPct : null,
+      guestPricing: p.guestPricing ? JSON.parse(JSON.stringify(p.guestPricing)) : null,
+      equipmentQty: p.equipmentQty && typeof p.equipmentQty === 'object' ? Object.assign({}, p.equipmentQty) : {},
+      // старый текст «что ещё входит» (по строке на пункт) — теперь свои пункты
+      extras: (Array.isArray(p.extras) ? p.extras.map(function(x){ return { label:x.label, qty:Number.isInteger(x.qty) ? x.qty : null }; }) : [])
+        .concat(String(p.includes || '').split('\n').map(function(l){ return l.trim(); }).filter(Boolean).map(function(l){ return { label:l, qty:null }; })),
+      // пакеты — свои у цели (0056); null — «как у пространства» (старые данные)
+      packages: Array.isArray(p.packages) ? p.packages.map(function(x){ return { hours:x.hours, price:x.price }; }) : null,
+      priceRules:Array.isArray(p.priceRules) ? p.priceRules.slice() : null };
+  }
+  // То, что уходит на сервер (PUT …/purposes). По нему же сравниваем «есть ли изменения».
+  function pmCleanOne(p){
+    var out = { code:p.code, active:p.active !== false };
+    if(typeof p.rate === 'number' && isFinite(p.rate)) out.rate = p.rate;
+    if(Number.isInteger(p.minBookingMin)) out.minBookingMin = p.minBookingMin;
+    if(Number.isInteger(p.capacity)) out.capacity = p.capacity;
+    if(Number.isInteger(p.standingCapacity)) out.standingCapacity = p.standingCapacity;
+    if(Number.isInteger(p.seatedCapacity)) out.seatedCapacity = p.seatedCapacity;
+    if(Array.isArray(p.equipment) && p.equipment.length){
+      out.equipment = p.equipment.slice();
+      var q = {};
+      out.equipment.forEach(function(c){ var n = p.equipmentQty && p.equipmentQty[c]; if(Number.isInteger(n) && n >= 1) q[c] = n; });
+      if(Object.keys(q).length) out.equipmentQty = q;
+    }
+    var ex = (p.extras || []).filter(function(x){ return x && (x.label || '').trim(); })
+      .map(function(x){ var o = { label:x.label.trim().slice(0, 100) }; if(Number.isInteger(x.qty) && x.qty >= 1) o.qty = x.qty; return o; });
+    if(ex.length) out.extras = ex;
+    if(Array.isArray(p.priceRules) && p.priceRules.length) out.priceRules = p.priceRules;
+    // autoConfirm null = «как у студии» — поле просто не шлём.
+    if(typeof p.autoConfirm === 'boolean') out.autoConfirm = p.autoConfirm;
+    if(Number.isInteger(p.fullDayDiscountPct)) out.fullDayDiscountPct = p.fullDayDiscountPct;
+    if(Array.isArray(p.packages)) out.packages = p.packages.map(function(x){ return { hours:x.hours, price:x.price }; });
+    if(p.guestPricing){
+      var g = p.guestPricing;
+      out.guestPricing = g.mode === 'extra'
+        ? { mode:'extra', unit:g.unit, included:g.included, price:g.price }
+        : { mode:'perPerson', unit:g.unit, withRent:g.withRent !== false, tiers:g.tiers.map(function(t){ return { from:t.from, price:t.price }; }) };
+      // «Только за гостей» — почасовой ставки нет вовсе (сервер не берёт её в расчёт).
+      if(g.mode === 'perPerson' && g.withRent === false) delete out.rate;
+    }
     return out;
   }
-  function pdSummary(key, h, cur){
-    var onlyPeople = !gpRentApplies(cur.guestPricing);
-    if(key === 'price'){
-      var g = cur.guestPricing, parts = [];
-      var rateTxt = typeof cur.rate === 'number' && isFinite(cur.rate) ? cur.rate + ' ' + CUR + '/ч' : '<span class="sc-empty">цена не указана</span>';
-      if(g && g.mode === 'perPerson'){
-        parts.push('за гостя: ' + esc(g.tiers.map(function(t){ return gpMoney(t.price); }).join(' / ')) + ' ' + CUR + (g.unit === 'hour' ? ' в час' : ' за бронь'));
-        parts.push(onlyPeople ? 'без аренды' : 'плюс аренда ' + rateTxt);
-      } else {
-        parts.push(rateTxt);
-        if(g) parts.push(esc(gpSummary(g)));
+  function pmClean(h){ return hallPurposes(h).map(pmCleanOne); }
+
+  // ---------- учёт несохранённого: общая плашка svBar ----------
+  function pmEnsure(h){
+    if(!h || !h.id) return;
+    var key = pmKey(h), id = h.id;
+    if(SV.savers[key]) return;
+    svRegister(key,
+      function(){ var k = pmIdx(id); return k < 0 ? null : pmClean(hallsDraft[k]); },
+      function(){ var k = pmIdx(id); return k < 0 ? Promise.resolve() : saveHallPurposes(k); },
+      { label:function(){ return pmDirtyLabel(id); },
+        revert:function(){ var k = pmIdx(id); if(k < 0 || !PMSNAP[id]) return;
+          hallsDraft[k].purposes = clone(PMSNAP[id]); PM.tried[id] = false;
+          if(PG.i === k){ PG.i = -1; PG.code = null; }
+          svSnap(key); renderHalls(); } });
+  }
+  // Снимок «как на сервере» для пространства — после загрузки и после сохранения.
+  function pmSnap(i){
+    var h = hallsDraft[i]; if(!h || !h.id) return;
+    pmEnsure(h);
+    PMSNAP[h.id] = clone(hallPurposes(h));
+    svSnap(pmKey(h));
+  }
+  // Залы пришли с сервера заново (сохранили что-то другое в пространстве):
+  // несохранённые правки назначений не теряем — переносим в новый черновик.
+  function pmReload(next){
+    var keep = {};
+    hallsDraft.forEach(function(h){ if(h.id && SV.dirty[pmKey(h)]) keep[h.id] = h.purposes; });
+    hallsDraft = next;
+    hallsDraft.forEach(function(h, k){
+      pmSnap(k);
+      if(keep[h.id]){ h.purposes = keep[h.id]; svCheck(pmKey(h)); }
+    });
+  }
+  function pmChangedCodes(h){
+    var was = {}; (PMSNAP[h.id] || []).forEach(function(p){ was[p.code] = JSON.stringify(pmCleanOne(p)); });
+    var now = {}; hallPurposes(h).forEach(function(p){ now[p.code] = JSON.stringify(pmCleanOne(p)); });
+    return HALL_PURPOSE_LIST.filter(function(x){ return was[x.v] !== now[x.v]; }).map(function(x){ return x.v; });
+  }
+  function pmDirtyLabel(id){
+    var k = pmIdx(id); if(k < 0) return '';
+    var h = hallsDraft[k], codes = pmChangedCodes(h);
+    if(!codes.length) return '';
+    return codes.map(purposeLabel).join(', ') + (hallsDraft.length > 1 ? ' — «' + (h.title || h.name) + '»' : '');
+  }
+  function pmToast(msg){
+    var el = document.getElementById('pmToast');
+    if(!el){ el = document.createElement('div'); el.id = 'pmToast'; el.className = 'pm-toast'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+    el.textContent = msg; el.classList.add('on');
+    clearTimeout(pmToast.t); pmToast.t = setTimeout(function(){ el.classList.remove('on'); }, 2400);
+  }
+  function pmChanged(i){ var h = hallsDraft[i]; if(h && h.id){ pmEnsure(h); svCheck(pmKey(h)); } }
+
+  // ---------- проверки (те же правила, что на сервере) ----------
+  function pmErrors(h, p){
+    var e = {}, g = p.guestPricing, model = pmModel(p), cap = pmCap(h, p);
+    if(pmRent(p) && !(p.rate > 0 && p.rate <= 100000)){
+      e.rate = model === 'hour' ? 'Укажите цену за час — без неё назначение не показать клиенту' : 'Укажите аренду за час или выберите «Только за гостей»';
+    }
+    if(p.capacity != null && !(Number.isInteger(p.capacity) && p.capacity >= 1 && p.capacity <= 1000)) e.capacity = 'Гостей максимум — целое от 1 до 1000';
+    if(g && g.mode === 'extra'){
+      if(!(Number.isInteger(g.included) && g.included >= 1)) e.included = 'Сколько гостей входит в цену — хотя бы 1';
+      else if(cap >= 1 && g.included >= cap) e.included = 'Это не меньше максимума (' + cap + ') — доплата никогда не сработает. Уменьшите число или увеличьте максимум.';
+      if(!(g.price > 0 && g.price <= 100000)) e.xprice = 'Укажите доплату за гостя';
+    }
+    if(g && g.mode === 'perPerson'){
+      g.tiers.forEach(function(t, k){
+        if(k > 0 && !(Number.isInteger(t.from) && t.from > g.tiers[k - 1].from)) e['tf' + k] = 'Ступени — по возрастанию числа гостей';
+        if(!(typeof t.price === 'number' && t.price >= 0 && t.price <= 100000)) e['tp' + k] = 'Укажите цену для этой ступени';
+      });
+    }
+    ['standingCapacity','seatedCapacity'].forEach(function(f){ if(p[f] != null && !(Number.isInteger(p[f]) && p[f] >= 1 && p[f] <= 1000)) e[f] = 'Целое от 1 до 1000'; });
+    if(p.fullDayDiscountPct != null && !(p.fullDayDiscountPct >= 0 && p.fullDayDiscountPct <= 100)) e.dayPct = 'От 0 до 100%';
+    (p.packages || []).forEach(function(x, k){
+      if(!(typeof x.hours === 'number' && x.hours >= 0.5 && x.hours <= 8 && (x.hours * 2) % 1 === 0) || !(typeof x.price === 'number' && x.price >= 0 && x.price <= 100000)) e['pk' + k] = 1;
+    });
+    return e;
+  }
+  function pmShownErrors(i, p){ var h = hallsDraft[i]; return PM.tried[h.id] ? pmErrors(h, p) : {}; }
+
+  // ---------- цена: короткая подпись, правило словами, расчёт ----------
+  function pmShortPrice(p){
+    if(pmModel(p) === 'hour') return typeof p.rate === 'number' && p.rate > 0 ? (Array.isArray(p.priceRules) && p.priceRules.length ? 'от ' : '') + gpMoney(p.rate) + ' ' + CUR + '/ч' : null;
+    var m = Math.min.apply(null, p.guestPricing.tiers.map(function(t){ return typeof t.price === 'number' ? t.price : 1e9; }));
+    return m >= 1e9 ? null : (p.guestPricing.tiers.length > 1 ? 'от ' : '') + gpMoney(m) + ' ' + CUR + ' с гостя';
+  }
+  function pmRule(p){
+    var g = p.guestPricing, out = [];
+    if(pmModel(p) === 'hour'){
+      if(g && g.mode === 'extra'){
+        var inc = g.included || 0;
+        out.push('В цену ' + (inc === 1 ? 'входит ' : 'входят ') + gpGuests(inc) + '. Каждый следующий — +' + gpMoney(g.price || 0) + ' ' + CUR + (g.unit === 'hour' ? ' в час.' : ' за всю бронь.'));
+      } else out.push('Цена не зависит от числа гостей.');
+    } else {
+      out.push('Каждый гость платит ' + (g.unit === 'hour' ? 'за каждый час' : 'за всю бронь') + (g.tiers.length > 1 ? '. Чем больше компания, тем дешевле каждому.' : '.'));
+      out.push(g.withRent !== false ? 'Плюс аренда ' + gpMoney(p.rate || 0) + ' ' + CUR + ' в час.' : 'Аренда отдельно не берётся.');
+    }
+    if(pmRent(p) && Array.isArray(p.priceRules) && p.priceRules.length) out.push('В некоторые дни и часы цена другая — видно при выборе времени.');
+    return out;
+  }
+  function pmCalc(p, n, hrs){
+    var r = { rent:0, guests:0, pkg:null };
+    if(pmRent(p)){
+      var pk = (p.packages || []).filter(function(x){ return Math.abs(x.hours - hrs) < 1e-9 && typeof x.price === 'number'; })[0];
+      if(pk){ r.rent = pk.price; r.pkg = pk; } else r.rent = (p.rate || 0) * hrs;
+    }
+    var gc = gpCharge(p.guestPricing, n, hrs);
+    r.guests = isFinite(gc) ? gc : 0;
+    r.total = r.rent + r.guests;
+    return r;
+  }
+
+  // ---------- плитки ----------
+  function pmTile(i, x){
+    var h = hallsDraft[i], p = pmCur(i, x.v), sel = PM.i === i && PM.code === x.v;
+    var dirty = PMSNAP[h.id] && pmChangedCodes(h).indexOf(x.v) !== -1;
+    var dot = dirty ? '<span class="pm-dot" title="Есть несохранённые изменения"></span>' : '';
+    if(!p){
+      return '<button type="button" class="pm-tile none' + (sel ? ' sel' : '') + '" data-pm-tile="' + x.v + '" aria-expanded="' + sel + '">' + dot +
+        '<span class="pm-tile-top"><span class="pm-ic">' + purposeIconSvg(x.v) + '</span><span class="pm-tile-n">' + esc(x.label) + '</span></span>' +
+        '<span class="pm-tile-p">+ Сдавать для ' + purposeGen(x.v) + '</span><span class="pm-tile-m">Пока не сдаётся</span></button>';
+    }
+    var bad = Object.keys(pmErrors(h, p)).length;
+    var st = bad ? '<span class="pm-pill warn">не заполнено</span>' : p.active !== false ? '<span class="pm-pill on">сдаётся</span>' : '<span class="pm-pill off">выключено</span>';
+    var n = (p.equipment || []).length + (p.extras || []).length;
+    return '<button type="button" class="pm-tile' + (sel ? ' sel' : '') + (p.active === false ? ' off' : '') + '" data-pm-tile="' + x.v + '" aria-expanded="' + sel + '">' + dot +
+      '<span class="pm-tile-top"><span class="pm-ic">' + purposeIconSvg(x.v) + '</span><span class="pm-tile-n">' + esc(x.label) + '</span>' + st + '</span>' +
+      '<span class="pm-tile-p">' + esc(pmShortPrice(p) || 'цена не указана') + '</span>' +
+      '<span class="pm-tile-m">до ' + gpGuests(pmCap(h, p) || 0) + ' · ' + (n ? 'оснащение: ' + n : 'оснащение не указано') + '</span></button>';
+  }
+
+  // ---------- форма ----------
+  function pmRow(label, ctl, o){
+    o = o || {};
+    return '<div class="pm-row"' + (o.id ? ' id="' + o.id + '"' : '') + '><div class="pm-row-l">' + label + (o.small ? '<small>' + o.small + '</small>' : '') + '</div>' +
+      '<div class="pm-row-c">' + ctl + '</div>' + (o.err ? '<div class="pm-err" role="alert">' + esc(o.err) + '</div>' : o.hint ? '<div class="pm-hint">' + o.hint + '</div>' : '') + '</div>';
+  }
+  function pmIn(f, v, o){
+    o = o || {};
+    return '<input class="pm-in' + (o.sm ? ' sm' : '') + (o.bad ? ' bad' : '') + '" data-pm="' + f + '" id="pm-f-' + f + '" value="' + esc(v == null ? '' : (o.int ? v : gpMoney(v))) + '"' +
+      ' inputmode="' + (o.int ? 'numeric' : 'decimal') + '" autocomplete="off"' + (o.ph != null ? ' placeholder="' + esc(o.ph) + '"' : '') + (o.label ? ' aria-label="' + esc(o.label) + '"' : '') + '>';
+  }
+  function pmSeg(id, opts, cur){
+    return '<span class="seg pm-seg" data-pm-seg="' + id + '">' + opts.map(function(o){
+      return '<button type="button" data-v="' + o[0] + '"' + (String(o[0]) === String(cur) ? ' class="on"' : '') + '>' + o[1] + '</button>'; }).join('') + '</span>';
+  }
+  function pmSw(act, on, text){ return '<label class="pm-sw"><input type="checkbox" data-pm-act="' + act + '"' + (on ? ' checked' : '') + '><span>' + text + '</span></label>'; }
+  function pmScale(h, p){
+    var cap = pmCap(h, p) || 1, max = Math.max(1, Math.min(cap, 40)), g = p.guestPricing, cells = '', cap2 = '';
+    if(pmModel(p) === 'hour'){
+      var extra = g && g.mode === 'extra', inc = extra ? Math.min(g.included || 0, max) : max;
+      for(var k = 1; k <= max; k++) cells += '<span class="pm-gd ' + (k <= inc ? 'in' : 'paid') + '">' + k + '</span>';
+      cap2 = extra
+        ? '<span><i class="in"></i>' + inc + ' в цене</span>' + (max > inc ? '<span><i class="paid"></i>' + (max - inc) + ' с доплатой +' + gpMoney(g.price || 0) + ' ' + CUR + '</span>' : '')
+        : '<span><i class="in"></i>все ' + max + ' — в цене аренды</span>';
+    } else {
+      var t = g.tiers;
+      for(var q = 1; q <= max; q++){
+        var ti = 0; t.forEach(function(x, i){ if(Number.isInteger(x.from) && q >= x.from) ti = i; });
+        cells += '<span class="pm-gd t' + Math.min(ti + 1, 4) + '">' + q + '</span>';
       }
-      parts.push('до ' + (Number.isInteger(cur.capacity) ? cur.capacity : h.capacity) + ' чел.');
-      if(!onlyPeople && Array.isArray(cur.priceRules) && cur.priceRules.length) parts.push('цены по дням и часам — в сетке ниже');
-      return parts.join(' · ');
+      cap2 = t.map(function(x, i){ return '<span><i class="t' + Math.min(i + 1, 4) + '"></i>' + (i === 0 && t[1] && t[1].from === 2 ? '1 гость' : pmFrom(x.from || 1)) + ' — ' + gpMoney(x.price || 0) + ' ' + CUR + '</span>'; }).join('');
     }
-    if(key === 'terms'){
-      var t = [];
-      t.push(Number.isInteger(cur.minBookingMin) ? 'мин. ' + String(cur.minBookingMin / 60).replace('.', ',') + ' ч' : 'мин. бронь как у студии');
-      if(Number.isInteger(cur.standingCapacity)) t.push('стоя ' + cur.standingCapacity);
-      if(Number.isInteger(cur.seatedCapacity)) t.push('сидя ' + cur.seatedCapacity);
-      t.push(cur.autoConfirm == null ? 'подтверждение как у студии' : cur.autoConfirm ? 'подтверждение автоматически' : 'подтверждение вручную');
-      if(Number.isInteger(cur.fullDayDiscountPct) && cur.fullDayDiscountPct > 0) t.push('скидка за 8 ч: ' + cur.fullDayDiscountPct + '%');
-      return esc(t.join(' · '));
-    }
-    var l = pdEquipList(cur);
-    if(!l.length) return '<span class="sc-empty">Не заполнено — клиент не увидит, что входит в аренду</span>';
-    return esc(l.slice(0, 5).map(function(x){ return x.label.replace(/ \([^)]*\)$/, '') + (x.qtyOn && x.qty ? ' ×' + x.qty : ''); }).join(', ') +
-      (l.length > 5 ? ' · ещё ' + (l.length - 5) : ''));
+    return '<div class="pm-scale" id="pm-scale"><div class="pm-scale-row">' + cells + '</div><div class="pm-scale-cap">' + cap2 + (cap > 40 ? '<span>показаны первые 40</span>' : '') + '</div></div>';
   }
-  function pdChip(key, cur){
-    if(key === 'price'){
-      var ok = !gpRentApplies(cur.guestPricing) || (typeof cur.rate === 'number' && cur.rate > 0);
-      return ok ? '<span class="sc-chip ok">заполнено</span>' : '<span class="sc-chip req">нужна цена</span>';
-    }
-    if(key === 'equip'){
-      var n = pdEquipList(cur).length;
-      return n ? '<span class="sc-chip ok">' + n + ' поз.</span>' : '<span class="sc-chip rec">рекомендуем</span>';
-    }
-    return '';
+  var PM_DOW = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+  function pmRulesText(rules){
+    var hm = function(m){ return Math.floor(m / 60) + (m % 60 ? ':' + String(m % 60).padStart(2, '0') : ''); };
+    var dows = function(d){
+      if(!Array.isArray(d) || !d.length || d.length === 7) return 'все дни';
+      var s = d.slice().sort(function(a, b){ return ((a + 6) % 7) - ((b + 6) % 7); });
+      if(s.join() === '1,2,3,4,5') return 'будни';
+      if(s.join() === '6,0') return 'выходные';
+      return s.map(function(x){ return PM_DOW[x]; }).join(', ');
+    };
+    var t = rules.slice(0, 2).map(function(r){ return dows(r.dow) + ' ' + hm(r.from) + '–' + hm(r.to) + ' — ' + gpMoney(r.rate) + ' ' + CUR + '/ч'; }).join('; ');
+    return t + (rules.length > 2 ? ' и ещё ' + (rules.length - 2) : '');
   }
-  function renderPurposeDetail(i, box, h, list, cur){
-    var mine = PD.i === i && PD.code === cur.code;
-    var html = (cur._new ? '' : '<div class="pt-head"><label class="pt-on">' +
-        '<input class="hcp-toggle" type="checkbox" data-purp-toggle="' + esc(cur.code) + '"' + (cur.active === false ? '' : ' checked') + '>' +
-        '<span>' + (cur.active === false ? 'Не сдаётся для ' : 'Сдаётся для ') + esc(purposeGen(cur.code)) + '</span></label>' +
-        (cur.active === false ? '<span class="muted">клиенты эту цель не видят, настройки сохранены</span>' : '') + '</div>') +
-      '<div class="pd-cards">';
-    PD_CARDS.forEach(function(c){
-      var open = mine && PD.open === c.key;
-      var title = c.key === 'equip' ? 'Оснащение для ' + purposeGen(cur.code) : c.title;
-      html += '<div class="sc' + (open ? ' open' : '') + '" data-sec="pd' + i + '-' + c.key + '">' +
-        '<div class="sc-h"><span class="sc-t">' + esc(title) + '</span>' + pdChip(c.key, cur) +
-          (open ? '' : '<button class="btn ghost small" type="button" data-pd-edit="' + c.key + '">Изменить</button>') + '</div>' +
-        '<div class="sc-sum">' + pdSummary(c.key, h, cur) + '</div>' +
-        (open ? '<div class="sc-edit pd-edit"><div class="pd-body"></div>' +
-          '<div class="pd-foot"><span class="note purp-note"></span>' +
-            '<button type="button" class="btn ghost pd-cancel">Отмена</button>' +
-            '<button type="button" class="btn primary pd-save">Сохранить</button></div></div>' : '') +
-        '</div>';
+  function pmEqList(p){
+    var out = [], order = {}, k = 0;
+    (EQ_CAT || []).forEach(function(g){ g.items.forEach(function(it){ order[it.code] = k++; }); });
+    (p.equipment || []).slice().sort(function(a, b){ return (order[a] != null ? order[a] : 1e6) - (order[b] != null ? order[b] : 1e6); }).forEach(function(c){
+      var it = EQ_BY_CODE[c];
+      out.push({ kind:'c', key:c, label:equipmentLabel(c), group:it ? it.group : 'своё', q:it ? !!it.qty : false, v:p.equipmentQty && p.equipmentQty[c] });
     });
-    var gridOn = PG.i === i && PG.code === cur.code;
-    html += '</div><div class="pd-del-row">' +
-      (!cur._new && gpRentApplies(cur.guestPricing) && !gridOn ? '<button type="button" class="linkish" data-pg-open>Цены по дням и часам →</button>' : '<span></span>') +
-      (cur._new ? '' : '<button type="button" class="btn ghost small danger purp-del">Убрать назначение</button>') + '</div>' +
-      '<div class="note purp-note"></div>';
-    box.innerHTML = html;
-
-    box.querySelectorAll('[data-pd-edit]').forEach(function(b){ b.addEventListener('click', function(){ pdOpen(i, cur.code, b.dataset.pdEdit); }); });
-    var pgo = box.querySelector('[data-pg-open]');
-    if(pgo) pgo.addEventListener('click', function(){
-      var prev = PG.i;
-      pgLoad(i, cur.code);
-      if(prev >= 0 && prev !== i){ renderHallPurposes(prev); renderHallPriceRules(prev); }
-      renderHallPurposes(i); renderHallPriceRules(i);
-      var g = document.querySelector('.hall-prules[data-i="' + i + '"]');
-      if(g && g.scrollIntoView) g.scrollIntoView({ block:'nearest', behavior: scReduced() ? 'auto' : 'smooth' });
-    });
-    var tg = box.querySelector('[data-purp-toggle]');
-    if(tg) tg.addEventListener('change', function(){
-      var othersOn = list.some(function(y){ return y !== cur && y.active !== false; });
-      if(!tg.checked && !othersOn && !confirm('Это последняя включённая цель — пространство перестанет быть доступно для брони. Выключить?')){ tg.checked = true; return; }
-      cur.active = tg.checked;
-      saveHallPurposes(i).then(function(){ renderHalls(); })
-        .catch(function(){ cur.active = !tg.checked; renderHalls(); });
-    });
-    var del = box.querySelector('.purp-del');
-    if(del) del.addEventListener('click', function(){
-      if(!confirm('Убрать «' + purposeLabel(cur.code) + '» из пространства? Цена и настройки этой цели удалятся. Чтобы временно не сдавать — просто выключите её.')) return;
-      list.splice(list.indexOf(cur), 1);
-      if(PG.i === i){ PG.i = -1; PG.code = null; }
-      pdReset();
-      saveHallPurposes(i).then(function(){ renderHalls(); hallFlash('Назначение убрано', true); }).catch(function(){});
-    });
-    if(!mine || !PD.open) return;
-    var body = box.querySelector('.pd-body');
-    if(PD.open === 'price') pdPriceEditor(i, body, h, cur);
-    else if(PD.open === 'terms') pdTermsEditor(i, body, h, cur);
-    else pdEquipEditor(i, body, h, cur);
-    box.querySelector('.pd-cancel').addEventListener('click', function(){ pdCancel(false); });
-    box.querySelector('.pd-save').addEventListener('click', function(){
-      var btn = this; btn.disabled = true;
-      saveHallPurposes(i).then(function(){
-        var key = PD.open;
-        scAnimate('pd' + i + '-' + key, function(){ pdReset(); renderHalls(); });
-        hallFlash('Сохранено', true);
-      }).catch(function(){ btn.disabled = false; });
-    });
+    (p.extras || []).forEach(function(x, xi){ out.push({ kind:'o', key:xi, label:x.label, group:'своё', q:true, v:x.qty }); });
+    return out;
   }
-  function pdReset(){ PD = { i:-1, code:null, open:null, snap:null, popMore:false, hi:-1 }; }
-  function pdOpen(i, code, key){
-    if(PD.open) pdCancel(true);
-    var cur = hallPurposes(hallsDraft[i]).filter(function(p){ return p.code === code; })[0];
-    if(!cur) return;
-    PD = { i:i, code:code, open:key, snap:JSON.stringify(cur), popMore:false, hi:-1 };
-    scAnimate('pd' + i + '-' + key, function(){ renderHallPurposes(i); });
+  function pmPopular(p, n){
+    var have = {}; (p.equipment || []).forEach(function(c){ have[c] = 1; });
+    var out = [];
+    [true, false].forEach(function(primary){
+      var qs = (EQ_CAT || []).map(function(g){ return g.items.filter(function(it){ var k = (it.purposes || []).indexOf(p.code);
+        return !it.legacy && !have[it.code] && (primary ? k === 0 : k > 0); }); }).filter(function(q){ return q.length; });
+      while(out.length < n && qs.some(function(q){ return q.length; })) qs.forEach(function(q){ if(q.length && out.length < n) out.push(q.shift()); });
+    });
+    return out;
   }
-  // «Отмена» карточки: назначение — как было при открытии. Новая цель, которую
-  // ни разу не сохранили, при отмене просто убирается.
-  function pdCancel(quiet){
-    var i = PD.i, key = PD.open;
-    if(i < 0){ pdReset(); return; }
-    var list = hallPurposes(hallsDraft[i]);
-    var now = list.filter(function(p){ return p.code === PD.code; })[0];
-    if(now && now._new) list.splice(list.indexOf(now), 1);
-    else if(now && PD.snap) list[list.indexOf(now)] = JSON.parse(PD.snap);
-    pdReset();
-    if(quiet) return;
-    scAnimate('pd' + i + '-' + key, function(){ renderHallPurposes(i); renderHallPriceRules(i); });
+  function pmStep(key, v){
+    v = Number.isInteger(v) && v >= 1 ? v : null;
+    return '<span class="eq-step"><button type="button" data-pm-st="' + key + '" data-d="-1"' + (!v || v <= 1 ? ' disabled' : '') + ' aria-label="Меньше">−</button>' +
+      '<input data-pm-sq="' + key + '" value="' + (v || '') + '" placeholder="—" inputmode="numeric" aria-label="Количество">' +
+      '<button type="button" data-pm-st="' + key + '" data-d="1" aria-label="Больше">+</button></span>';
   }
 
-  // «Цена»: первым выбирается, как считаем — за час или за человека; под выбором
-  // только то, что к этому способу относится.
-  //   За час:     цена за час · лимит гостей · [доплата за гостей сверх лимита]
-  //   За человека: [плюс аренда → цена за час] · ступени цены за гостя · считать за час/бронь · лимит
-  // В данных это guestPricing: «за час» — null или {mode:'extra'}, «за человека» —
-  // {mode:'perPerson'}. Переключение туда-обратно не теряет введённое (PD.memo).
-  function pdPriceEditor(i, body, h, cur){
-    var g = cur.guestPricing, person = !!g && g.mode === 'perPerson', extra = !!g && g.mode === 'extra';
-    var rentOn = gpRentApplies(g);
-    var cap = Number.isInteger(cur.capacity) ? cur.capacity : h.capacity;
-    PD.memo = PD.memo || {};
-    var rateRow = function(){
-      return frow('Цена за час', frNum('', cur.rate != null ? cur.rate : '', CUR + '/ч', ' type="number" min="1" step="1" data-f="rate" placeholder="обязательно"', 'purp-f purp-rate'),
-        { req:true, hint:'Цены по дням и часам — в сетке ниже' });
-    };
-    var capRow = function(){
-      return frow('Лимит гостей', frNum('', cur.capacity != null ? cur.capacity : '', 'чел.', ' type="number" min="1" max="1000" step="1" data-f="capacity" placeholder="' + esc(h.capacity) + '"', 'purp-f'),
-        { hint:'Больше людей клиент выбрать не сможет. Пусто — как у пространства' });
-    };
-    var html = frow('Как считаем цену', frSeg('pdMode', [['hour','За час'],['person','За гостя']], person ? 'person' : 'hour'),
-      { hint: person ? 'Каждый гость платит свою цену' : 'Одна цена за час аренды' });
-    if(!person){
-      html += rateRow() + capRow() +
-        frow('Доплата за гостей', frSeg('pdExtra', [['0','Нет'],['1','Сверх лимита']], extra ? '1' : '0'),
-          { hint: extra ? '' : 'Гости сверх входящих в цену платят отдельно' });
+  function pmEditor(i){
+    var h = hallsDraft[i], code = PM.code, p = pmCur(i, code), gen = purposeGen(code);
+    var head = '<div class="pm-ed-h"><span class="pm-ic big">' + purposeIconSvg(code) + '</span><h3>' + esc(purposeLabel(code)) + '</h3>';
+    if(!p){
+      return '<div class="pm-ed">' + head + '<button type="button" class="linkish" data-pm-act="close">Свернуть</button></div>' +
+        '<div class="pm-start"><p>Это пространство пока не сдаётся для ' + gen + '. Включите — и задайте цену и что входит в аренду. Клиенты увидят назначение после сохранения.</p>' +
+        '<button type="button" class="btn primary" data-pm-act="offer">Сдавать для ' + gen + '</button></div></div>';
+    }
+    var e = pmShownErrors(i, p), g = p.guestPricing, model = pmModel(p), cap = pmCap(h, p);
+    var html = '<div class="pm-ed">' + head +
+      pmSw('active', p.active !== false, p.active !== false ? '<b>Сдаётся</b> — клиенты видят' : '<b>Выключено</b> — клиенты не видят, настройки сохранены') +
+      '<button type="button" class="btn ghost small pm-pv-btn" data-pm-act="sheet">Как видит клиент</button>' +
+      '<button type="button" class="linkish" data-pm-act="close">Свернуть</button></div>';
+
+    // ---- Цена ----
+    html += '<div class="pm-blk"><div class="pm-blk-h"><h4>Цена</h4><span>Как считается сумма брони</span></div>' +
+      '<div class="pm-models" role="radiogroup" aria-label="Как считаем цену">' +
+        '<button type="button" class="pm-model' + (model === 'hour' ? ' on' : '') + '" role="radio" aria-checked="' + (model === 'hour') + '" data-pm-act="model" data-v="hour"><span class="pm-rd"></span><b>За время аренды</b><span>Цена за час. Гости бесплатно или с доплатой сверх лимита.</span><span class="pm-eg">фотосессия · 40 ' + CUR + '/ч</span></button>' +
+        '<button type="button" class="pm-model' + (model === 'guest' ? ' on' : '') + '" role="radio" aria-checked="' + (model === 'guest') + '" data-pm-act="model" data-v="guest"><span class="pm-rd"></span><b>За каждого гостя</b><span>Каждый гость платит свою цену. Для игр, квестов, мастер-классов.</span><span class="pm-eg">настолки · 10 ' + CUR + ' с гостя в час</span></button>' +
+      '</div>';
+    var capRow = pmRow('Гостей максимум', pmIn('capacity', p.capacity, { int:true, ph:h.capacity, bad:e.capacity }) + '<span class="pm-u">чел.</span>',
+      { err:e.capacity, small:p.capacity == null ? 'как у пространства — ' + h.capacity : 'больше выбрать нельзя' });
+    if(model === 'hour'){
+      var extra = g && g.mode === 'extra';
+      html += pmRow('Цена за час', pmIn('rate', p.rate, { ph:'0', bad:e.rate }) + '<span class="pm-u">' + CUR + '</span>', { err:e.rate }) + capRow +
+        pmRow('Доплата за гостей', pmSw('extra', extra, extra ? 'Берётся сверх лимита' : 'Нет — все гости в цене'));
       if(extra){
-        html += frow('В цену входит', frNum('', g.included, 'гостей', ' type="number" min="1" max="1000" data-gp="included"'), { hint:'Остальные — с доплатой' }) +
-          frow('Каждый следующий', '<span class="fr-hours"><span class="fr-unit"><span>+</span><input class="fr-in fr-num" type="text" inputmode="decimal" data-gp="price" value="' + esc(gpMoney(g.price || 0)) + '"><span>' + CUR + '</span></span>' +
-            frSeg('pdUnit', [['booking','за бронь'],['hour','за час']], g.unit) + '</span>');
+        html += '<div class="pm-sub">' +
+          pmRow('В цену входит', pmIn('included', g.included, { int:true, bad:e.included }) + '<span class="pm-u">' + pmPl(g.included || 0, 'гость', 'гостя', 'гостей') + '</span>', { err:e.included }) +
+          pmRow('Каждый следующий', '<span class="pm-u">+</span>' + pmIn('xprice', g.price, { bad:e.xprice }) + '<span class="pm-u">' + CUR + '</span>' + pmSeg('xunit', [['booking','за бронь'],['hour','за час']], g.unit), { err:e.xprice }) +
+          '</div>';
       }
     } else {
-      html += frow('Аренда пространства', frSeg('pdRent', [['0','Только за гостей'],['1','Плюс аренда']], rentOn ? '1' : '0'),
-        { hint: rentOn ? 'Цена за час плюс цена за каждого гостя' : 'Часовой цены нет — платят только гости' });
-      if(rentOn) html += rateRow();
-      html += frow('Цена за гостя', '<div class="pp-tiers">' + g.tiers.map(function(t, k){
-          var who = k === 0 ? '<b>' + (g.tiers.length > 1 && g.tiers[1].from === 2 ? '1 гость' : 'от 1 гостя') + '</b>'
-            : 'от <input class="fr-in pp-from" type="text" inputmode="numeric" data-gp="tf" data-k="' + k + '" value="' + esc(t.from) + '"> гостей';
-          return '<div class="pp-tier"><span class="pp-who">' + who + '</span>' +
-            '<span class="fr-unit"><input class="fr-in fr-num" type="text" inputmode="decimal" data-gp="tp" data-k="' + k + '" value="' + esc(gpMoney(t.price)) + '"><span>' + CUR + '<span class="pp-each"> за каждого</span></span></span>' +
-            (k > 0 ? '<button type="button" class="eq-x" data-gp-del="' + k + '" aria-label="Убрать ступень">×</button>' : '<span class="pp-x-ph"></span>') + '</div>';
-        }).join('') + '</div>' + (g.tiers.length < 8 ? '<button type="button" class="linkish" data-gp-add>+ Ступень</button>' : ''),
-        { hint:'Цена за каждого гостя. Чем больше гостей, тем дешевле можно сделать каждому' }) +
-        frow('Считать', frSeg('pdUnit', [['hour','за час'],['booking','за бронь']], g.unit), { hint:'«За час» умножает цену гостя на длительность' }) +
-        capRow();
+      html += pmRow('Цена за гостя', '<div class="pm-tiers">' + g.tiers.map(function(t, k){
+            var who = k === 0 ? '<b>' + (g.tiers[1] && g.tiers[1].from === 2 ? '1 гость' : 'от 1 гостя') + '</b>'
+              : 'от ' + pmIn('tf' + k, t.from, { int:true, sm:true, bad:e['tf' + k], label:'С какого гостя' }) + ' ' + (t.from % 10 === 1 && t.from % 100 !== 11 ? 'гостя' : 'гостей');
+            return '<div class="pm-tier"><span class="pm-tier-who"><i class="t' + Math.min(k + 1, 4) + '"></i>' + who + '</span>' +
+              '<span class="pm-row-c nowrap">' + pmIn('tp' + k, t.price, { bad:e['tp' + k], label:'Цена за гостя' }) + '<span class="pm-u">' + CUR + '</span></span>' +
+              (k > 0 ? '<button type="button" class="eq-x" data-pm-act="tdel" data-k="' + k + '" aria-label="Убрать ступень">×</button>' : '<span></span>') + '</div>' +
+              (e['tf' + k] || e['tp' + k] ? '<div class="pm-err" role="alert">' + esc(e['tf' + k] || e['tp' + k]) + '</div>' : '');
+          }).join('') + (g.tiers.length < 6 ? '<div><button type="button" class="linkish" data-pm-act="tadd">+ Ступень: дешевле для большой компании</button></div>' : '') + '</div>') +
+        pmRow('Считать', pmSeg('gunit', [['hour','за каждый час'],['booking','за всю бронь']], g.unit)) + capRow +
+        pmRow('Аренда пространства', pmSw('grent', g.withRent !== false, g.withRent !== false ? 'Берётся дополнительно' : 'Только за гостей'));
+      if(g.withRent !== false) html += '<div class="pm-sub">' + pmRow('Аренда за час', pmIn('rate', p.rate, { ph:'0', bad:e.rate }) + '<span class="pm-u">' + CUR + '</span>', { err:e.rate }) + '</div>';
     }
-    if(g) html += '<div class="pd-gp">' + gpCalcHtml() + '</div>';
-    body.innerHTML = html;
+    if(code === 'event'){
+      html += pmRow('Стоя и сидя', pmIn('standingCapacity', p.standingCapacity, { int:true, sm:true, ph:'—', bad:e.standingCapacity, label:'Стоя' }) + '<span class="pm-u">стоя</span>' +
+        pmIn('seatedCapacity', p.seatedCapacity, { int:true, sm:true, ph:'—', bad:e.seatedCapacity, label:'Сидя' }) + '<span class="pm-u">сидя</span>',
+        { small:'клиент увидит вместо площади', err:e.standingCapacity || e.seatedCapacity });
+    }
+    html += pmRow('Гости', pmScale(h, p));
+    if(pmRent(p)){
+      var rules = Array.isArray(p.priceRules) ? p.priceRules : [];
+      html += pmRow('По дням и часам', '<div class="pm-summ"><span>' + (rules.length ? esc(pmRulesText(rules)) + ', остальное — ' + gpMoney(p.rate || 0) + ' ' + CUR + '/ч' : '<b>Одна цена</b> в любое время') + '</span>' +
+          '<button type="button" class="linkish" data-pm-act="grid">' + (PM.grid ? 'Скрыть сетку' : rules.length ? 'Изменить' : 'Сделать дороже в часы пик') + '</button></div>') +
+        (PM.grid ? '<div class="hall-prules pm-grid" data-i="' + i + '"></div>' : '');
+      var pks = p.packages || [];
+      var pkErr = pks.some(function(x, k){ return e['pk' + k]; });
+      html += pmRow('Пакеты', '<div class="pm-pk">' + pks.map(function(x, k){
+          return '<span class="pm-pk-i' + (e['pk' + k] ? ' bad' : '') + '">' + pmIn('pkh' + k, x.hours, { sm:true, label:'Часов в пакете' }) + '<span class="pm-u">ч за</span>' +
+            pmIn('pkp' + k, x.price, { sm:true, label:'Цена пакета' }) + '<span class="pm-u">' + CUR + '</span>' +
+            '<button type="button" class="eq-x" data-pm-act="pkdel" data-k="' + k + '" aria-label="Убрать пакет">×</button></span>';
+        }).join('') + '<button type="button" class="linkish" data-pm-act="pkadd">+ Пакет</button></div>',
+        { small:'фикс-цена за несколько часов вместо почасовой', err:pkErr ? 'Пакет: от 0,5 до 8 часов шагом в полчаса и цена' : '' });
+    }
+    html += '</div>';
 
-    var again = function(){ renderHallPurposes(i); renderHallPriceRules(i); };
-    var rerender = function(){ pdPriceEditor(i, body, h, cur); renderHallPriceRules(i); };
-    var memoPut = function(){ if(g) PD.memo[g.mode] = g; };
-    var segOf = function(id, fn){ var el = body.querySelector('#' + id); if(el) el.addEventListener('click', function(e){
-      var b = e.target.closest('button[data-v]'); if(!b) return; fn(b.dataset.v); }); };
-    segOf('pdMode', function(v){
-      if((v === 'person') === person) return;
-      memoPut();
-      if(v === 'person') cur.guestPricing = PD.memo.perPerson || { mode:'perPerson', unit:'hour', withRent:false, tiers:[{ from:1, price:10 }, { from:2, price:7.5 }, { from:3, price:5 }] };
-      else cur.guestPricing = PD.memo.extra || null;
-      rerender();
-    });
-    segOf('pdExtra', function(v){
-      if((v === '1') === extra) return;
-      if(v === '1') cur.guestPricing = PD.memo.extra || { mode:'extra', unit:'booking', included: Math.max(1, Math.min(4, cap)), price:5 };
-      else { memoPut(); cur.guestPricing = null; }
-      rerender();
-    });
-    segOf('pdRent', function(v){ g.withRent = v === '1'; rerender(); });
-    segOf('pdUnit', function(v){ g.unit = v; rerender(); });
-    body.querySelectorAll('[data-gp-del]').forEach(function(b){ b.addEventListener('click', function(){ g.tiers.splice(+b.dataset.gpDel, 1); rerender(); }); });
-    var add = body.querySelector('[data-gp-add]');
-    if(add) add.addEventListener('click', function(){
-      var last = g.tiers[g.tiers.length - 1];
-      g.tiers.push({ from:(last.from || 1) + 1, price:Math.max(0, last.price || 0) }); rerender();
-    });
-    body.querySelectorAll('[data-c]').forEach(function(b){ b.addEventListener('click', function(){
-      var k = b.dataset.c, d = +b.dataset.d;
-      GP_CALC[k] = Math.max(1, Math.min(k === 'hours' ? 8 : 50, GP_CALC[k] + d));
-      rerender(); }); });
-    var calc = function(){ gpFillCalc(body.querySelector('.gp-calc'), cur); };
-    body.querySelectorAll('[data-gp]').forEach(function(inp){ inp.addEventListener('input', function(){
-      var f = inp.dataset.gp, k = +inp.dataset.k;
-      if(f === 'included') g.included = parseInt(inp.value, 10);
-      else if(f === 'price') g.price = gpNum(inp.value);
-      else if(f === 'tp') g.tiers[k].price = gpNum(inp.value);
-      else if(f === 'tf') g.tiers[k].from = parseInt(inp.value, 10);
-      calc(); }); });
-    var rt = body.querySelector('.purp-rate');
-    if(rt) rt.addEventListener('input', function(){
-      var v = parseInt(this.value, 10); cur.rate = Number.isInteger(v) ? v : null;
-      renderHallPriceRules(i); calc(); });
-    body.querySelector('[data-f="capacity"]').addEventListener('input', function(){
-      var v = parseInt(this.value, 10); cur.capacity = Number.isInteger(v) ? v : null; });
-    calc();
-  }
-  function pdTermsEditor(i, body, h, cur){
-    var capNum = function(f, ph, unit){ return frNum('', cur[f] != null ? cur[f] : '', unit, ' type="number" min="1" max="1000" step="1" data-f="' + f + '" placeholder="' + esc(ph) + '"', 'purp-f'); };
-    body.innerHTML =
-      frow('Минимальная бронь', frNum('', cur.minBookingMin != null ? cur.minBookingMin / 60 : '', 'ч', ' type="number" min="0.5" max="8" step="0.5" placeholder="как у студии"', 'purp-hours'), { hint:'Пусто — как у студии' }) +
-      (cur.code === 'event' ? frow('Стоя и сидя', '<span class="fr-hours">' + capNum('standingCapacity', '—', 'стоя') + capNum('seatedCapacity', '—', 'сидя') + '</span>', { hint:'Клиент увидит их вместо площади' }) : '') +
-      frow('Подтверждение брони', '<span class="seg fr-seg purp-autoconfirm">' +
-          '<button type="button" data-ac="inherit"' + (cur.autoConfirm == null ? ' class="on"' : '') + '>Как у студии</button>' +
-          '<button type="button" data-ac="yes"' + (cur.autoConfirm === true ? ' class="on"' : '') + '>Авто</button>' +
-          '<button type="button" data-ac="no"' + (cur.autoConfirm === false ? ' class="on"' : '') + '>Вручную</button></span>', { hint:'Своё для этой цели' }) +
-      frow('Скидка за 8 часов', frNum('', cur.fullDayDiscountPct != null ? cur.fullDayDiscountPct : '', '%', ' type="number" min="0" max="100" step="1" data-f="fullDayDiscountPct" placeholder="0"', 'purp-f'), { hint:'За бронь на 8 часов и больше' });
-    body.querySelectorAll('.purp-f').forEach(function(inp){ inp.addEventListener('input', function(){
-      var v = parseInt(inp.value, 10); cur[inp.dataset.f] = Number.isInteger(v) ? v : null; }); });
-    body.querySelector('.purp-hours').addEventListener('input', function(){
-      var v = parseFloat(this.value); cur.minBookingMin = (isFinite(v) && v > 0) ? Math.round(v * 60) : null; });
-    body.querySelectorAll('.purp-autoconfirm button[data-ac]').forEach(function(btn){ btn.addEventListener('click', function(){
-      cur.autoConfirm = btn.dataset.ac === 'inherit' ? null : (btn.dataset.ac === 'yes');
-      body.querySelectorAll('.purp-autoconfirm button').forEach(function(b){ b.classList.toggle('on', b === btn); }); }); });
+    // ---- Бронирование ----
+    var minOpts = [['inherit','Как у студии'],[30,'30 мин'],[60,'1 ч'],[120,'2 ч'],[180,'3 ч'],[240,'4 ч']];
+    if(Number.isInteger(p.minBookingMin) && [30,60,120,180,240].indexOf(p.minBookingMin) === -1) minOpts.push([p.minBookingMin, pmMinTxt(p.minBookingMin)]);
+    html += '<div class="pm-blk"><div class="pm-blk-h"><h4>Бронирование</h4><span>Правила для этой цели</span></div>' +
+      pmRow('Минимальная бронь', pmSeg('minH', minOpts, Number.isInteger(p.minBookingMin) ? p.minBookingMin : 'inherit'), { hint:p.minBookingMin == null ? 'У студии — ' + pmMinTxt(pmStudioMin()) + '.' : '' }) +
+      pmRow('Подтверждение', pmSeg('confirm', [['inherit','Как у студии'],['yes','Сразу'],['no','Вручную']], p.autoConfirm == null ? 'inherit' : p.autoConfirm ? 'yes' : 'no'),
+        { hint:p.autoConfirm == null ? 'Сейчас у студии — ' + (settingsDraft.autoConfirm ? 'сразу.' : 'вручную.') : p.autoConfirm ? 'Бронь сразу встаёт в расписание.' : 'Каждая заявка ждёт вашего ответа.' }) +
+      (pmRent(p) ? pmRow('Целый день', pmIn('dayPct', p.fullDayDiscountPct, { int:true, sm:true, ph:'0', bad:e.dayPct }) + '<span class="pm-u">% скидки на бронь от 8 часов</span>',
+        { err:e.dayPct, hint:'Пока только для справки: в сумму брони скидка ещё не входит.' }) : '') +
+      '</div>';
+
+    // ---- Что входит ----
+    var have = pmEqList(p), others = hallPurposes(h).filter(function(x){ return x.code !== code && ((x.equipment || []).length + (x.extras || []).length); });
+    var pop = EQ_CAT ? pmPopular(p, PM.popMore ? 24 : 10) : [];
+    html += '<div class="pm-blk"><div class="pm-blk-h"><h4>Что входит в аренду</h4><span>' + (have.length ? have.length + ' ' + pmPl(have.length, 'позиция', 'позиции', 'позиций') : 'пока ничего') + '</span></div>' +
+      (others.length ? '<div class="eq-blk-t"><span></span><span>Скопировать из: ' + others.map(function(x){ return '<button type="button" class="linkish" data-pm-act="copy" data-v="' + x.code + '">' + esc(purposeLabel(x.code).toLowerCase()) + '</button>'; }).join(' · ') + '</span></div>' : '') +
+      (have.length ? '<div class="eq-have">' + have.map(function(x){
+        var key = x.kind + ':' + x.key;
+        return '<div class="eq-hv"><span class="eq-hv-l">' + esc(x.label) + '<span class="eq-hv-g">' + esc(x.group) + '</span></span>' + (x.q ? pmStep(key, x.v) : '<span class="eq-step-ph"></span>') +
+          '<button type="button" class="eq-x" data-pm-act="rm" data-k="' + esc(key) + '" aria-label="Убрать «' + esc(x.label) + '»">×</button></div>';
+      }).join('') + '</div>' : '<div class="eq-empty">Отметьте, что получает клиент вместе с арендой — это сильно помогает выбрать.</div>') +
+      (pop.length ? '<div class="eq-blk-t" style="margin-top:14px"><span>Часто добавляют для ' + gen + '</span><button type="button" class="linkish" data-pm-act="popmore">' + (PM.popMore ? 'меньше' : 'ещё') + '</button></div>' +
+        '<div class="eq-chips">' + pop.map(function(it){ return '<button type="button" class="eq-chip" data-pm-act="add" data-v="' + esc(it.code) + '">' + esc(it.label) + '</button>'; }).join('') + '</div>' : '') +
+      '<div class="eq-blk-t" style="margin-top:14px"><span>Найти или добавить своё</span></div>' +
+      '<div class="eq-srch"><input class="fr-in" id="pmEqQ" placeholder="Проектор, хромакей, аэрохоккей…" autocomplete="off" aria-label="Поиск оснащения"><div class="eq-sugg" id="pmEqS" hidden></div></div>' +
+      '</div>' +
+      '<div class="pm-foot"><button type="button" class="linkish danger" data-pm-act="unoffer">Больше не сдавать для ' + gen + '</button></div></div>';
+    return html;
   }
 
-  // ---------- редактор оснащения: «что есть» + «часто добавляют» + поиск ----------
-  // Не 140 галочек каталога, а только то, что у владельца уже есть; добавлять —
-  // из подборки для этой цели или поиском по всему каталогу (или своё).
-  function pdPopular(cur, n){
-    var have = {}; (cur.equipment || []).forEach(function(c){ have[c] = 1; });
-    var out = [];
-    function pass(primary){
-      var queues = (EQ_CAT || []).map(function(g){
-        return g.items.filter(function(it){ var k = (it.purposes || []).indexOf(cur.code);
-          return !it.legacy && !have[it.code] && (primary ? k === 0 : k > 0); });
-      }).filter(function(q){ return q.length; });
-      while(out.length < n && queues.some(function(q){ return q.length; })){
-        queues.forEach(function(q){ if(q.length && out.length < n) out.push(q.shift()); });
+  // ---------- предпросмотр: страница клиента ----------
+  function pmClient(i, code){
+    var h = hallsDraft[i], p = pmCur(i, code);
+    var list = HALL_PURPOSE_LIST.filter(function(x){ var q = pmCur(i, x.v); return q && (q.active !== false || x.v === code); });
+    var cap = pmCap(h, p) || 1, minM = Number.isInteger(p.minBookingMin) ? p.minBookingMin : pmStudioMin(), minH = Math.max(1, Math.ceil(minM / 60));
+    var n = Math.min(PM.pv.n, cap), hh = Math.max(PM.pv.h, minH);
+    var r = pmCalc(p, n, hh), have = pmEqList(p), show = PM.pv.all ? have : have.slice(0, 6), g = p.guestPricing;
+    var parts = [];
+    if(pmRent(p)) parts.push(gpMoney(r.rent) + ' аренда' + (r.pkg ? ' (пакет)' : ''));
+    if(r.guests || pmModel(p) === 'guest') parts.push(gpMoney(r.guests) + (pmModel(p) === 'guest' ? ' за гостей' : ' доплата'));
+    var short = pmShortPrice(p);
+    var big = pmModel(p) === 'hour'
+      ? (typeof p.rate === 'number' && p.rate > 0 ? gpMoney(p.rate) + ' ' + CUR + ' <small>за час</small>' : '<small>цена не указана</small>')
+      : (short ? esc(short.replace(' с гостя', '')) + ' <small>с гостя' + (g.unit === 'hour' ? ' в час' : '') + '</small>' : '<small>цена не указана</small>');
+    var photo = Array.isArray(h.photos) && h.photos[0];
+    var pks = pmRent(p) ? (p.packages || []).filter(function(x){ return x.hours && typeof x.price === 'number'; }) : [];
+    return '<div class="pm-cl-hero"' + (photo ? ' style="background-image:url(\'' + esc(photo) + '\')"' : '') + '>' + (photo ? '' : '<span>фото пространства</span>') + '</div>' +
+      '<div class="pm-cl-body"><div><div class="pm-cl-name">' + esc(h.title || h.name || 'Пространство') + '</div><div class="pm-cl-sub">' + esc([profileDraft.name, h.address || profileDraft.address].filter(Boolean).join(' · ')) + '</div></div>' +
+      (list.length > 1 ? '<div class="pm-cl-pur">' + list.map(function(x){
+        var q = pmCur(i, x.v);
+        return '<button type="button" class="pm-cp' + (x.v === code ? ' on' : '') + '" data-pv-p="' + x.v + '"><span class="pm-ic">' + purposeIconSvg(x.v) + '</span><span><b>' + esc(x.label) + '</b><small>' + esc(pmShortPrice(q) || '—') + '</small></span></button>';
+      }).join('') + '</div>' : '') +
+      '<div class="pm-facts"><div><small>Гостей</small><b>до ' + cap + '</b></div><div><small>Минимум</small><b>' + pmMinTxt(minM) + '</b></div><div><small>Площадь</small><b>' + (h.areaM2 ? h.areaM2 + ' м²' : '—') + '</b></div></div>' +
+      '<div><div class="pm-cl-sl">Цена</div><div class="pm-price"><div class="pm-price-big">' + big + '</div>' +
+        (pmModel(p) === 'guest' && g.tiers.length > 1 ? '<div class="pm-ptiers">' + g.tiers.map(function(t, k){ return '<span>' + (k === 0 && g.tiers[1].from === 2 ? '1 гость' : 'от ' + (t.from || 1)) + ' — <b>' + gpMoney(t.price || 0) + '</b></span>'; }).join('') + '</div>' : '') +
+        pmRule(p).map(function(s){ return '<p>' + esc(s) + '</p>'; }).join('') +
+        (pks.length ? '<div class="pm-ptiers">' + pks.map(function(x){ return '<span>Пакет ' + String(x.hours).replace('.', ',') + ' ч — <b>' + gpMoney(x.price) + ' ' + CUR + '</b></span>'; }).join('') + '</div>' : '') +
+      '</div></div>' +
+      (have.length ? '<div><div class="pm-cl-sl">Входит в аренду для ' + purposeGen(code) + '</div><ul class="pm-ck">' + show.map(function(x){
+        return '<li>' + esc(x.label) + (x.q && Number.isInteger(x.v) ? ' <span>· ' + x.v + ' шт.</span>' : '') + '</li>'; }).join('') + '</ul>' +
+        (have.length > 6 ? '<button type="button" class="pm-more" data-pv="all">' + (PM.pv.all ? 'Свернуть' : 'Показать всё · ' + have.length) + '</button>' : '') + '</div>' : '') +
+      '</div>' +
+      '<div class="pm-bar"><div class="pm-bar-ctl">' +
+        '<span>Гостей <button type="button" class="pm-rb" data-pv="n-"' + (n <= 1 ? ' disabled' : '') + ' aria-label="Меньше гостей">−</button><b>' + n + '</b><button type="button" class="pm-rb" data-pv="n+"' + (n >= cap ? ' disabled' : '') + ' aria-label="Больше гостей">+</button></span>' +
+        '<span>Часов <button type="button" class="pm-rb" data-pv="h-"' + (hh <= minH ? ' disabled' : '') + ' aria-label="Меньше часов">−</button><b>' + hh + '</b><button type="button" class="pm-rb" data-pv="h+"' + (hh >= 12 ? ' disabled' : '') + ' aria-label="Больше часов">+</button></span></div>' +
+        '<div class="pm-bar-sum"><div><div class="pm-tot">' + gpMoney(r.total) + ' ' + CUR + '</div><div class="pm-tot-b">' + esc(parts.join(' + ')) + '</div></div>' +
+        '<span class="pm-go">Выбрать время</span></div></div>';
+  }
+  function pmPreview(i){
+    var root = document.querySelector('.hall-purposes[data-i="' + i + '"] .pm-phone-in');
+    var sheet = document.querySelector('.pm-sheet .pm-phone-in');
+    [root, sheet].forEach(function(el){
+      if(!el) return;
+      var p = pmCur(i, PM.code);
+      el.innerHTML = p ? pmClient(i, PM.code) : '<div class="pm-cl-body"><p class="muted" style="margin:40px 0;text-align:center">Назначение не сдаётся — клиент его не видит.</p></div>';
+    });
+    var cap = document.querySelector('.hall-purposes[data-i="' + i + '"] .pm-pv-h span');
+    if(cap) cap.textContent = pmChangedCodes(hallsDraft[i]).indexOf(PM.code) !== -1 ? 'с несохранёнными правками' : 'как сейчас';
+  }
+
+  // ---------- отрисовка блока назначений одного пространства ----------
+  function renderHallPurposes(i){
+    var h = hallsDraft[i];
+    var box = document.querySelector('.hall-purposes[data-i="' + i + '"]');
+    if(!box) return;
+    if(!h.id){ box.innerHTML = '<div class="pm-head"><b>Для чего сдаёте</b></div><span class="muted">Сохраните пространство, чтобы задать назначения.</span>'; return; }
+    if(PMSNAP[h.id] == null) pmSnap(i);
+    var open = PM.i === i && PM.code;
+    box.innerHTML = '<div class="pm-head"><b>Для чего сдаёте</b><span>У каждого назначения своя цена и своё оснащение</span></div>' +
+      '<div class="pm-tiles" data-pm-tiles>' + HALL_PURPOSE_LIST.map(function(x){ return pmTile(i, x); }).join('') + '</div>' +
+      (open ? '<div class="pm-work"><div class="pm-ed-wrap">' + pmEditor(i) + '</div>' +
+        '<aside class="pm-pv" aria-label="Предпросмотр"><div class="pm-pv-h"><b>Так увидит клиент</b><span></span></div><div class="pm-phone"><div class="pm-phone-in"></div></div></aside></div>' : '');
+    if(open){
+      pmPreview(i);
+      pmWireSearch(i);
+      if(PM.grid && document.querySelector('.hall-prules[data-i="' + i + '"]')){
+        if(!(PG.i === i && PG.code === PM.code)) pgLoad(i, PM.code);
+        renderHallPriceRules(i);
       }
     }
-    pass(true); pass(false);
-    return out;
   }
-  function pdAddCode(cur, code){
-    cur.equipment = cur.equipment || [];
-    if(cur.equipment.indexOf(code) === -1) cur.equipment.push(code);
-    var it = EQ_BY_CODE[code];
-    cur.equipmentQty = cur.equipmentQty || {};
+  // Перерисовать форму, не теряя курсор (при наборе — только мягкое обновление).
+  function pmRerender(i){
+    var a = document.activeElement, id = a && a.id, pos = null;
+    try{ pos = a && a.selectionStart; }catch(err){}
+    renderHallPurposes(i);
+    pmChanged(i);
+    if(id && document.getElementById(id)){ var nn = document.getElementById(id); nn.focus({ preventScroll:true }); try{ if(pos != null) nn.setSelectionRange(pos, pos); }catch(err){} }
   }
-  // Количество не задано — поле пустое («—»): клиент увидит позицию без «шт.».
-  function pdStep(key, v){
-    v = Number.isInteger(v) && v >= 1 ? v : null;
-    return '<span class="eq-step"><button type="button" data-st="' + key + '" data-d="-1"' + (!v || v <= 1 ? ' disabled' : '') + ' aria-label="Меньше">−</button>' +
-      '<input type="number" min="1" max="999" data-sq="' + key + '" value="' + (v || '') + '" placeholder="—" aria-label="Количество">' +
-      '<button type="button" data-st="' + key + '" data-d="1" aria-label="Больше">+</button></span>';
+  function pmSoft(i){
+    var box = document.querySelector('.hall-purposes[data-i="' + i + '"]'); if(!box) return;
+    var t = box.querySelector('[data-pm-tiles]'); if(t) t.innerHTML = HALL_PURPOSE_LIST.map(function(x){ return pmTile(i, x); }).join('');
+    var p = pmCur(i, PM.code), sc = document.getElementById('pm-scale');
+    if(p && sc) sc.outerHTML = pmScale(hallsDraft[i], p);
+    pmChanged(i);
+    pmPreview(i);
   }
-  function pdEquipEditor(i, body, h, cur){
-    if(!EQ_CAT){ body.innerHTML = '<div class="muted">Загружаем каталог…</div>'; loadEqCatalog().then(function(){ renderHallPurposes(i); }); return; }
-    var have = pdEquipList(cur);
-    var others = hallPurposes(h).filter(function(p){ return p.code !== cur.code; });
-    var html = '<div class="eq-blk"><div class="eq-blk-t"><span>Что входит в аренду · ' + have.length + '</span>' +
-      (others.length ? '<span>Скопировать из: ' + others.map(function(p){
-        var n = (p.equipment || []).length + (p.extras || []).length;
-        return n ? '<button type="button" class="linkish" data-copy="' + p.code + '">' + esc(purposeLabel(p.code).toLowerCase()) + ' (' + n + ')</button>' : '<span class="eq-off">' + esc(purposeLabel(p.code).toLowerCase()) + '</span>';
-      }).join(' · ') + '</span>' : '') + '</div>' +
-      (have.length ? '<div class="eq-have">' + have.map(function(x){
-        var key = x.kind === 'cat' ? 'c:' + x.code : 'o:' + x.i;
-        return '<div class="eq-hv"><span class="eq-hv-l">' + esc(x.label) + '<span class="eq-hv-g">' + esc(x.group) + '</span></span>' +
-          (x.qtyOn ? pdStep(key, x.qty) : '<span class="eq-step-ph"></span>') +
-          '<button type="button" class="eq-x" data-rm="' + key + '" aria-label="Убрать «' + esc(x.label) + '»">×</button></div>';
-      }).join('') + '</div>' : '<div class="eq-empty">Пока пусто. Добавьте из подборки ниже или найдите в каталоге.</div>') + '</div>';
-    var pop = pdPopular(cur, PD.popMore ? 24 : 10);
-    if(pop.length){
-      html += '<div class="eq-blk"><div class="eq-blk-t"><span>Часто добавляют для ' + purposeGen(cur.code) + '</span>' +
-        (pdPopular(cur, 11).length > 10 ? '<button type="button" class="linkish" data-popmore>' + (PD.popMore ? 'меньше' : 'ещё') + '</button>' : '') + '</div>' +
-        '<div class="eq-chips">' + pop.map(function(it){ return '<button type="button" class="eq-chip" data-add="' + esc(it.code) + '">' + esc(it.label) + '</button>'; }).join('') + '</div></div>';
+  // Сетка цен по дням и часам правит черновик цели («Применить»), сохраняет — общая кнопка.
+  function pmApplyGrid(i){
+    var p = pgTarget(i, PG.code), clean = pgCompile();
+    if(clean.length > 30) return 'Слишком дробные тарифы: получилось ' + clean.length + ' правил при лимите 30. Сделайте цены крупными блоками часов.';
+    p.priceRules = clean.length ? clean : null;
+    var code = PG.code;
+    pgLoad(i, code);
+    pmChanged(i);
+    return null;
+  }
+  function pmOpen(i, code){
+    if(PG.i >= 0 && PG.code && PG.dirty){ var pi = PG.i; pmApplyGrid(pi); }
+    var same = PM.i === i && PM.code === code;
+    var prev = PM.i;
+    PM.i = same ? -1 : i; PM.code = same ? null : code; PM.popMore = false; PM.grid = false; PM.hi = -1;
+    if(prev >= 0 && prev !== i) renderHallPurposes(prev);
+    renderHallPurposes(i);
+    if(!same){
+      loadEqCatalog().then(function(){ if(PM.i === i && PM.code === code) pmRerender(i); });
+      var box = document.querySelector('.hall-purposes[data-i="' + i + '"] .pm-work');
+      if(box && box.scrollIntoView){ var r = box.getBoundingClientRect(); if(r.top < 0 || r.top > window.innerHeight - 120) box.scrollIntoView({ block:'start', behavior: scReduced() ? 'auto' : 'smooth' }); }
     }
-    var total = 0; EQ_CAT.forEach(function(g){ g.items.forEach(function(it){ if(!it.legacy) total++; }); });
-    html += '<div class="eq-blk"><div class="eq-blk-t"><span>Найти в каталоге или добавить своё</span><span>' + total + ' позиций</span></div>' +
-      '<div class="eq-srch"><input class="fr-in" id="eqQ" placeholder="Например: проектор, хромакей, аэрохоккей…" autocomplete="off" aria-label="Поиск оснащения">' +
-      '<div class="eq-sugg" id="eqS" hidden></div></div></div>';
-    body.innerHTML = html;
+  }
+  function pmOpenSheet(i){
+    var sh = document.createElement('div'); sh.className = 'pm-sheet';
+    sh.innerHTML = '<div class="pm-sheet-in" role="dialog" aria-label="Так увидит клиент"><div class="pm-sheet-h"><b>Так увидит клиент</b><button type="button" class="btn ghost small" data-pm-close>Закрыть</button></div><div class="pm-phone-in"></div></div>';
+    document.body.appendChild(sh);
+    pmPreview(i);
+    var close = function(){ sh.remove(); document.removeEventListener('keydown', onKey); };
+    var onKey = function(e){ if(e.key === 'Escape') close(); };
+    document.addEventListener('keydown', onKey);
+    sh.addEventListener('click', function(e){ if(e.target === sh || e.target.closest('[data-pm-close]')) close(); else pmPreviewClick(i, e); });
+  }
+  function pmPreviewClick(i, e){
+    var b = e.target.closest('[data-pv],[data-pv-p]'); if(!b) return;
+    if(b.dataset.pvP){ if(b.dataset.pvP !== PM.code) pmOpen(i, b.dataset.pvP); return; }
+    var a = b.dataset.pv;
+    if(a === 'all') PM.pv.all = !PM.pv.all;
+    else if(a === 'n-') PM.pv.n = Math.max(1, PM.pv.n - 1);
+    else if(a === 'n+') PM.pv.n = PM.pv.n + 1;
+    else if(a === 'h-') PM.pv.h = Math.max(1, PM.pv.h - 1);
+    else if(a === 'h+') PM.pv.h = Math.min(12, PM.pv.h + 1);
+    pmPreview(i);
+  }
 
-    var rerender = function(){ renderHallPurposes(i); var q = document.getElementById('eqQ'); return q; };
-    body.querySelectorAll('[data-st]').forEach(function(b){ b.addEventListener('click', function(){
-      var key = b.dataset.st, d = +b.dataset.d;
-      // из пустого «+» ставит 1
-      if(key.charAt(0) === 'c'){ var c = key.slice(2); cur.equipmentQty[c] = Math.max(1, Math.min(999, cur.equipmentQty[c] ? cur.equipmentQty[c] + d : 1)); }
-      else { var x = cur.extras[+key.slice(2)]; x.qty = Math.max(1, Math.min(999, x.qty ? x.qty + d : 1)); }
-      rerender(); }); });
-    body.querySelectorAll('[data-sq]').forEach(function(inp){ inp.addEventListener('change', function(){
-      var v = parseInt(inp.value, 10), n = v >= 1 ? Math.min(999, v) : null, key = inp.dataset.sq;
-      if(key.charAt(0) === 'c'){ if(n) cur.equipmentQty[key.slice(2)] = n; else delete cur.equipmentQty[key.slice(2)]; }
-      else cur.extras[+key.slice(2)].qty = n;
-      rerender(); }); });
-    body.querySelectorAll('[data-rm]').forEach(function(b){ b.addEventListener('click', function(){
-      var key = b.dataset.rm;
-      if(key.charAt(0) === 'c'){ var c = key.slice(2); cur.equipment.splice(cur.equipment.indexOf(c), 1); delete cur.equipmentQty[c]; }
-      else cur.extras.splice(+key.slice(2), 1);
-      rerender(); }); });
-    body.querySelectorAll('[data-add]').forEach(function(b){ b.addEventListener('click', function(){ pdAddCode(cur, b.dataset.add); rerender(); }); });
-    var pm = body.querySelector('[data-popmore]'); if(pm) pm.addEventListener('click', function(){ PD.popMore = !PD.popMore; rerender(); });
-    body.querySelectorAll('[data-copy]').forEach(function(b){ b.addEventListener('click', function(){
-      var src = hallPurposes(h).filter(function(p){ return p.code === b.dataset.copy; })[0]; if(!src) return;
-      var before = pdEquipList(cur).length;
-      (src.equipment || []).forEach(function(c){ pdAddCode(cur, c); if(src.equipmentQty && src.equipmentQty[c]) cur.equipmentQty[c] = cur.equipmentQty[c] > 1 ? cur.equipmentQty[c] : src.equipmentQty[c]; });
-      cur.extras = cur.extras || [];
-      (src.extras || []).forEach(function(x){ if(!cur.extras.some(function(y){ return y.label.toLowerCase() === x.label.toLowerCase(); })) cur.extras.push({ label:x.label, qty:x.qty }); });
-      rerender();
-      var n = body.ownerDocument.querySelector('.hall-purposes[data-i="' + i + '"] .purp-note');
-      if(n) flash(n, 'Добавлено из «' + purposeLabel(src.code) + '»: ' + (pdEquipList(cur).length - before), true);
-    }); });
-
-    // поиск с подсказками; последняя строка — «добавить своё»
-    var q = body.querySelector('#eqQ'), box = body.querySelector('#eqS'), opts = [];
+  // поиск по каталогу с подсказками; последняя строка — «добавить своё»
+  function pmWireSearch(i){
+    var q = document.getElementById('pmEqQ'), box = document.getElementById('pmEqS'); if(!q) return;
+    var opts = [];
     function draw(){
-      var t = q.value.trim().toLowerCase();
-      if(!t){ box.hidden = true; opts = []; return; }
+      var p = pmCur(i, PM.code), t = q.value.trim().toLowerCase();
+      if(!t || !EQ_CAT){ box.hidden = true; opts = []; return; }
       var hits = [];
       EQ_CAT.forEach(function(g){ g.items.forEach(function(it){ if(!it.legacy && it.label.toLowerCase().indexOf(t) !== -1) hits.push(it); }); });
-      hits.sort(function(a, b){ return ((b.purposes || []).indexOf(cur.code) !== -1) - ((a.purposes || []).indexOf(cur.code) !== -1); });
+      hits.sort(function(a, b){ return ((b.purposes || []).indexOf(p.code) !== -1) - ((a.purposes || []).indexOf(p.code) !== -1); });
       hits = hits.slice(0, 8);
-      var exact = hits.some(function(it){ return it.label.toLowerCase() === t; }) ||
-        (cur.extras || []).some(function(x){ return x.label.toLowerCase() === t; });
-      opts = hits.map(function(it){ return { kind:'cat', it:it, has:(cur.equipment || []).indexOf(it.code) !== -1 }; });
-      if(!exact && q.value.trim().length <= 100) opts.push({ kind:'own', label:q.value.trim() });
-      if(PD.hi >= opts.length) PD.hi = opts.length - 1;
+      var exact = hits.some(function(it){ return it.label.toLowerCase() === t; }) || (p.extras || []).some(function(x){ return x.label.toLowerCase() === t; });
+      opts = hits.map(function(it){ return { it:it, has:(p.equipment || []).indexOf(it.code) !== -1 }; });
+      if(!exact) opts.push({ own:q.value.trim().slice(0, 100) });
+      if(PM.hi >= opts.length) PM.hi = opts.length - 1;
       box.innerHTML = opts.map(function(o, k){
-        if(o.kind === 'own') return '<button type="button" class="eq-sg own' + (k === PD.hi ? ' hi' : '') + '" data-k="' + k + '">+ Добавить «' + esc(o.label) + '» как своё</button>';
-        return '<button type="button" class="eq-sg' + (k === PD.hi ? ' hi' : '') + '" data-k="' + k + '"' + (o.has ? ' disabled' : '') + '>' + esc(o.it.label) +
-          '<small>' + (o.has ? 'уже есть' : esc(o.it.group)) + '</small></button>';
+        if(o.own) return '<button type="button" class="eq-sg own' + (k === PM.hi ? ' hi' : '') + '" data-k="' + k + '">+ Добавить «' + esc(o.own) + '» как своё</button>';
+        return '<button type="button" class="eq-sg' + (k === PM.hi ? ' hi' : '') + '" data-k="' + k + '"' + (o.has ? ' disabled' : '') + '>' + esc(o.it.label) + '<small>' + (o.has ? 'уже есть' : esc(o.it.group)) + '</small></button>';
       }).join('');
       box.hidden = !opts.length;
     }
     function choose(k){
-      var o = opts[k]; if(!o || o.has) return;
-      if(o.kind === 'own'){ cur.extras = cur.extras || []; cur.extras.push({ label:o.label, qty:null }); }
-      else pdAddCode(cur, o.it.code);
-      PD.hi = -1;
-      var nq = rerender(); if(nq) nq.focus();
+      var o = opts[k], p = pmCur(i, PM.code); if(!o || o.has) return;
+      if(o.own){ p.extras = p.extras || []; p.extras.push({ label:o.own, qty:null }); }
+      else { p.equipment = p.equipment || []; p.equipment.push(o.it.code); }
+      PM.hi = -1; pmRerender(i);
+      var nq = document.getElementById('pmEqQ'); if(nq){ nq.value = ''; nq.focus(); }
     }
-    q.addEventListener('input', function(){ PD.hi = 0; draw(); });
+    q.addEventListener('input', function(e){ e.stopPropagation(); PM.hi = 0; draw(); });
     q.addEventListener('keydown', function(e){
       if(box.hidden) return;
-      if(e.key === 'ArrowDown'){ e.preventDefault(); PD.hi = Math.min(opts.length - 1, PD.hi + 1); draw(); }
-      else if(e.key === 'ArrowUp'){ e.preventDefault(); PD.hi = Math.max(0, PD.hi - 1); draw(); }
-      else if(e.key === 'Enter'){ e.preventDefault(); choose(PD.hi < 0 ? 0 : PD.hi); }
+      if(e.key === 'ArrowDown'){ e.preventDefault(); PM.hi = Math.min(opts.length - 1, PM.hi + 1); draw(); }
+      else if(e.key === 'ArrowUp'){ e.preventDefault(); PM.hi = Math.max(0, PM.hi - 1); draw(); }
+      else if(e.key === 'Enter'){ e.preventDefault(); choose(PM.hi < 0 ? 0 : PM.hi); }
       else if(e.key === 'Escape'){ box.hidden = true; }
     });
     box.addEventListener('mousedown', function(e){ e.preventDefault(); });
@@ -3078,162 +3172,151 @@
     q.addEventListener('blur', function(){ setTimeout(function(){ box.hidden = true; }, 120); });
   }
 
-  // Добавить цель: новая (ещё не сохранённая) цель сразу с открытой «Ценой»;
-  // «Отмена» её убирает.
-  var PURP_SNAP = null;
-  function purpOpen(i, code){
-    if(PD.open) pdCancel(true);
-    var h = hallsDraft[i];
-    if(!hallPurposes(h).some(function(p){ return p.code === code; })){
-      hallPurposes(h).push({ code:code, rate:null, minBookingMin:null, capacity:null, equipment:[], equipmentQty:{}, extras:[], priceRules:null, active:true, _new:true });
-    }
-    PTAB[i] = code;
-    var cur = hallPurposes(h).filter(function(p){ return p.code === code; })[0];
-    PD = { i:i, code:code, open:'price', snap:JSON.stringify(cur), popMore:false, hi:-1 };
-    scAnimate('pd' + i + '-price', function(){ renderHallPurposes(i); renderHallPriceRules(i); });
-    loadEqCatalog();
-    loadDict('equipment');
+  // ---------- события (делегирование на список пространств) ----------
+  function pmHallOf(el){ var b = el.closest && el.closest('.hall-purposes[data-i]'); return b ? +b.dataset.i : -1; }
+  function pmSetField(p, f, raw){
+    var g = p.guestPricing;
+    if(f === 'rate') p.rate = pmNum(raw);
+    else if(f === 'capacity') p.capacity = pmInt(raw);
+    else if(f === 'included') g.included = pmInt(raw);
+    else if(f === 'xprice') g.price = pmNum(raw);
+    else if(f === 'standingCapacity' || f === 'seatedCapacity') p[f] = pmInt(raw);
+    else if(f === 'dayPct') p.fullDayDiscountPct = pmInt(raw);
+    else if(/^tp\d+$/.test(f)) g.tiers[+f.slice(2)].price = pmNum(raw);
+    else if(/^tf\d+$/.test(f)) g.tiers[+f.slice(2)].from = pmInt(raw);
+    else if(/^pkh\d+$/.test(f)) p.packages[+f.slice(3)].hours = pmNum(raw);
+    else if(/^pkp\d+$/.test(f)) p.packages[+f.slice(3)].price = pmNum(raw);
   }
+  function pmMemo(i, code){ var k = hallsDraft[i].id + ':' + code; return PMEMO[k] || (PMEMO[k] = {}); }
+  $('hallsGrid').addEventListener('input', function(e){
+    var t = e.target, i = pmHallOf(t);
+    if(i < 0 || !t.dataset || !t.dataset.pm) return;
+    var p = pmCur(i, PM.code); if(!p) return;
+    pmSetField(p, t.dataset.pm, t.value);
+    // ошибки обновляем «живыми» только после первой попытки сохранить
+    if(PM.tried[hallsDraft[i].id]) pmRerender(i); else pmSoft(i);
+  });
+  $('hallsGrid').addEventListener('change', function(e){
+    var t = e.target, i = pmHallOf(t);
+    if(i < 0 || !t.dataset || t.dataset.pmSq == null) return;
+    var p = pmCur(i, PM.code), k = t.dataset.pmSq, v = pmInt(t.value);
+    if(k[0] === 'c'){ var c = k.slice(2); p.equipmentQty = p.equipmentQty || {}; if(v > 0) p.equipmentQty[c] = Math.min(999, v); else delete p.equipmentQty[c]; }
+    else p.extras[+k.slice(2)].qty = v > 0 ? Math.min(999, v) : null;
+    pmRerender(i);
+  });
+  $('hallsGrid').addEventListener('click', function(e){
+    var i = pmHallOf(e.target); if(i < 0) return;
+    var tile = e.target.closest('[data-pm-tile]'); if(tile){ pmOpen(i, tile.dataset.pmTile); return; }
+    if(e.target.closest('.pm-phone-in')){ pmPreviewClick(i, e); return; }
+    var p = pmCur(i, PM.code), h = hallsDraft[i];
+    var sg = e.target.closest('[data-pm-seg] button');
+    if(sg && p){
+      var id = sg.parentNode.dataset.pmSeg, v = sg.dataset.v;
+      if(id === 'xunit' || id === 'gunit') p.guestPricing.unit = v;
+      else if(id === 'minH') p.minBookingMin = v === 'inherit' ? null : +v;
+      else if(id === 'confirm') p.autoConfirm = v === 'inherit' ? null : v === 'yes';
+      pmRerender(i); return;
+    }
+    var st = e.target.closest('[data-pm-st]');
+    if(st && p){
+      var k = st.dataset.pmSt, d = +st.dataset.d;
+      if(k[0] === 'c'){ var c = k.slice(2); p.equipmentQty = p.equipmentQty || {}; var cur = p.equipmentQty[c] || 0; p.equipmentQty[c] = cur ? Math.max(1, Math.min(999, cur + d)) : 1; }
+      else { var o = p.extras[+k.slice(2)]; o.qty = o.qty ? Math.max(1, Math.min(999, o.qty + d)) : 1; }
+      pmRerender(i); return;
+    }
+    var a = e.target.closest('[data-pm-act]'); if(!a) return;
+    var act = a.dataset.pmAct, memo;
+    if(act === 'close'){ pmOpen(i, PM.code); return; }
+    if(act === 'sheet'){ pmOpenSheet(i); return; }
+    if(act === 'offer'){
+      hallPurposes(h).push({ code:PM.code, rate:null, minBookingMin:null, capacity:null, standingCapacity:null, seatedCapacity:null,
+        equipment:[], equipmentQty:{}, extras:[], packages:[], priceRules:null, guestPricing:null, autoConfirm:null, fullDayDiscountPct:null, active:true });
+      pmRerender(i); var rf = document.getElementById('pm-f-rate'); if(rf) rf.focus(); return;
+    }
+    if(!p) return;
+    if(act === 'active'){ p.active = a.checked; pmRerender(i); return; }
+    if(act === 'unoffer'){
+      hallPurposes(h).splice(hallPurposes(h).indexOf(p), 1);
+      if(PG.i === i && PG.code === p.code){ PG.i = -1; PG.code = null; }
+      pmRerender(i); pmToast('Назначение уберётся после сохранения'); return;
+    }
+    if(act === 'model'){
+      var to = a.dataset.v; if(to === pmModel(p)) return;
+      memo = pmMemo(i, p.code);
+      if(to === 'guest'){ memo.hour = p.guestPricing; p.guestPricing = memo.guest || { mode:'perPerson', unit:'hour', withRent:false, tiers:[{ from:1, price:10 }, { from:2, price:7.5 }, { from:3, price:5 }] }; }
+      else { memo.guest = p.guestPricing; p.guestPricing = memo.hour || null; }
+      pmRerender(i); return;
+    }
+    if(act === 'extra'){
+      memo = pmMemo(i, p.code);
+      if(a.checked){ var cap = pmCap(h, p) || 2; p.guestPricing = memo.extra || { mode:'extra', unit:'booking', included:Math.max(1, Math.min(4, cap - 1)), price:5 }; }
+      else { memo.extra = p.guestPricing; p.guestPricing = null; }
+      pmRerender(i); return;
+    }
+    if(act === 'grent'){ p.guestPricing.withRent = a.checked; pmRerender(i); return; }
+    if(act === 'tadd'){ var t = p.guestPricing.tiers, last = t[t.length - 1]; t.push({ from:(last.from || 1) + 1, price:Math.max(0, (last.price || 1) - 1) }); pmRerender(i); return; }
+    if(act === 'tdel'){ p.guestPricing.tiers.splice(+a.dataset.k, 1); pmRerender(i); return; }
+    if(act === 'pkadd'){ p.packages = p.packages || []; p.packages.push({ hours:3, price:null }); pmRerender(i); var pk = document.getElementById('pm-f-pkp' + (p.packages.length - 1)); if(pk) pk.focus(); return; }
+    if(act === 'pkdel'){ p.packages.splice(+a.dataset.k, 1); pmRerender(i); return; }
+    if(act === 'grid'){
+      if(PM.grid && PG.dirty){ var ge = pmApplyGrid(i); if(ge){ pmToast(ge); return; } }
+      PM.grid = !PM.grid; pmRerender(i); return;
+    }
+    if(act === 'add'){ p.equipment = p.equipment || []; if(p.equipment.indexOf(a.dataset.v) === -1) p.equipment.push(a.dataset.v); pmRerender(i); return; }
+    if(act === 'rm'){
+      var key = a.dataset.k;
+      if(key[0] === 'c'){ var cc = key.slice(2); p.equipment.splice(p.equipment.indexOf(cc), 1); if(p.equipmentQty) delete p.equipmentQty[cc]; }
+      else p.extras.splice(+key.slice(2), 1);
+      pmRerender(i); return;
+    }
+    if(act === 'popmore'){ PM.popMore = !PM.popMore; pmRerender(i); return; }
+    if(act === 'copy'){
+      var src = pmCur(i, a.dataset.v); if(!src) return;
+      var before = (p.equipment || []).length + (p.extras || []).length;
+      p.equipment = p.equipment || []; p.equipmentQty = p.equipmentQty || {}; p.extras = p.extras || [];
+      (src.equipment || []).forEach(function(c){ if(p.equipment.indexOf(c) === -1){ p.equipment.push(c); if(src.equipmentQty && src.equipmentQty[c]) p.equipmentQty[c] = src.equipmentQty[c]; } });
+      (src.extras || []).forEach(function(x){ if(!p.extras.some(function(y){ return y.label.toLowerCase() === x.label.toLowerCase(); })) p.extras.push({ label:x.label, qty:x.qty }); });
+      pmRerender(i);
+      pmToast('Добавлено из «' + purposeLabel(src.code) + '»: ' + ((p.equipment.length + p.extras.length) - before));
+      return;
+    }
+  });
 
-  // Назначения уезжают своим запросом (как тарифы и пакеты): внутри них лежат
+
+  // Назначения уезжают своим запросом (как тарифы): внутри них лежат
   // собственные сетки, и сохранение зала payload'ом без них стёрло бы цены.
+  // Зовётся общей плашкой «Сохранить» (svBar) и только ею.
   function saveHallPurposes(i){
     var h = hallsDraft[i];
-    var n = document.querySelector('.hall-purposes[data-i="'+i+'"] .purp-note');
-    // Проверяем здесь, а не только на бэкенде: там ошибка приходит одной
-    // фразой на весь список, а владельцу нужно имя цели и поле, в котором он
-    // ошибся, — и до отправки, а не после.
-    var bad = null, badSel = null;
-    hallPurposes(h).forEach(function(p){
-      if(bad) return;
-      var open = PD.i === i && PD.code === p.code;   // поле подсветим, только если открыта эта цель
-      var at = '«' + purposeLabel(p.code) + '»';
-      var onlyPeople = !gpRentApplies(p.guestPricing), ge = gpError(p.guestPricing);
-      if(ge){ bad = at + ': ' + ge; if(open) badSel = gpError.sel; }
-      else if(!onlyPeople && !(typeof p.rate === 'number' && p.rate > 0 && p.rate <= 100000)) { bad = at + ': укажите цену за час'; if(open) badSel = '.purp-rate'; }
-      else if(p.capacity != null && !(p.capacity >= 1 && p.capacity <= 1000)) { bad = at + ': вместимость — целое от 1 до 1000'; if(open) badSel = '[data-f="capacity"]'; }
-      else if(p.minBookingMin != null && !(p.minBookingMin >= 30 && p.minBookingMin <= 480 && p.minBookingMin % 30 === 0)) {
-        bad = at + ': минимальная бронь — от 0,5 до 8 часов, шагом по полчаса'; if(open) badSel = '.purp-hours';
-      }
-      else if(p.standingCapacity != null && !(p.standingCapacity >= 1 && p.standingCapacity <= 1000)) { bad = at + ': вместимость стоя — целое от 1 до 1000'; if(open) badSel = '[data-f="standingCapacity"]'; }
-      else if(p.seatedCapacity != null && !(p.seatedCapacity >= 1 && p.seatedCapacity <= 1000)) { bad = at + ': вместимость сидя — целое от 1 до 1000'; if(open) badSel = '[data-f="seatedCapacity"]'; }
-    });
+    if(PG.i === i && PG.code && PG.dirty){ var ge = pmApplyGrid(i); if(ge){ pmToast(ge); return Promise.reject(new Error(ge)); } }
+    var bad = hallPurposes(h).filter(function(p){ return Object.keys(pmErrors(h, p)).length; })[0];
     if(bad){
-      n = document.querySelector('.hall-purposes[data-i="'+i+'"] .purp-note');
-      var el = badSel && document.querySelector('.hall-purposes[data-i="'+i+'"] ' + badSel);
-      if(el){
-        // ошибка — под самим полем; внизу только итог
-        var row = el.closest('.fr-c') || el.parentNode;
-        if(!row.querySelector('.fr-err')){ var d = document.createElement('div'); d.className = 'fr-err'; d.setAttribute('role', 'alert'); d.textContent = bad.replace(/^«[^»]*»: /, ''); row.appendChild(d); }
-        el.classList.add('invalid'); if(el.focus) el.focus({ preventScroll:true });
-        el.scrollIntoView({ block:'center', behavior: scReduced() ? 'auto' : 'smooth' });
-        if(n) flash(n, 'Проверьте отмеченное поле');
-      } else if(n) flash(n, bad);
-      return Promise.reject(new Error(bad));
+      PM.tried[h.id] = true;
+      var prev = PM.i;
+      PM.i = i; PM.code = bad.code;
+      if(prev >= 0 && prev !== i) renderHallPurposes(prev);
+      renderHallPurposes(i);
+      var el = document.querySelector('.hall-purposes[data-i="' + i + '"] .pm-in.bad, .hall-purposes[data-i="' + i + '"] .pm-pk-i.bad input');
+      if(el){ el.focus({ preventScroll:true }); el.scrollIntoView({ block:'center', behavior: scReduced() ? 'auto' : 'smooth' }); }
+      pmToast('Проверьте отмеченные поля в «' + purposeLabel(bad.code) + '»');
+      return Promise.reject(new Error('validation'));
     }
-    var clean = hallPurposes(h).map(function(p){
-      // active — всегда явным true/false, не «пусто значит включено»: это
-      // переключатель, а не поле «как у зала».
-      var out = { code:p.code, active:p.active !== false };
-      if(typeof p.rate === 'number' && isFinite(p.rate)) out.rate = p.rate;
-      if(Number.isInteger(p.minBookingMin)) out.minBookingMin = p.minBookingMin;
-      if(Number.isInteger(p.capacity)) out.capacity = p.capacity;
-      if(Number.isInteger(p.standingCapacity)) out.standingCapacity = p.standingCapacity;
-      if(Number.isInteger(p.seatedCapacity)) out.seatedCapacity = p.seatedCapacity;
-      if(Array.isArray(p.equipment) && p.equipment.length){
-        out.equipment = p.equipment.slice();
-        var q = {};
-        out.equipment.forEach(function(c){ var n = p.equipmentQty && p.equipmentQty[c]; if(Number.isInteger(n) && n >= 1) q[c] = n; });
-        if(Object.keys(q).length) out.equipmentQty = q;
-      }
-      var ex = (p.extras || []).filter(function(x){ return x && (x.label || '').trim(); })
-        .map(function(x){ var o = { label:x.label.trim().slice(0, 100) }; if(Number.isInteger(x.qty) && x.qty >= 1) o.qty = x.qty; return o; });
-      if(ex.length) out.extras = ex;
-      if(Array.isArray(p.priceRules) && p.priceRules.length) out.priceRules = p.priceRules;
-      // autoConfirm null = «как у студии» — поле просто не шлём, а не шлём null
-      // явно: бэкенд трактует отсутствие и null одинаково, но так короче payload.
-      if(typeof p.autoConfirm === 'boolean') out.autoConfirm = p.autoConfirm;
-      if(Number.isInteger(p.fullDayDiscountPct)) out.fullDayDiscountPct = p.fullDayDiscountPct;
-      if(p.guestPricing){
-        var g = p.guestPricing;
-        out.guestPricing = g.mode === 'extra'
-          ? { mode:'extra', unit:g.unit, included:g.included, price:g.price }
-          : { mode:'perPerson', unit:g.unit, withRent:g.withRent !== false, tiers:g.tiers.map(function(t){ return { from:t.from, price:t.price }; }) };
-        // «Только за людей» — почасовой ставки нет вовсе (сервер не берёт её в расчёт).
-        if(g.mode === 'perPerson' && g.withRent === false) delete out.rate;
-      }
-      return out;
-    });
+    var clean = pmClean(h);
     return api('PUT', '/admin/halls/' + encodeURIComponent(h.id) + '/purposes', clean)
       .then(function(res){
-        h.purposes = Array.isArray(res.purposes) ? res.purposes : clean;
-        // Цена зала на сервере пересчиталась из целей (0052) — так же и здесь.
+        h.purposes = (Array.isArray(res.purposes) ? res.purposes : clean).map(mapPurpose);
+        // Цена пространства на сервере пересчиталась из целей (0052) — так же и здесь.
         var mr = hallMinRate(h); if(mr != null) h.rate = mr;
-        if(HALLS_BY_ID[h.id]){ HALLS_BY_ID[h.id].purposes = h.purposes; HALLS_BY_ID[h.id].rate = h.rate; }
-        if(PURP_SNAP && PURP_SNAP.i === i) PURP_SNAP.purposes = clone(h.purposes);
-        renderHallPurposes(i);
+        if(HALLS_BY_ID[h.id]){ HALLS_BY_ID[h.id].purposes = clone(h.purposes); HALLS_BY_ID[h.id].rate = h.rate; }
+        PM.tried[h.id] = false;
+        if(PG.i === i && PG.code) pgLoad(i, PG.code);
+        pmSnap(i);
+        renderHalls();
+        pmToast('Сохранено. Клиенты уже видят изменения');
       })
-      .catch(function(e){ if(n) flash(n, e.message); throw e; });
+      .catch(function(e){ if(e && e.message !== 'validation') pmToast(e.message); throw e; });
   }
 
-  function renderHallPackages(i){
-    var h = hallsDraft[i];
-    var box = document.querySelector('.hall-packages[data-i="'+i+'"]');
-    if(!box) return;
-    if(!h.id){ box.innerHTML = '<span class="muted">Сохраните пространство, чтобы задать пакеты.</span>'; return; }
-    var pk = h.packages || (h.packages = []);
-    var rows = pk.map(function(p, pi){
-      return '<div class="pr-row" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:6px 0;border-top:1px solid var(--line)">' +
-        '<span class="unitwrap"><input class="num pk-h" type="number" min="0.5" step="0.5" data-i="'+i+'" data-pi="'+pi+'" value="'+esc(p.hours)+'"><span class="u">ч</span></span>' +
-        '<span class="muted">=</span>' +
-        '<span class="unitwrap"><input class="num pk-p" type="number" min="0" step="1" data-i="'+i+'" data-pi="'+pi+'" value="'+esc(p.price)+'"><span class="u">'+CUR+'</span></span>' +
-        '<button type="button" class="del pk-del" data-i="'+i+'" data-pi="'+pi+'">✕</button>' +
-        '</div>';
-    }).join('');
-    box.innerHTML =
-      '<div class="muted" style="font-size:12px;margin-bottom:2px">Пакеты — фикс-цена за фикс-длительность (перебивает почасовую и тарифы).</div>' +
-      rows +
-      '<div style="margin-top:6px;display:flex;gap:8px;align-items:center">' +
-        '<button type="button" class="btn ghost small pk-add">+ Пакет</button>' +
-        (pk.length ? '<button type="button" class="btn primary small pk-save">Сохранить пакеты</button>' : '') +
-      '</div><div class="note pk-note"></div>';
-    box.querySelectorAll('.pk-h,.pk-p').forEach(function(inp){ inp.addEventListener('input', function(){
-      var p = pk[+inp.dataset.pi];
-      if(inp.classList.contains('pk-h')) p.hours = parseFloat(inp.value);
-      else p.price = parseFloat(inp.value);
-    }); });
-    box.querySelectorAll('.pk-del').forEach(function(b){ b.addEventListener('click', function(){
-      pk.splice(+b.dataset.pi,1); renderHallPackages(i);
-    }); });
-    var add = box.querySelector('.pk-add');
-    if(add) add.addEventListener('click', function(){ pk.push({ hours:3, price:0 }); renderHallPackages(i); });
-    var save = box.querySelector('.pk-save');
-    if(save) save.addEventListener('click', function(){ saveHallPackages(i); });
-  }
-  function saveHallPackages(i){
-    var h = hallsDraft[i];
-    var n = document.querySelector('.hall-packages[data-i="'+i+'"] .pk-note');
-    var clean = [];
-    for(var k=0;k<(h.packages||[]).length;k++){
-      var p = h.packages[k];
-      if(!(typeof p.hours === 'number' && (p.hours*2)%1===0 && p.hours>=0.5 && p.hours<=8)){
-        if(n) flash(n, 'Пакет #'+(k+1)+': часы — шаг 0.5, от 0.5 до 8'); return;
-      }
-      if(!(typeof p.price === 'number' && isFinite(p.price) && p.price>=0)){
-        if(n) flash(n, 'Пакет #'+(k+1)+': цена — число не меньше 0'); return;
-      }
-      clean.push({ hours:p.hours, price:p.price });
-    }
-    api('PUT', '/admin/halls/' + encodeURIComponent(h.id) + '/packages', clean)
-      .then(function(res){
-        h.packages = Array.isArray(res.packages) ? res.packages : clean;
-        if(HALLS_BY_ID[h.id]) HALLS_BY_ID[h.id].packages = h.packages;
-        renderHallPackages(i);
-        var nn = document.querySelector('.hall-packages[data-i="'+i+'"] .pk-note');
-        if(nn) flash(nn, 'Пакеты сохранены', true);
-      })
-      .catch(function(e){ if(n) flash(n, e.message); });
-  }
   function saveHallPriceRules(i){
     var h = hallsDraft[i];
     var n = document.querySelector('.hall-prules[data-i="'+i+'"] .pr-note');
@@ -3250,18 +3333,13 @@
         if(n) flash(n, 'Цена — число от 0 до 100000'); return;
       }
     }
-    // Сетка назначения лежит внутри самого назначения, поэтому уезжает своим
-    // запросом вместе с остальными назначениями зала.
+    // Сетка назначения правит черновик цели; на сервер её отправит общая
+    // плашка «Сохранить» вместе с остальными правками назначения.
     if(PG.code){
-      var p = pgTarget(i, PG.code);
-      p.priceRules = clean;
-      var code = PG.code;
-      saveHallPurposes(i).then(function(){
-        pgLoad(i, code);
-        renderHallPriceRules(i);
-        var nn = document.querySelector('.hall-prules[data-i="'+i+'"] .pr-note');
-        if(nn) flash(nn, clean.length ? 'Тарифы назначения сохранены' : 'Тарифы назначения сняты', true);
-      }).catch(function(e){ if(n) flash(n, e.message); });
+      var err = pmApplyGrid(i);
+      if(err){ if(n) flash(n, err); return; }
+      renderHallPurposes(i);
+      pmToast('Цены по часам применены — сохраните назначение кнопкой внизу');
       return;
     }
     api('PUT', '/admin/halls/' + encodeURIComponent(h.id) + '/price-rules', clean)
@@ -3430,23 +3508,10 @@
         '</div>' +
         // Назначения и цены — здесь, а не в карточке зала: видно все цели
         // всех залов сразу, включать/выключать можно не заходя внутрь.
-        '<div class="hall-purposes" data-i="'+i+'"></div>' +
-        '<div class="hall-prules" data-i="'+i+'"></div>' +
-        '<div class="hp-pk"><button class="hcp-edit" type="button" data-pk="'+i+'">Пакеты часов' +
-          ((h.packages||[]).length ? ' · ' + h.packages.length : '') + '</button>' +
-          '<span class="muted"> — фикс-цена за несколько часов, перебивает почасовую</span>' +
-          '<div class="hall-packages" data-i="'+i+'" hidden></div></div>';
+        '<div class="hall-purposes" data-i="'+i+'"></div>';
       g.appendChild(card);
       renderHallPurposes(i);
       renderHallPriceRules(i);
-      if(!EQ_CAT) loadEqCatalog().then(function(){ renderHallPurposes(i); });
-    });
-    g.querySelectorAll('[data-pk]').forEach(function(b){
-      b.addEventListener('click', function(){
-        var box = g.querySelector('.hall-packages[data-i="'+b.dataset.pk+'"]');
-        box.hidden = !box.hidden;
-        if(!box.hidden) renderHallPackages(+b.dataset.pk);
-      });
     });
     var add = document.createElement('button');
     add.type = 'button'; add.className = 'hall-card-add';
@@ -3498,7 +3563,7 @@
     }
     return api('PUT','/admin/halls', hallsDraft.map(hallToPayload))
       .then(function(u){
-        hallsDraft = u.filter(function(h){return h.active!==false;}).map(mapHall);
+        pmReload(u.filter(function(h){return h.active!==false;}).map(mapHall));
         u.forEach(function(h){ HALLS_BY_ID[h.id]=h; });
         return hallsDraft;
       });
@@ -5430,7 +5495,7 @@
       // просто не трогаем её draft; svSnap — только когда действительно взяли
       // данные с сервера, иначе «чисто» было бы неправдой.
       if(!SV.dirty.halls){
-        hallsDraft = (ov.halls||[]).filter(function(h){return h.active!==false;}).map(mapHall);
+        pmReload((ov.halls||[]).filter(function(h){return h.active!==false;}).map(mapHall));
         svSnap('halls');
       }
       // Свежие «сырые» залы (rate/priceRules) для быстрой брони — отдельно от
