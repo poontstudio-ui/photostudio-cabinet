@@ -1502,7 +1502,7 @@
          сводка человеческим языком и схема у каждого правила, правка на месте. -->
     <div class="card" id="sec-bkrules" data-folder="booking" data-owner-only="1">
       <h2>Правила бронирования</h2>
-      <div class="muted" style="margin:-6px 0 18px">Как принимаются брони и какие условия действуют при отмене, переносе и прогуле. Платформа деньги не принимает: расчёты — напрямую между клиентом и студией.</div>
+      <div class="muted" style="margin:-6px 0 18px">Как принимаются брони и что происходит с деньгами при отмене, переносе и прогуле.</div>
       <div id="bkSecs"></div>
       <div class="note" id="bkNote"></div>
     </div>
@@ -1800,8 +1800,6 @@
     </div>
     <div class="note" id="qbFormNote"></div>
   </div>
-</div>
-
 <script>
 /* PF:BEGIN — поле телефона со страной. Исходник: _dev/phone-field.js, в страницы
    вставляется скриптом _dev/inject_phone_field.py — правьте здесь, не в страницах. */
@@ -2142,6 +2140,466 @@ var PF = (function(){
   };
 })();
 /* PF:END */
+</script>
+</div>
+
+<script>
+(function(){
+  try{ localStorage.setItem('ps_cabinet_token', 'test-token'); }catch(e){}
+  var P = new URLSearchParams(location.search);
+  var STUDIO_ID = P.get('id') || 'test-studio';
+  var nHallsRaw = parseInt(P.get('halls'), 10);
+  var nHalls = Number.isInteger(nHallsRaw) ? nHallsRaw : 3;   // halls=0 — реальный ноль, не «не указано»
+  // hours[] индексируется JS getDay (0=Вс): Вс короче, суббота длиннее —
+  // чтобы в сетке тарифов было видно штриховку нерабочих часов.
+  window.__TEST_CONFIG__ = { name:'Фотостудия «Свет»', subtitle:'Лофт в центре', city:'Минск', address:'ул. Октябрьская, 16',
+    timezone:'Europe/Minsk', currency:'BYN', hoursStart:9, hoursEnd:22, slotStep:60, minBookingMin:60, phone:'+375291112233',
+    noShowFeePct:100, rescheduleFeePct:25, debtBlocksAutoconfirm:true,
+    hours:[{start:11,end:18},{start:9,end:22},{start:9,end:22},{start:9,end:22},{start:9,end:22},{start:9,end:23},{start:10,end:23}],
+    amenities:{ wifi:true, makeupRoom:true,
+      parkingAvailable:true, parkingFreeOnsite:true, parkingFreeStreet:true,
+      aboutParking:'Въезд с Октябрьской, через арку. Три места во дворе.' } };
+  var NAMES = ['Белый циклорама','Лофт','Тёмный зал','Зал Г'];
+  window.__TEST_HALLS__ = [];
+  for(var k=0;k<nHalls;k++) window.__TEST_HALLS__.push({ id:'h'+(k+1), name:NAMES[k], capacity:6+k*2, rate:40+k*15, active:true, areaM2:40+k*20,
+    packages:k===0?[{hours:3,price:100}]:[] });
+  // У первого зала — готовые тарифы (вечер будней дороже), у второго —
+  // правило с получасовой границей, чтобы проверить предупреждение об
+  // округлении до целого часа. halls=0 — пустая студия (первый онбординг),
+  // всё ниже пропускаем: индекса 0 просто нет.
+  if(window.__TEST_HALLS__[0]) window.__TEST_HALLS__[0].priceRules = [{ dow:[1,2,3,4,5], from:1080, to:1320, rate:70 }];
+  if(window.__TEST_HALLS__[1]) window.__TEST_HALLS__[1].priceRules = [{ dow:[6,0], from:1110, to:1380, rate:95 }];
+  // Описания зала (0040) — у первого заполнены, у остальных пусто: видно и как
+  // форма подтягивает сохранённый текст, и как выглядит незаполненная тема.
+  if(window.__TEST_HALLS__[0]) Object.assign(window.__TEST_HALLS__[0], {
+    description: 'Циклорама 6×4 с белым бесшовным полом и высоким потолком.',
+    aboutElectrical: 'Восемь розеток по периметру, 16 А на линию.',
+    // Назначения (0042/0052): цена у каждой цели своя, базовой у зала нет.
+    purposes: [
+      { code:'photo', rate:40, equipment:['wardrobeRack','sandbags'] },
+      { code:'event', rate:120, minBookingMin:240, capacity:30,
+        standingCapacity:40, seatedCapacity:20, equipment:['tables','chairs','projector','screen'],
+        includes:'Уборка после мероприятия', priceRules:[{ from:1080, to:1440, rate:150, dow:[5,6] }] },
+      { code:'meeting', rate:60, active:false },
+    ],
+  });
+  var d = new Date();
+  var TODAY = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  var t = new Date(d); t.setDate(t.getDate()+1);
+  var TOM = t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+  window.__TEST_BOOKINGS__ = [
+    { id:'b1', hallId:'h1', date:TODAY, start:600, end:720, status:'confirmed', name:'Анна Ковалёва', phone:'+375291234567', people:3, price:80, comment:'Свадебная съёмка', customerTgLink:'https://t.me/anna_kovalyova' },
+    { id:'b2', hallId:'h2', date:TODAY, start:780, end:960, status:'pending', name:'Дмитрий Орлов', phone:'+375445556677', people:5, price:165, comment:'' },
+    { id:'b3', hallId:'h3', date:TODAY, start:1080, end:1200, status:'confirmed', name:'Мария Литвин', phone:'+375339998877', people:2, price:140, comment:'', customerTgLink:'https://t.me/+375339998877' },
+    { id:'b4', hallId:'h1', date:TOM, start:660, end:780, status:'pending', name:'Олег Сорока', phone:'+375252223344', people:4, price:80, comment:'' },
+    { id:'b5', hallId:'h2', date:TOM, start:900, end:1020, status:'confirmed', name:'Екатерина Бойко', phone:'+375297778899', people:1, price:110, comment:'' },
+    // Прогул и поздняя отмена того же номера, что у карточки c1 — чтобы
+    // проверить счётчики надёжности и красные пометки.
+    { id:'b6', hallId:'h1', date:'2026-09-01', start:600, end:660, status:'no_show', name:'Анна Ковалёва', phone:'+375291234567', people:1, price:40, comment:'' },
+    { id:'b7', hallId:'h1', date:'2026-09-02', start:600, end:660, status:'cancelled', cancelKind:'late', name:'Анна Ковалёва', phone:'+375291234567', people:1, price:40, comment:'' },
+    // Закрытая с оценкой — проверить бейдж «★ N» у имени в карточке клиента.
+    { id:'b11', hallId:'h1', date:'2026-08-15', start:600, end:660, status:'completed', closedAt:'2026-08-15T20:00:00Z', rating:4, finalPrice:40, name:'Анна Ковалёва', phone:'+375291234567', people:1, price:40, comment:'' },
+    // Уже закончившаяся подтверждённая бронь СЕГОДНЯ — по ней кабинет должен
+    // спросить «состоялась?».
+    { id:'b8', hallId:'h1', date:TODAY, start:0, end:60, status:'confirmed', name:'Раннее Утро', phone:'+375251112233', people:1, price:40, comment:'' },
+  ];
+  // Прошедшие неразобранные брони — очередь «требуют закрытия». b10 уже
+  // завершена страховкой (status completed), но не закрыта: в кабинете она
+  // должна выглядеть так же требующей внимания, как и b9.
+  window.__TEST_AWAITING__ = [
+    { id:'b9',  hallId:'h1', date:'2026-09-09', start:600, end:720, status:'confirmed', closedAt:null,
+      name:'Анна Ковалёва', phone:'+375291234567', people:3, price:80, comment:'' },
+    { id:'b10', hallId:'h2', date:'2026-09-10', start:840, end:960, status:'completed', closedAt:null,
+      name:'Сергей Пан', phone:'+375291230000', people:2, price:110, comment:'' },
+  ];
+  window.__TEST_BLOCKS__ = [ { id:'k1', batchId:'bt1', hallId:'h3', date:TODAY, start:840, end:900, note:'Уборка' } ];
+  // Карточки клиентов: у первой телефон совпадает с бронью b1 (склейка по
+  // последним 9 цифрам), у второй — своя, без броней.
+  window.__TEST_DEBTS__ = [
+    { id:'d1', phoneKey:'+375291234567', reason:'no_show', amount:40, date:'2026-09-01', settledAt:null, settledKind:null },
+    { id:'d2', phoneKey:'+375291234567', reason:'late_cancel', amount:20, date:'2026-09-02', settledAt:null, settledKind:null },
+    { id:'d3', phoneKey:'+375291234567', reason:'reschedule', amount:10, date:'2026-08-20', settledAt:'2026-08-21T10:00:00Z', settledKind:'forgiven' },
+  ];
+  window.__TEST_CLIENTS__ = [
+    { id:'c1', name:'Анна Ковалёва', phone:'+375291234567', phoneKey:'+375291234567',
+      note:'снимает предметку, своя вспышка', tags:['постоянный','фотограф'],
+      instagram:'@anna.ph', telegram:'@annaph', email:'anna@example.com', birthday:'1992-04-11',
+      tgLink:'https://t.me/anna_kovalyova' },
+    { id:'c2', name:'Пётр Без Броней', phone:'+375440001122', phoneKey:'+375440001122',
+      note:'', tags:[], instagram:'', telegram:'', email:'', birthday:null },
+    { id:'c3', name:'Ирина Телеграмова', phone:'+375291110002', phoneKey:'+375291110002',
+      note:'', tags:[], instagram:'', telegram:'', email:'', birthday:null,
+      tgLink:'https://t.me/+375291110002' },
+  ];
+  // Справочники (0044) — маленький мок-набор, достаточно проверить, что
+  // выпадашка типа помещения и «+ вписать своё» вообще работают.
+  window.__TEST_DICT__ = {
+    space_type: [
+      { code:'photo-studio', labelRu:'Фотостудия', labelEn:'Photo Studio', isCustom:false },
+      { code:'event-space', labelRu:'Пространство для мероприятий', labelEn:'Event Space', isCustom:false },
+      { code:'dance-studio', labelRu:'Танцевальная студия', labelEn:'Dance Studio', isCustom:false },
+    ],
+    equipment: [
+      { code:'tables', labelRu:'Столы', labelEn:null, isCustom:false },
+      { code:'chairs', labelRu:'Стулья', labelEn:null, isCustom:false },
+      { code:'projector', labelRu:'Проектор', labelEn:null, isCustom:false },
+    ],
+  };
+  window.__EQ_CAT__ = [{"code": "light", "title": "Свет", "items": [{"code": "strobeLight", "label": "Импульсный свет (моноблоки)", "purposes": ["photo", "event"], "qty": true}, {"code": "strobeGenerator", "label": "Генератор с головами", "purposes": ["photo"], "qty": true}, {"code": "constantLight", "label": "Постоянный LED-свет", "purposes": ["photo"], "qty": true}, {"code": "videoLight", "label": "Видеосвет / LED-панели", "purposes": ["photo"], "qty": true}, {"code": "rgbLight", "label": "RGB-свет / световые трубки", "purposes": ["photo", "event"], "qty": true}, {"code": "ringLight", "label": "Кольцевая лампа", "purposes": ["photo"], "qty": true}, {"code": "fresnel", "label": "Френели / прожекторы", "purposes": ["photo"], "qty": true}, {"code": "lightStands", "label": "Осветительные стойки", "purposes": ["photo"], "qty": true}, {"code": "boomArm", "label": "Журавль", "purposes": ["photo"], "qty": true}, {"code": "ceilingRail", "label": "Потолочная рельсовая система (пантографы)", "purposes": ["photo"]}, {"code": "radioTrigger", "label": "Радиосинхронизатор", "purposes": ["photo"]}, {"code": "lightMeter", "label": "Экспонометр", "purposes": ["photo"]}, {"code": "lightingEquipment", "label": "Осветительное оборудование", "purposes": [], "legacy": true}]}, {"code": "modifiers", "title": "Модификаторы", "items": [{"code": "softboxes", "label": "Софтбоксы", "purposes": ["photo"], "qty": true}, {"code": "octaboxes", "label": "Октобоксы", "purposes": ["photo"], "qty": true}, {"code": "stripboxes", "label": "Стрипбоксы", "purposes": ["photo"], "qty": true}, {"code": "umbrellas", "label": "Зонты", "purposes": ["photo"], "qty": true}, {"code": "beautyDish", "label": "Портретная тарелка (beauty dish)", "purposes": ["photo"]}, {"code": "gridsBarndoors", "label": "Соты и шторки", "purposes": ["photo"]}, {"code": "snoots", "label": "Тубусы / снуты", "purposes": ["photo"]}, {"code": "opticalSpot", "label": "Оптическая насадка (проекция)", "purposes": ["photo"]}, {"code": "reflectors", "label": "Отражатели", "purposes": ["photo"], "qty": true}, {"code": "flags", "label": "Флаги и затенители", "purposes": ["photo"], "qty": true}, {"code": "diffusers", "label": "Рассеиватели / фрост-рамы", "purposes": ["photo"], "qty": true}, {"code": "gels", "label": "Цветные фильтры (гели)", "purposes": ["photo"]}]}, {"code": "backdrops", "title": "Фоны и подиумы", "items": [{"code": "paperBackdrops", "label": "Бумажные фоны (рулоны)", "purposes": ["photo"], "qty": true}, {"code": "chromakey", "label": "Хромакей", "purposes": ["photo"]}, {"code": "fabricBackdrops", "label": "Тканевые фоны", "purposes": ["photo"], "qty": true}, {"code": "vinylBackdrops", "label": "Виниловые фоны", "purposes": ["photo"], "qty": true}, {"code": "paintedBackdrops", "label": "Текстурные / расписные фоны", "purposes": ["photo"], "qty": true}, {"code": "backdropSystem", "label": "Система подвеса фонов", "purposes": ["photo"]}, {"code": "backdropStands", "label": "Фоновые стойки с перекладиной", "purposes": ["photo"]}, {"code": "podiums", "label": "Подиумы / кубы", "purposes": ["photo"], "qty": true}, {"code": "turntable", "label": "Вращающийся столик для предметки", "purposes": ["photo"]}, {"code": "productTable", "label": "Предметный стол / фотобокс", "purposes": ["photo"]}]}, {"code": "video", "title": "Видео и звукозапись", "items": [{"code": "tripod", "label": "Штатив", "purposes": ["photo"], "qty": true}, {"code": "videoTripod", "label": "Видеоштатив с головой", "purposes": ["photo"]}, {"code": "slider", "label": "Слайдер", "purposes": ["photo"]}, {"code": "gimbal", "label": "Стабилизатор (стедикам)", "purposes": ["photo"]}, {"code": "teleprompter", "label": "Суфлёр", "purposes": ["photo", "meeting"]}, {"code": "fieldMonitor", "label": "Операторский монитор", "purposes": ["photo"]}, {"code": "lavMics", "label": "Петличные микрофоны", "purposes": ["photo", "meeting"], "qty": true}, {"code": "shotgunMic", "label": "Микрофон-пушка", "purposes": ["photo"]}, {"code": "podcastKit", "label": "Подкаст-стойка с микрофонами", "purposes": ["photo", "meeting"], "qty": true}, {"code": "headphones", "label": "Наушники", "purposes": ["photo"], "qty": true}, {"code": "camera", "label": "Камера (фото/видео)", "purposes": ["photo"]}, {"code": "videoEquipment", "label": "Видеооборудование", "purposes": [], "legacy": true}]}, {"code": "prep", "title": "Подготовка и реквизит", "items": [{"code": "wardrobeRack", "label": "Стойка для одежды", "purposes": ["photo", "event"], "qty": true}, {"code": "hangers", "label": "Вешалки-плечики", "purposes": ["photo", "event"], "qty": true}, {"code": "steamer", "label": "Отпариватель", "purposes": ["photo"]}, {"code": "ironBoard", "label": "Утюг и гладильная доска", "purposes": ["photo"]}, {"code": "fullMirror", "label": "Ростовое зеркало", "purposes": ["photo", "event"]}, {"code": "changingScreen", "label": "Ширма для переодевания", "purposes": ["photo"]}, {"code": "hairDryer", "label": "Фен", "purposes": ["photo"]}, {"code": "fan", "label": "Вентилятор (обдув)", "purposes": ["photo"]}, {"code": "sandbags", "label": "Мешки с песком", "purposes": ["photo"], "qty": true}, {"code": "clamps", "label": "Струбцины и зажимы", "purposes": ["photo"]}, {"code": "posingStools", "label": "Табуреты / стулья для позирования", "purposes": ["photo"], "qty": true}, {"code": "propsFlowers", "label": "Цветы и декор для кадра", "purposes": ["photo", "event"]}]}, {"code": "effects", "title": "Эффекты", "items": [{"code": "smokeMachine", "label": "Дым-машина", "purposes": ["photo", "event"]}, {"code": "bubbleMachine", "label": "Генератор мыльных пузырей", "purposes": ["photo", "event"]}, {"code": "confettiCannon", "label": "Конфетти-пушка", "purposes": ["event"]}, {"code": "snowMachine", "label": "Генератор снега", "purposes": ["photo", "event"]}, {"code": "lowFogMachine", "label": "Генератор тяжёлого дыма", "purposes": ["photo", "event"]}]}, {"code": "furniture", "title": "Мебель", "items": [{"code": "tables", "label": "Столы", "purposes": ["event", "meeting", "leisure"], "qty": true}, {"code": "chairs", "label": "Стулья", "purposes": ["event", "meeting", "leisure"], "qty": true}, {"code": "banquetTables", "label": "Банкетные столы", "purposes": ["event"], "qty": true}, {"code": "cocktailTables", "label": "Фуршетные (коктейльные) столы", "purposes": ["event"], "qty": true}, {"code": "sofa", "label": "Диван", "purposes": ["leisure", "event", "photo"], "qty": true}, {"code": "armchairs", "label": "Кресла", "purposes": ["leisure", "meeting", "photo"], "qty": true}, {"code": "beanBags", "label": "Пуфы / кресла-мешки", "purposes": ["leisure", "event"], "qty": true}, {"code": "barCounter", "label": "Барная стойка", "purposes": ["event", "leisure"]}, {"code": "barStools", "label": "Барные стулья", "purposes": ["event", "leisure"], "qty": true}, {"code": "coffeeTable", "label": "Журнальный столик", "purposes": ["leisure", "photo"], "qty": true}, {"code": "tableLinen", "label": "Скатерти и чехлы на стулья", "purposes": ["event"], "qty": true}, {"code": "guestWardrobe", "label": "Гардероб / вешалка для гостей", "purposes": ["event", "meeting"]}]}, {"code": "presentation", "title": "Презентация", "items": [{"code": "projector", "label": "Проектор", "purposes": ["meeting", "leisure", "event"]}, {"code": "screen", "label": "Экран для проектора", "purposes": ["meeting", "leisure", "event"]}, {"code": "tv", "label": "Телевизор / большой экран", "purposes": ["meeting", "leisure", "event"]}, {"code": "monitor", "label": "Монитор", "purposes": ["meeting"], "qty": true}, {"code": "clicker", "label": "Кликер-презентер", "purposes": ["meeting"]}, {"code": "hdmiAdapters", "label": "HDMI-кабели и переходники", "purposes": ["meeting"]}, {"code": "flipCharts", "label": "Флипчарт", "purposes": ["meeting"]}, {"code": "whiteboard", "label": "Маркерная доска", "purposes": ["meeting"]}, {"code": "chalkboard", "label": "Меловая доска", "purposes": ["meeting"]}, {"code": "corkboard", "label": "Пробковая доска", "purposes": ["meeting"]}, {"code": "stationery", "label": "Канцелярия (маркеры, стикеры, бумага)", "purposes": ["meeting"]}, {"code": "lectern", "label": "Трибуна", "purposes": ["meeting", "event"]}]}, {"code": "tech", "title": "Связь и техника", "items": [{"code": "conferencePhone", "label": "Конференц-связь (спикерфон)", "purposes": ["meeting"]}, {"code": "webcam", "label": "Веб-камера", "purposes": ["meeting"]}, {"code": "laptop", "label": "Ноутбук", "purposes": ["meeting"]}, {"code": "printer", "label": "Принтер / МФУ", "purposes": ["meeting"]}, {"code": "extensionCords", "label": "Удлинители и зарядки", "purposes": ["meeting", "photo", "leisure"], "qty": true}, {"code": "usbOutlets", "label": "Розетки USB у мест", "purposes": ["meeting"]}]}, {"code": "sound", "title": "Звук и музыка", "items": [{"code": "bluetoothSpeaker", "label": "Bluetooth-колонка", "purposes": ["event", "leisure", "meeting"]}, {"code": "paSystem", "label": "Акустическая система", "purposes": ["event", "meeting"]}, {"code": "wirelessMic", "label": "Беспроводной микрофон", "purposes": ["event", "meeting"], "qty": true}, {"code": "mixer", "label": "Микшерный пульт", "purposes": ["event", "meeting"]}, {"code": "karaoke", "label": "Караоке", "purposes": ["event", "leisure"]}, {"code": "djController", "label": "DJ-пульт", "purposes": ["event"]}, {"code": "turntableVinyl", "label": "Виниловый проигрыватель", "purposes": ["leisure", "event"]}, {"code": "instruments", "label": "Музыкальные инструменты", "purposes": ["leisure", "event"]}]}, {"code": "decor", "title": "Атмосфера и декор", "items": [{"code": "garlands", "label": "Гирлянды", "purposes": ["event", "leisure"]}, {"code": "partyLights", "label": "Светомузыка", "purposes": ["event"]}, {"code": "discoBall", "label": "Диско-шар", "purposes": ["event"]}, {"code": "neonSign", "label": "Неоновая вывеска", "purposes": ["event", "photo"]}, {"code": "ledCandles", "label": "LED-свечи", "purposes": ["event", "leisure"]}, {"code": "photoWall", "label": "Фотозона / пресс-волл", "purposes": ["event"]}, {"code": "balloonArch", "label": "Арка или стойка для шаров", "purposes": ["event"]}, {"code": "partyDecor", "label": "Праздничный декор", "purposes": ["event"]}]}, {"code": "kitchen", "title": "Посуда и кухня", "items": [{"code": "tableware", "label": "Посуда (тарелки, приборы)", "purposes": ["event", "leisure"], "qty": true}, {"code": "glasses", "label": "Бокалы", "purposes": ["event"], "qty": true}, {"code": "cups", "label": "Чашки", "purposes": ["meeting", "leisure", "event"], "qty": true}, {"code": "kettle", "label": "Чайник", "purposes": ["meeting", "leisure", "event"]}, {"code": "coffeeMachine", "label": "Кофемашина", "purposes": ["meeting", "leisure", "event"]}, {"code": "waterCooler", "label": "Кулер с водой", "purposes": ["meeting", "photo"]}, {"code": "fridge", "label": "Холодильник", "purposes": ["event", "leisure"]}, {"code": "microwave", "label": "Микроволновка", "purposes": ["event", "leisure"]}, {"code": "stove", "label": "Плита / духовка", "purposes": ["event", "leisure"]}, {"code": "dishwasher", "label": "Посудомойка", "purposes": ["event", "leisure"]}, {"code": "barTools", "label": "Штопор, открывалка, нож для торта", "purposes": ["event"]}]}, {"code": "games", "title": "Игры и развлечения", "items": [{"code": "boardGames", "label": "Настольные игры", "purposes": ["leisure", "event"]}, {"code": "gameConsole", "label": "Игровая приставка", "purposes": ["leisure"]}, {"code": "extraGamepads", "label": "Дополнительные геймпады", "purposes": ["leisure"], "qty": true}, {"code": "vrHeadset", "label": "VR-шлем", "purposes": ["leisure"], "qty": true}, {"code": "airHockey", "label": "Аэрохоккей", "purposes": ["leisure"]}, {"code": "foosball", "label": "Кикер (настольный футбол)", "purposes": ["leisure"]}, {"code": "pingPong", "label": "Теннисный стол", "purposes": ["leisure"]}, {"code": "billiards", "label": "Бильярд", "purposes": ["leisure"]}, {"code": "darts", "label": "Дартс", "purposes": ["leisure"]}, {"code": "mafiaSet", "label": "Набор для мафии", "purposes": ["leisure"]}, {"code": "pokerSet", "label": "Покерный набор", "purposes": ["leisure"]}, {"code": "puzzles", "label": "Пазлы / конструкторы", "purposes": ["leisure"]}]}, {"code": "comfort", "title": "Уют и отдых", "items": [{"code": "blankets", "label": "Пледы", "purposes": ["leisure"], "qty": true}, {"code": "pillows", "label": "Подушки", "purposes": ["leisure", "photo"], "qty": true}, {"code": "yogaMats", "label": "Коврики для йоги", "purposes": ["leisure"], "qty": true}, {"code": "massageChair", "label": "Массажное кресло", "purposes": ["leisure"]}, {"code": "hammock", "label": "Гамак", "purposes": ["leisure"]}, {"code": "homeTheater", "label": "Домашний кинотеатр", "purposes": ["leisure"]}, {"code": "streaming", "label": "Стриминг-подписки (кино, музыка)", "purposes": ["leisure"]}]}, {"code": "kids", "title": "Для детей", "items": [{"code": "kidsChairs", "label": "Детские стульчики", "purposes": ["event"], "qty": true}, {"code": "toys", "label": "Игрушки", "purposes": ["event", "leisure"]}, {"code": "changingTable", "label": "Пеленальный столик", "purposes": ["event"]}, {"code": "kidsTable", "label": "Детский столик", "purposes": ["event"]}]}];
+  window.__net = [];
+  window.fetch = function(url, opts){
+    var u = String(url);
+    window.__net.push({ url:u.replace(/^.*\/api\/t\/[^/]+/,''), method:(opts&&opts.method)||'GET', t:Math.round(performance.now()) });
+    function ok(x){ return Promise.resolve({ ok:true, json:function(){ return Promise.resolve(x); } }); }
+    function nf(){ return Promise.resolve({ ok:false, status:404, json:function(){ return Promise.resolve({error:'Не найдено'}); } }); }
+    // R2 presigned PUT — второй запрос uploadHallPhoto после photo-upload,
+    // напрямую по uploadUrl (не через api()), поэтому свой отдельный матч.
+    if(/^https:\/\/example\.test\/upload\//.test(u) && opts && opts.method === 'PUT'){
+      return Promise.resolve({ ok:true, status:200, json:function(){ return Promise.resolve({}); } });
+    }
+    if(/\/api\/equipment-catalog$/.test(u)) return ok(JSON.parse(JSON.stringify(window.__EQ_CAT__)));
+    var dictQ = /\/api\/dictionaries\?kind=([a-z_]+)$/.exec(u);
+    if(dictQ && (!opts || !opts.method || opts.method === 'GET')){
+      return ok((window.__TEST_DICT__[dictQ[1]] || []).slice());
+    }
+    if(/\/admin\/dictionaries$/.test(u) && opts && opts.method === 'POST'){
+      window.__calls = window.__calls || [];
+      window.__calls.push({url:u, body:opts.body});
+      var db = JSON.parse(opts.body);
+      var list = window.__TEST_DICT__[db.kind] || (window.__TEST_DICT__[db.kind] = []);
+      var existing = list.find(function(d){ return d.code === db.code; });
+      if(existing) return ok(existing);
+      var entry = { code:db.code, labelRu:db.labelRu, labelEn:null, isCustom:true };
+      list.push(entry);
+      return ok(entry);
+    }
+    if(/\/api\/session\/me$/.test(u)) return ok({ memberships:[{ studioId:STUDIO_ID, studioName:'Фотостудия «Свет»', studioStatus:'published',
+      role: new URLSearchParams(location.search).get('role') || 'owner' }] });
+    // Команда и приглашения (роуты /admin/team, /admin/invites)
+    window.__TEAM__ = window.__TEAM__ || { members:[
+        { userId:'1', role:'owner', name:'Кирилл', username:'nokswild', phone:'+375291234567', telegramId:'111', isMe:true },
+        { userId:'2', role:'admin', name:'Анна', username:null, phone:'+375297654321', telegramId:null, isMe:false }],
+      invites:[{ id:'11111111-1111-1111-1111-111111111111', role:'admin', createdAt:'2026-09-28T10:00:00Z', expiresAt:'2026-10-05T10:00:00Z' }] };
+    var M = (opts && opts.method) || 'GET';
+    if(/\/admin\/team$/.test(u) && M === 'GET') return ok(window.__TEAM__);
+    var tm = /\/admin\/team\/([^/]+)$/.exec(u);
+    if(tm){
+      window.__calls = window.__calls || []; window.__calls.push({url:u, method:M, body:opts && opts.body});
+      if(M === 'PUT'){ window.__TEAM__.members.forEach(function(m){ if(m.userId === tm[1]) m.role = JSON.parse(opts.body).role; }); }
+      if(M === 'DELETE'){ window.__TEAM__.members = window.__TEAM__.members.filter(function(m){ return m.userId !== tm[1]; }); }
+      return ok(window.__TEAM__);
+    }
+    if(/\/admin\/invites$/.test(u) && M === 'POST'){
+      var role = JSON.parse(opts.body).role;
+      var inv = { id:'22222222-2222-2222-2222-222222222222', role:role, createdAt:'2026-09-28T12:00:00Z', expiresAt:'2026-10-05T12:00:00Z' };
+      window.__TEAM__.invites.unshift(inv);
+      return Promise.resolve({ ok:true, status:201, json:function(){ return Promise.resolve(Object.assign({ url:'https://app.poont.space/cabinet.html?invite=AbCdEfGhIjKlMnOpQrStUvWxYz012345' }, inv)); } });
+    }
+    var iv = /\/admin\/invites\/([^/]+)$/.exec(u);
+    if(iv && M === 'DELETE'){ window.__TEAM__.invites = window.__TEAM__.invites.filter(function(i){ return i.id !== iv[1]; }); return ok(window.__TEAM__); }
+    if(/\/config$/.test(u)) return ok(window.__TEST_CONFIG__);
+    // Запуск студии (0051): ?status=draft — черновик, ?halls=0 — без залов
+    var QS = new URLSearchParams(location.search);
+    window.__ONB__ = window.__ONB__ || { status: QS.get('status') || 'published', rulesConfirmedAt: null, reviewRequestedAt: null };
+    if(QS.get('halls') === '0' && !window.__HALLS_CLEARED__){ window.__HALLS_CLEARED__ = true; window.__TEST_HALLS__ = []; }
+    if(/\/admin\/onboarding\/confirm-rules$/.test(u)){ window.__ONB__.rulesConfirmedAt = new Date().toISOString(); return ok({ ok:true }); }
+    if(/\/admin\/submit-review$/.test(u)){ window.__ONB__.reviewRequestedAt = new Date().toISOString(); return ok({ reviewRequestedAt: window.__ONB__.reviewRequestedAt }); }
+    if(/\/admin\/profile$/.test(u) && opts && opts.method === 'PUT'){
+      window.__calls = window.__calls || []; window.__calls.push({url:u, body:opts.body});
+      window.__PROFILE__ = Object.assign(window.__PROFILE__ || {}, JSON.parse(opts.body)); return ok(window.__PROFILE__);
+    }
+    if(/\/admin\/amenities$/.test(u) && opts && opts.method === 'PUT'){ return ok(JSON.parse(opts.body)); }
+    if(/\/admin\/overview$/.test(u)) return ok({ studio: window.__ONB__, me:'owner1', halls:window.__TEST_HALLS__, equipment:[{id:'e1',name:'Вспышка Godox',price:10,unit:'hour'}], owners:['owner1'],
+      stats:{count:5,earned:340,upcoming:575,avgCheck:113.33,awaitingClose:window.__TEST_AWAITING__.length},
+      bookings:window.__TEST_BOOKINGS__.concat(window.__TEST_AWAITING__), bookingsTotal:7, pendingCount:2 });
+    if(/\/admin\/bookings\/awaiting-close$/.test(u)) return ok(window.__TEST_AWAITING__.slice());
+    if(/\/admin\/blocks$/.test(u) && (!opts || !opts.method || opts.method==='GET')) return ok(window.__TEST_BLOCKS__);
+    if(/\/admin\/calendar$/.test(u)) return nf();
+    // Настройки уведомлений: каталог как у lib/notify-settings.js describeNotifications
+    window.__NT__ = window.__NT__ || { off:['client.booking.expired'], templates:{}, muted:[] };
+    function ntView(){
+      var C = [
+        ['booking.confirmed','Бронь подтверждена',['студия','дата','время','зал','цена'],'✅ **Бронь подтверждена**\n{студия}\n{дата} · {время}\n{зал} · {цена}'],
+        ['booking.declined','Заявка отклонена',['студия','дата','время'],'🚫 **Заявка отклонена**\n{студия}\n{дата} · {время}'],
+        ['booking.expired','Заявка истекла (студия не ответила)',['студия','дата','время'],'⌛️ **Заявка истекла**\n{студия}'],
+        ['booking.cancelled','Студия отменила бронь',['студия','дата','время','зал','кто'],'❌ **Бронь отменена** {кто}\n{студия}'],
+        ['booking.reminder','Напоминание перед бронью',['студия','дата','время','зал','через'],'⏰ **Скоро бронь** · через {через}\n{студия}']];
+      var n = window.__NT__;
+      return {
+        staffEvents:[['booking.requested','Новая заявка (ждёт подтверждения)'],['booking.created','Новая бронь (в т.ч. оформленная вручную и перенос)'],['booking.cancelled','Клиент отменил бронь']]
+          .map(function(e){ return { key:e[0], label:e[1], enabled: n.off.indexOf('staff.'+e[0]) < 0 }; }),
+        clientEvents:C.map(function(e){ return { key:e[0], label:e[1], enabled: n.off.indexOf('client.'+e[0]) < 0,
+          template:n.templates[e[0]]||'', defaultTemplate:e[3], placeholders:e[2] }; }),
+        members:[{userId:'1',telegramId:'111',role:'owner',name:'Кирилл',muted:n.muted.indexOf('1')>=0},
+                 {userId:'2',telegramId:null,role:'admin',name:'Анна',muted:n.muted.indexOf('2')>=0}],
+        templateMax:800 };
+    }
+    if(/\/admin\/notifications$/.test(u) && (!opts || !opts.method || opts.method==='GET')) return ok(ntView());
+    if(/\/admin\/notifications$/.test(u) && opts && opts.method==='PUT'){
+      window.__calls = window.__calls || []; window.__calls.push({url:u, body:opts.body});
+      window.__NT__ = JSON.parse(opts.body); return ok(ntView());
+    }
+    window.__calls = window.__calls || [];
+    if(/\/admin\/blocks$/.test(u) && opts && opts.method === 'POST'){
+      window.__calls.push({url:u, body:opts.body});
+      if(window.__FAIL_NEXT__){ window.__FAIL_NEXT__=false; return Promise.resolve({ ok:false, status:400, json:function(){ return Promise.resolve({error:'Некорректное время'}); } }); }
+      var bp = JSON.parse(opts.body);
+      var batchId = 'bt'+(Object.keys(window.__TEST_BLOCKS__.reduce(function(a,x){a[x.batchId]=1;return a;},{})).length+1);
+      var hallIds = (!bp.hallId || bp.hallId==='all') ? window.__TEST_HALLS__.map(function(h){return h.id;}) : [bp.hallId];
+      var made = hallIds.map(function(hid){ return { id:'blk'+(window.__TEST_BLOCKS__.length+1)+hid, batchId:batchId,
+        hallId:hid, date:bp.date, start:bp.start, end:bp.end, note:bp.note||null }; });
+      window.__TEST_BLOCKS__ = window.__TEST_BLOCKS__.concat(made);
+      return Promise.resolve({ ok:true, status:201, json:function(){ return Promise.resolve({batchId:batchId, blocks:made}); } });
+    }
+    var db = /\/admin\/blocks\/([^/?]+)$/.exec(u);
+    if(db && opts && opts.method === 'DELETE'){
+      window.__calls.push({url:u, body:null});
+      if(window.__FAIL_NEXT__){ window.__FAIL_NEXT__=false; return Promise.resolve({ ok:false, status:404, json:function(){ return Promise.resolve({error:'Блокировка не найдена'}); } }); }
+      var bid = decodeURIComponent(db[1]);
+      var before = window.__TEST_BLOCKS__.length;
+      window.__TEST_BLOCKS__ = window.__TEST_BLOCKS__.filter(function(x){ return x.batchId !== bid; });
+      if(window.__TEST_BLOCKS__.length === before) return nf();
+      return ok({ removed: before - window.__TEST_BLOCKS__.length });
+    }
+    var cl = /\/admin\/bookings\/([^/]+)\/close$/.exec(u);
+    if(cl && opts && opts.method === 'POST'){
+      window.__calls.push({url:u, body:opts.body});
+      if(window.__FAIL_NEXT__){ window.__FAIL_NEXT__=false; return Promise.resolve({ ok:false, status:409, json:function(){ return Promise.resolve({error:'Бронь уже закрыта'}); } }); }
+      var body = opts.body ? JSON.parse(opts.body) : {};
+      window.__TEST_AWAITING__ = window.__TEST_AWAITING__.filter(function(b){ return b.id !== cl[1]; });
+      var bcl = window.__TEST_BOOKINGS__.find(function(b){ return b.id === cl[1]; });
+      if(bcl){ bcl.status='completed'; bcl.closedAt=new Date().toISOString();
+               bcl.finalPrice = body.finalPrice == null ? null : body.finalPrice;
+               bcl.finalNote = body.finalNote || null; bcl.rating = body.rating || null; }
+      return ok({ ok:true });
+    }
+    var lm = /\/admin\/bookings\/([^/]+)\/(confirm|decline|complete|no-show)$/.exec(u);
+    if(lm && opts && opts.method === 'POST'){
+      window.__calls.push({url:u, body:opts.body});
+      var mapSt = { confirm:'confirmed', decline:'declined', complete:'completed', 'no-show':'no_show' };
+      if(window.__FAIL_NEXT__){ window.__FAIL_NEXT__=false; return Promise.resolve({ ok:false, status:409, json:function(){ return Promise.resolve({error:'Бронь уже нельзя изменить'}); } }); }
+      var bk = window.__TEST_BOOKINGS__.find(function(b){ return b.id === lm[1]; });
+      if(bk) bk.status = mapSt[lm[2]];
+      // Прогул тоже разбирает бронь: из очереди «требуют закрытия» она уходит.
+      if(lm[2] === 'no-show'){
+        window.__TEST_AWAITING__ = window.__TEST_AWAITING__.filter(function(b){ return b.id !== lm[1]; });
+      }
+      return ok({ ok:true });
+    }
+    var cx = /\/bookings\/([^/]+)\/cancel$/.exec(u);
+    if(cx && opts && opts.method === 'POST'){
+      window.__calls.push({url:u, body:opts.body});
+      if(window.__FAIL_NEXT__){ window.__FAIL_NEXT__=false; return Promise.resolve({ ok:false, status:409, json:function(){ return Promise.resolve({error:'Бронь уже нельзя отменить'}); } }); }
+      var bc = window.__TEST_BOOKINGS__.find(function(b){ return b.id === cx[1]; });
+      if(bc) bc.status = 'cancelled';
+      return ok({ ok:true });
+    }
+    var rs = /\/bookings\/([^/]+)\/reschedule$/.exec(u);
+    if(rs && opts && opts.method === 'POST'){
+      window.__calls.push({url:u, body:opts.body});
+      if(window.__FAIL_NEXT__){ window.__FAIL_NEXT__=false; return Promise.resolve({ ok:false, status:409, json:function(){ return Promise.resolve({error:'Это время уже занято'}); } }); }
+      var payload = JSON.parse(opts.body);
+      var br = window.__TEST_BOOKINGS__.find(function(b){ return b.id === rs[1]; });
+      if(br){ br.date = payload.date; br.start = payload.start; br.end = payload.end; }
+      return ok({ ok:true });
+    }
+    var prr = /\/admin\/halls\/([^/]+)\/price-rules$/.exec(u);
+    if(prr && opts && opts.method === 'PUT'){
+      window.__calls.push({url:u, body:opts.body});
+      if(window.__FAIL_NEXT__){ window.__FAIL_NEXT__=false; return Promise.resolve({ ok:false, status:400, json:function(){ return Promise.resolve({error:'Некорректные правила цены'}); } }); }
+      var rulesIn = JSON.parse(opts.body);
+      var hh = window.__TEST_HALLS__.find(function(x){ return x.id === prr[1]; });
+      if(hh) hh.priceRules = rulesIn;
+      return ok({ priceRules: rulesIn });
+    }
+    var ppr = /\/admin\/halls\/([^/]+)\/purposes$/.exec(u);
+    if(ppr && opts && opts.method === 'PUT'){
+      window.__calls.push({url:u, body:opts.body});
+      var ppIn = JSON.parse(opts.body);
+      var hpp = window.__TEST_HALLS__.find(function(x){ return x.id === ppr[1]; });
+      if(hpp) hpp.purposes = ppIn;
+      return ok({ purposes: ppIn });
+    }
+    var phu = /\/admin\/halls\/([^/]+)\/photo-upload$/.exec(u);
+    if(phu && opts && opts.method === 'POST'){
+      window.__calls.push({url:u, body:opts.body});
+      var upId = 'up' + Math.round(Math.random()*1e6);
+      return ok({ uploadUrl:'https://example.test/upload/'+upId, publicUrl:'https://example.test/photos/'+upId+'.jpg' });
+    }
+    var phr = /\/admin\/halls\/([^/]+)\/photos$/.exec(u);
+    if(phr && opts && opts.method === 'PUT'){
+      window.__calls.push({url:u, body:opts.body});
+      var photosIn = JSON.parse(opts.body);
+      var hph = window.__TEST_HALLS__.find(function(x){ return x.id === phr[1]; });
+      if(hph) hph.photos = photosIn;
+      return ok({ photos: photosIn });
+    }
+    var pkr = /\/admin\/halls\/([^/]+)\/packages$/.exec(u);
+    if(pkr && opts && opts.method === 'PUT'){
+      window.__calls.push({url:u, body:opts.body});
+      var pkIn = JSON.parse(opts.body);
+      var hp = window.__TEST_HALLS__.find(function(x){ return x.id === pkr[1]; });
+      if(hp) hp.packages = pkIn;
+      return ok({ packages: pkIn });
+    }
+    if(/\/admin\/halls$/.test(u) && opts && opts.method === 'PUT'){
+      window.__calls.push({url:u, body:opts.body});
+      // Зеркало backend replaceHalls: сохраняет присланные поля, назначает id
+      // новым залам, СОХРАНЯЕТ то, что этот роут не пишет (photos/priceRules/
+      // packages/purposes — у них свои роуты), не теряет и не путает залы
+      // местами при добавлении нового.
+      var sentHalls = JSON.parse(opts.body);
+      window.__TEST_HALLS__ = sentHalls.map(function(sh, idx){
+        var prev = sh.id ? window.__TEST_HALLS__.find(function(x){ return x.id === sh.id; }) : null;
+        var out = Object.assign({}, prev, sh);
+        if(!out.id) out.id = 'new-h' + (idx+1) + '-' + Math.round(Math.random()*1e6);
+        out.active = true;
+        return out;
+      });
+      return ok(window.__TEST_HALLS__);
+    }
+    // ---- клиенты ----
+    function phoneKey(p){ var d=String(p||'').replace(/\D/g,''); return d.length>9?d.slice(-9):d; }
+    function clientOut(c){
+      var all = window.__TEST_BOOKINGS__.filter(function(b){ return phoneKey(b.phone)===c.phoneKey; });
+      var mine = all.filter(function(b){ return b.status==='confirmed'||b.status==='completed'; });
+      var ns = all.filter(function(b){ return b.status==='no_show'; });
+      var lc = all.filter(function(b){ return b.cancelKind==='late'; });
+      // Оценки — только у закрытых с рейтингом; непоставленная не считается.
+      var rated = all.filter(function(b){ return b.rating; });
+      var ratingAvg = rated.length
+        ? Math.round((rated.reduce(function(s,b){ return s+b.rating; },0)/rated.length)*100)/100
+        : null;
+      return Object.assign({}, c, { visits:mine.length,
+        spent:mine.reduce(function(s,b){ return s+(b.finalPrice!=null?b.finalPrice:b.price||0); },0),
+        lastVisit:mine.length?mine.map(function(b){return b.date;}).sort().pop():null,
+        noShow:ns.length, noShowYear:ns.length,
+        lateCancel:lc.length, lateCancelYear:lc.length,
+        reschedules:all.reduce(function(s,b){ return s+(b.rescheduledCount||0); },0),
+        rating:ratingAvg, ratingCount:rated.length,
+        debtDue:window.__TEST_DEBTS__.filter(function(d){ return d.phoneKey===c.phoneKey && !d.settledAt; })
+                  .reduce(function(s,d){ return s+d.amount; },0) });
+    }
+    var cbp = /\/admin\/clients\/by-phone\/([^/?]+)$/.exec(u);
+    if(cbp && (!opts || !opts.method || opts.method==='GET')){
+      var key = phoneKey(decodeURIComponent(cbp[1]));
+      var hit = window.__TEST_CLIENTS__.find(function(c){ return c.phoneKey===key; });
+      return hit ? ok(clientOut(hit)) : nf();
+    }
+    var cs = /\/admin\/clients\/([^/?]+)\/debts\/settle$/.exec(u);
+    if(cs && opts && opts.method === 'POST'){
+      window.__calls.push({url:u, body:opts.body});
+      if(window.__FAIL_NEXT__){ window.__FAIL_NEXT__=false; return Promise.resolve({ ok:false, status:409, json:function(){ return Promise.resolve({error:'Не удалось погасить'}); } }); }
+      var pl = JSON.parse(opts.body);
+      var cc = window.__TEST_CLIENTS__.find(function(x){ return x.id===cs[1]; });
+      if(!cc) return nf();
+      var target = window.__TEST_DEBTS__.filter(function(x){ return x.phoneKey===cc.phoneKey && !x.settledAt
+        && (pl.debtId==null || x.id===pl.debtId); });
+      if(pl.debtId!=null && !target.length) return Promise.resolve({ ok:false, status:404, json:function(){ return Promise.resolve({error:'Начисление не найдено или уже погашено'}); } });
+      target.forEach(function(x){ x.settledAt=new Date().toISOString(); x.settledKind=pl.kind==='paid'?'paid':'forgiven'; });
+      var left = window.__TEST_DEBTS__.filter(function(x){ return x.phoneKey===cc.phoneKey && !x.settledAt; })
+        .reduce(function(s2,x){ return s2+x.amount; },0);
+      return ok({ settled:target.length, due:left });
+    }
+    var cOne = /\/admin\/clients\/([^/?]+)$/.exec(u);
+    if(cOne && cOne[1] !== 'by-phone'){
+      var idx = window.__TEST_CLIENTS__.findIndex(function(c){ return c.id===cOne[1]; });
+      var m = opts && opts.method;
+      if(idx < 0) return nf();
+      if(!m || m==='GET'){
+        var c0 = window.__TEST_CLIENTS__[idx];
+        var hist = window.__TEST_BOOKINGS__.filter(function(b){ return phoneKey(b.phone)===c0.phoneKey; })
+          .map(function(b){ return { id:b.id, date:b.date, start:b.start, end:b.end,
+                                     price:b.finalPrice!=null?b.finalPrice:b.price, rating:b.rating||null, status:b.status,
+                                     hallId:b.hallId, hallName:(window.__TEST_HALLS__.find(function(h){return h.id===b.hallId;})||{}).name }; });
+        var mydebts = window.__TEST_DEBTS__.filter(function(x){ return x.phoneKey===c0.phoneKey; });
+        return ok(Object.assign(clientOut(c0), { bookings:hist, debts:mydebts }));
+      }
+      if(m==='PUT'){
+        window.__calls.push({url:u, body:opts.body});
+        if(window.__FAIL_NEXT__){ window.__FAIL_NEXT__=false; return Promise.resolve({ ok:false, status:409, json:function(){ return Promise.resolve({error:'Этот телефон уже у другого клиента'}); } }); }
+        var patch = JSON.parse(opts.body);
+        Object.assign(window.__TEST_CLIENTS__[idx], patch, { phoneKey:phoneKey(patch.phone || window.__TEST_CLIENTS__[idx].phone) });
+        return ok(clientOut(window.__TEST_CLIENTS__[idx]));
+      }
+      if(m==='DELETE'){
+        window.__calls.push({url:u, body:null});
+        window.__TEST_CLIENTS__.splice(idx,1);
+        return ok({ removed:1 });
+      }
+    }
+    if(/\/admin\/clients$/.test(u)){
+      if(!opts || !opts.method || opts.method==='GET') return ok(window.__TEST_CLIENTS__.map(clientOut));
+      if(opts.method==='POST'){
+        window.__calls.push({url:u, body:opts.body});
+        var nc = JSON.parse(opts.body);
+        var k = phoneKey(nc.phone);
+        var dupe = window.__TEST_CLIENTS__.find(function(c){ return c.phoneKey===k; });
+        if(dupe) return Promise.resolve({ ok:false, status:409, json:function(){ return Promise.resolve({error:'Клиент с таким телефоном уже есть', client:dupe}); } });
+        var row = Object.assign({ id:'c'+(window.__TEST_CLIENTS__.length+1), tags:[] }, nc, { phoneKey:k });
+        window.__TEST_CLIENTS__.push(row);
+        return ok(clientOut(row));
+      }
+    }
+    if(/\/admin\/bookings$/.test(u) && opts && opts.method === 'POST'){
+      window.__calls.push({url:u, body:opts.body});
+      if(window.__FAIL_NEXT__){ window.__FAIL_NEXT__=false; return Promise.resolve({ ok:false, status:409, json:function(){ return Promise.resolve({error:'Это время уже занято'}); } }); }
+      var nb = JSON.parse(opts.body);
+      window.__TEST_BOOKINGS__.push({ id:'new'+(window.__TEST_BOOKINGS__.length+1), hallId:nb.hallId, date:nb.date,
+        start:nb.start, end:nb.end, status:'confirmed', name:nb.name, phone:nb.phone, people:nb.people,
+        price:0, comment:nb.comment||'' });
+      return ok({ ok:true });
+    }
+    var mb = /\/admin\/bookings\?date=([\d-]+)$/.exec(u);
+    if(mb) return ok(window.__TEST_BOOKINGS__.filter(function(b){ return b.date===mb[1]; }));
+    var ma = /\/availability\?date=([\d-]+)$/.exec(u);
+    if(ma){ var by={}; window.__TEST_BOOKINGS__.concat(window.__TEST_BLOCKS__).forEach(function(b){ if(b.date!==ma[1]) return; (by[b.hallId]=by[b.hallId]||[]).push({start:b.start,end:b.end}); }); return ok(by); }
+    // ---- единое сохранение настроек: моки для секций без своего PUT ----
+    // Не валидируют — эхо присланного тела с разумными дефолтами, ровно
+    // столько, сколько нужно .then()-обработчику каждой секции.
+    if(/\/admin\/profile$/.test(u) && opts && opts.method === 'PUT'){
+      window.__calls.push({url:u, body:opts.body});
+      if(window.__FAIL_NEXT__){ window.__FAIL_NEXT__=false; return Promise.resolve({ ok:false, status:400, json:function(){ return Promise.resolve({error:'Некорректный профиль'}); } }); }
+      var pb = JSON.parse(opts.body);
+      Object.assign(window.__TEST_CONFIG__, pb);
+      return ok(Object.assign({}, window.__TEST_CONFIG__, pb));
+    }
+    if(/\/admin\/amenities$/.test(u) && opts && opts.method === 'PUT'){
+      window.__calls.push({url:u, body:opts.body});
+      if(window.__FAIL_NEXT__){ window.__FAIL_NEXT__=false; return Promise.resolve({ ok:false, status:400, json:function(){ return Promise.resolve({error:'Некорректные удобства'}); } }); }
+      window.__TEST_CONFIG__.amenities = JSON.parse(opts.body);
+      return ok(window.__TEST_CONFIG__.amenities);
+    }
+    if(/\/admin\/settings$/.test(u) && opts && opts.method === 'PUT'){
+      window.__calls.push({url:u, body:opts.body});
+      if(window.__FAIL_NEXT__){ window.__FAIL_NEXT__=false; return Promise.resolve({ ok:false, status:400, json:function(){ return Promise.resolve({error:'Некорректные настройки'}); } }); }
+      var sb = JSON.parse(opts.body);
+      Object.assign(window.__TEST_CONFIG__, sb);
+      return ok(Object.assign({}, sb, {
+        lastminute:{enabled:sb.lastminuteEnabled, hours:sb.lastminuteHours, pct:sb.lastminutePct},
+        reminder:{enabled:sb.reminderEnabled, minutesBefore:sb.reminderMinutesBefore},
+      }));
+    }
+    if(/\/admin\/hours$/.test(u) && opts && opts.method === 'PUT'){
+      window.__calls.push({url:u, body:opts.body});
+      if(window.__FAIL_NEXT__){ window.__FAIL_NEXT__=false; return Promise.resolve({ ok:false, status:400, json:function(){ return Promise.resolve({error:'Некорректные часы'}); } }); }
+      window.__TEST_CONFIG__.hours = JSON.parse(opts.body);
+      return ok(window.__TEST_CONFIG__.hours);
+    }
+    if(/\/admin\/equipment$/.test(u) && opts && opts.method === 'PUT'){
+      window.__calls.push({url:u, body:opts.body});
+      if(window.__FAIL_NEXT__){ window.__FAIL_NEXT__=false; return Promise.resolve({ ok:false, status:400, json:function(){ return Promise.resolve({error:'Некорректное оборудование'}); } }); }
+      var eb = JSON.parse(opts.body).map(function(it){ return Object.assign({active:true}, it); });
+      return ok(eb);
+    }
+    if(/\/admin\/owners$/.test(u) && opts && opts.method === 'PUT'){
+      window.__calls.push({url:u, body:opts.body});
+      if(window.__FAIL_NEXT__){ window.__FAIL_NEXT__=false; return Promise.resolve({ ok:false, status:400, json:function(){ return Promise.resolve({error:'Нельзя удалить себя'}); } }); }
+      return ok({ owners: JSON.parse(opts.body) });
+    }
+    return nf();
+  };
+})();
 </script>
 <script>
 (function(){
@@ -2536,6 +2994,16 @@ var PF = (function(){
     $('pageSub').textContent = sub || 'Настройки, пространства, брони и синхронизация.';
     document.title = (name ? name + ' · ' : '') + 'Кабинет';
   }
+  window.__mirror = {
+    // QB и функции читаются в момент вызова, поэтому крючок можно ставить
+    // выше их объявления (функции всплывают, var QB — тоже).
+    price: function(hall, date, startMin, endMin, lastMinute){
+      QB.halls = [hall]; QB.date = date; QB.slotMin = 1;
+      QB.sel = { hallId: hall.id, start: startMin, end: endMin };
+      QB.lastMinute = lastMinute || { enabled:false, hours:24, pct:20 };
+      return qbPrice();
+    }
+  };
   // ---------- Новая бронь по звонку: сетка «залы × время» ----------
   var QB = {
     tz: 'Europe/Minsk',
