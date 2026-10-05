@@ -1759,6 +1759,12 @@
     </div>
     <!-- Что мы знаем про этот номер: заполняется, когда телефон введён целиком -->
     <div class="note" id="qbClientHint"></div>
+    <!-- Для чего бронь: от назначения зависят цена, лимит гостей и минимум.
+         Без выбора бронь считалась по первому назначению зала. -->
+    <div class="row" id="qbPurposeRow" hidden style="flex-direction:column;align-items:flex-start">
+      <div class="fld-l" style="margin-bottom:6px">Для чего</div>
+      <div class="chip-row" id="qbPurposeChips" style="margin-bottom:4px"></div>
+    </div>
     <div class="row">
       <span class="unitwrap"><input class="num" type="number" min="1" id="qbPeople" value="1"><span class="u">чел</span></span>
     </div>
@@ -2186,6 +2192,7 @@
     // собственное текущее время из занятости (иначе бронь мешала бы сама себе).
     reschedule: null,
     barOn: false,          // видна ли липкая сводка — чтобы не переигрывать выезд
+    purpose: null,         // назначение брони по звонку (код) или null — у зала без назначений
   };
   // ---------- Единое сохранение настроек ----------
   // Было по кнопке «Сохранить» в каждой карточке (профиль, удобства, залы,
@@ -4052,9 +4059,11 @@
       d.innerHTML =
         '<div class="bk-top"><div class="bk-when">'+esc(dateLabel(b.date))+' <span>· '+minLabel(b.start)+'–'+minLabel(b.end)+'</span></div>' +
           '<span class="st">'+esc(ST_LABEL[b.status] || b.status)+'</span></div>' +
-        '<div class="hall">'+esc(hall)+'</div>' +
+        '<div class="hall">'+esc(hall)+(b.purpose ? ' <span class="muted">· '+esc(purposeLabel(b.purpose))+'</span>' : '')+'</div>' +
         '<div class="meta">'+esc(b.people)+' чел · '+esc(b.price)+' '+CUR+'</div>' +
         '<div class="who">'+esc(b.name||'—')+(b.phone ? ' · '+telHtml(b.phone) : '')+'</div>' +
+        // Заявку с сайта клиент без Telegram о вашем решении сам не узнает.
+        (b.status === 'pending' && !b.customerTelegramId ? '<div class="muted" style="font-size:var(--fs-xs);margin-top:4px">Клиент без Telegram — ответ ему не уйдёт сам, сообщите по телефону.</div>' : '') +
         (b.customerTgLink ? '<div class="bk-tg">'+tgBtnHtml(b.customerTgLink)+'</div>' : '');
       var acts = bkActions(b);
       if(acts.length){
@@ -4357,13 +4366,15 @@
   // 0052 нет — сумма по телефону могла не совпасть с итоговой.
   function qbPricedHall(hall){
     var list = Array.isArray(hall.purposes) ? hall.purposes : [];
-    var p = null;
-    for(var k = 0; k < list.length; k++){ if(list[k].active !== false){ p = list[k]; break; } }
+    var p = null, k;
+    if(QB.purpose){ for(k = 0; k < list.length; k++){ if(list[k].code === QB.purpose){ p = list[k]; break; } } }
+    if(!p){ for(k = 0; k < list.length; k++){ if(list[k].active !== false){ p = list[k]; break; } } }
     if(!p) p = list[0] || null;
     if(!p) return hall;
     var out = Object.assign({}, hall);
     if(typeof p.rate === 'number' && isFinite(p.rate)) out.rate = p.rate;
     if(Array.isArray(p.priceRules)) out.priceRules = p.priceRules;
+    if(Number.isInteger(p.capacity)) out.capacity = p.capacity;
     out.guestPricing = p.guestPricing || null;
     return out;
   }
@@ -4496,7 +4507,9 @@
       rows.push(['Клиент', esc(b.name || '—')]);
       rows.push(['Телефон', telHtml(b.phone)]);
       if(b.customerTgLink) rows.push(['Telegram', tgBtnHtml(b.customerTgLink)]);
+      else if(!b.customerTelegramId && b.source !== 'cabinet') rows.push(['Telegram', 'нет — сообщения о брони ему не приходят, сообщите по телефону']);
       rows.push(['Гостей', esc(b.people != null ? b.people : '—')]);
+      if(b.purpose) rows.push(['Назначение', esc(purposeLabel(b.purpose))]);
       rows.push(['Комментарий', b.comment ? esc(b.comment) : '—']);
       rows.push(['Сумма', esc(b.price) + ' ' + CUR]);
       // У разобранной брони показываем итог: он мог отличаться от договорной
@@ -4679,8 +4692,9 @@
       next.hidden = false;
       next.disabled = false;
       next.innerHTML = 'Далее <span class="ic" aria-hidden="true">→</span>';
-      $('qbPeople').max = hall.capacity;
-      if(parseInt($('qbPeople').value,10) > hall.capacity) $('qbPeople').value = hall.capacity;
+      var cap = qbPricedHall(hall).capacity;
+      $('qbPeople').max = cap;
+      if(parseInt($('qbPeople').value,10) > cap) $('qbPeople').value = cap;
       block.hidden = !canBlock;
     } else {
       // Выбор есть и он свободен, но короче минимальной брони — это ещё не
@@ -5057,15 +5071,45 @@
 
   // ---------- модалка данных клиента ----------
   // Цена зависит от числа людей (0054) — в форме пересчитываем по вводу.
+  // Строка сводки в форме: пространство, назначение, время, длительность, цена.
+  function qbFormSumText(){
+    var hall = qbHall();
+    return hall.name + (QB.purpose ? ' · ' + purposeLabel(QB.purpose) : '') + ' · ' + qbWhenLabel()
+      + ' · ' + qbDurLabel() + ' · ' + qbPrice() + ' ' + CUR;
+  }
+  // Назначения зала — чипами. Выбрано первое включённое, как считает сервер для
+  // брони без назначения; у зала без назначений строки нет вовсе.
+  function qbRenderPurposes(){
+    var hall = qbHall(), act = (hall && Array.isArray(hall.purposes) ? hall.purposes : []).filter(function(p){ return p.active !== false; });
+    $('qbPurposeRow').hidden = !act.length;
+    if(!act.length){ QB.purpose = null; return; }
+    if(!act.some(function(p){ return p.code === QB.purpose; })) QB.purpose = act[0].code;
+    $('qbPurposeChips').innerHTML = act.map(function(p){
+      return '<button type="button" class="chip-tog' + (p.code === QB.purpose ? ' on' : '') + '" data-code="' + esc(p.code) + '" aria-pressed="' + (p.code === QB.purpose) + '">' + esc(purposeLabel(p.code)) + '</button>';
+    }).join('');
+    $('qbPurposeChips').querySelectorAll('button').forEach(function(btn){
+      btn.addEventListener('click', function(){ QB.purpose = btn.dataset.code; qbRenderPurposes(); qbSyncForm(); });
+    });
+  }
+  // Вместимость и цена зависят от назначения — обновляем при его смене и при вводе числа гостей.
+  function qbSyncForm(){
+    if(!qbSelectionValid()) return;
+    var cap = qbPricedHall(qbHall()).capacity;
+    $('qbPeople').max = cap;
+    if(parseInt($('qbPeople').value, 10) > cap) $('qbPeople').value = cap;
+    $('qbFormSum').textContent = qbFormSumText();
+  }
   $('qbPeople').addEventListener('input', function(){
     if(!qbSelectionValid()) return;
-    $('qbFormSum').textContent = qbHall().name + ' · ' + qbWhenLabel() + ' · ' + qbDurLabel() + ' · ' + qbPrice() + ' ' + CUR;
+    $('qbFormSum').textContent = qbFormSumText();
   });
   function qbOpenForm(){
     if(!qbSelectionValid()) return;
     var hall = qbHall();
-    $('qbFormSum').textContent = hall.name + ' · ' + qbWhenLabel()
-      + ' · ' + qbDurLabel() + ' · ' + qbPrice() + ' ' + CUR;
+    QB.purpose = null;
+    qbRenderPurposes();
+    $('qbPeople').max = qbPricedHall(hall).capacity;
+    $('qbFormSum').textContent = qbFormSumText();
     $('qbFormNote').textContent = '';
     $('qbClientHint').textContent = '';
     qbLookedUpKey = '';
@@ -5165,8 +5209,10 @@
       hallId: hall.id, date: QB.date,
       start: QB.sel.start*QB.slotMin, end: QB.sel.end*QB.slotMin,
       people: people, name: name, phone: phone,
+      purpose: QB.purpose || undefined,
       comment: comment || undefined,
     }).then(function(){
+      QB.purpose = null;
       qbCloseForm();
       flash($('qbNote'), 'Бронь создана', true);
       $('qbName').value=''; $('qbPhone').value=''; $('qbPeople').value='1'; $('qbComment').value='';
