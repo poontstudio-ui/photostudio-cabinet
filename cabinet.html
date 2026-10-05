@@ -90,6 +90,30 @@
   .btn.full{width:100%;}
   .rowbtns{display:flex;gap:8px;margin-top:8px;}
   .rowbtns .btn{flex:1;}
+/* PF:BEGIN — поле телефона со страной (_dev/phone-field.css) */
+.pf{position:relative;display:block;flex:1 1 auto;min-width:0;}
+.pf > input.pf-in{width:100%;padding-left:64px;}
+.pf-c{position:absolute;left:0;top:0;bottom:0;width:58px;display:flex;align-items:center;justify-content:center;gap:5px;
+  padding:0;margin:0;border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;
+  border-radius:inherit;border-top-right-radius:0;border-bottom-right-radius:0;touch-action:manipulation;}
+.pf-c::after{content:'';position:absolute;right:0;top:22%;bottom:22%;width:1px;background:var(--line,#e3e5e9);}
+.pf-c:focus-visible{outline:2px solid var(--accent,#0a72ef);outline-offset:-2px;}
+.pf-flag{width:22px;height:16px;object-fit:cover;border-radius:2px;box-shadow:0 0 0 1px rgba(20,22,28,.14);flex:none;}
+.pf-iso{font:600 11px/1 var(--f-mono,ui-monospace,monospace);color:var(--text-2,#5a5f68);width:22px;text-align:center;flex:none;}
+.pf-chev{width:10px;height:10px;color:var(--text-3,#8a9099);flex:none;}
+.pf-pop{position:fixed;z-index:2000;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;
+  background:var(--surface,#fff);color:var(--text,#1c1e21);border:1px solid var(--line-strong,#cfd2d8);border-radius:12px;
+  box-shadow:0 10px 30px rgba(20,22,28,.18);font-family:inherit;}
+.pf-q{margin:8px;padding:9px 12px;border:1px solid var(--line,#e3e5e9);border-radius:8px;font:inherit;font-size:16px;
+  background:var(--bg,#f1f2f4);color:inherit;box-sizing:border-box;width:calc(100% - 16px);outline:none;}
+.pf-q:focus{border-color:var(--accent,#0a72ef);}
+.pf-ul{list-style:none;margin:0;padding:0 0 6px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+.pf-li{display:flex;align-items:center;gap:10px;padding:0 14px;min-height:44px;cursor:pointer;font-size:14px;}
+.pf-li:hover,.pf-li[data-on="true"]{background:var(--accent-bg,#eaf2fe);}
+.pf-li .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pf-li .dl{color:var(--text-2,#5a5f68);font-variant-numeric:tabular-nums;}
+.pf-empty{padding:14px;color:var(--text-3,#8a9099);font-size:14px;}
+/* PF:END */
 </style>
 </head>
 <body>
@@ -137,7 +161,7 @@
     <div id="phoneStep1">
       <div class="field">
         <label for="loginPhone">Номер телефона</label>
-        <input id="loginPhone" type="tel" inputmode="numeric" placeholder="+375 (29) 123-45-67" value="+375 ">
+        <input id="loginPhone" type="tel" autocomplete="tel">
       </div>
       <button class="btn full" id="phoneSendBtn" type="button" disabled>Получить код</button>
       <button class="linkbtn" id="phoneOtherLink" type="button">Другой способ входа</button>
@@ -191,6 +215,347 @@
   </div>
 </div>
 
+<script>
+/* PF:BEGIN — поле телефона со страной. Исходник: _dev/phone-field.js, в страницы
+   вставляется скриптом _dev/inject_phone_field.py — правьте здесь, не в страницах. */
+var PF = (function(){
+  // iso, название, код страны, маска (# — цифра), междугородний префикс, минимум цифр (если номер переменной длины)
+  var LIST = [
+    ['BY','Беларусь','375','(##) ###-##-##','80'],
+    ['RU','Россия','7','(###) ###-##-##','8'],
+    ['KZ','Казахстан','7','(###) ###-##-##','8'],
+    ['UA','Украина','380','(##) ###-##-##','0'],
+    ['PL','Польша','48','### ### ###'],
+    ['LT','Литва','370','### #####','8'],
+    ['LV','Латвия','371','## ### ###'],
+    ['EE','Эстония','372','#### ####','',7],
+    ['MD','Молдова','373','## ### ###','0'],
+    ['GE','Грузия','995','### ## ## ##'],
+    ['AM','Армения','374','## ### ###','0'],
+    ['AZ','Азербайджан','994','## ### ## ##','0'],
+    ['UZ','Узбекистан','998','## ### ## ##'],
+    ['KG','Киргизия','996','### ### ###','0'],
+    ['TJ','Таджикистан','992','## ### ####'],
+    ['TM','Туркменистан','993','## ######','8'],
+    ['MN','Монголия','976','#### ####'],
+    ['TR','Турция','90','(###) ### ## ##','0'],
+    ['DE','Германия','49','#### #######','0',10],
+    ['FR','Франция','33','# ## ## ## ##','0'],
+    ['IT','Италия','39','### ### ####','',9],
+    ['ES','Испания','34','### ## ## ##'],
+    ['PT','Португалия','351','### ### ###'],
+    ['GB','Великобритания','44','#### ######','0'],
+    ['IE','Ирландия','353','## ### ####','0',8],
+    ['NL','Нидерланды','31','# ## ## ## ##','0'],
+    ['BE','Бельгия','32','### ## ## ##','0',8],
+    ['AT','Австрия','43','### #######','0',9],
+    ['CH','Швейцария','41','## ### ## ##','0'],
+    ['CZ','Чехия','420','### ### ###'],
+    ['SK','Словакия','421','### ### ###','0'],
+    ['HU','Венгрия','36','## ### ####','06'],
+    ['RO','Румыния','40','### ### ###','0'],
+    ['BG','Болгария','359','## ### ####','0',8],
+    ['RS','Сербия','381','## ### ####','0',8],
+    ['HR','Хорватия','385','## ### ####','0',8],
+    ['SI','Словения','386','## ### ###','0'],
+    ['ME','Черногория','382','## ### ###','0'],
+    ['GR','Греция','30','### ### ####'],
+    ['CY','Кипр','357','## ######'],
+    ['FI','Финляндия','358','## ### ####','0',8],
+    ['SE','Швеция','46','## ### ## ##','0',8],
+    ['NO','Норвегия','47','### ## ###'],
+    ['DK','Дания','45','## ## ## ##'],
+    ['IL','Израиль','972','## ### ####','0'],
+    ['AE','ОАЭ','971','## ### ####','0'],
+    ['SA','Саудовская Аравия','966','## ### ####','0'],
+    ['EG','Египет','20','## #### ####','0'],
+    ['US','США','1','(###) ###-####'],
+    ['CA','Канада','1','(###) ###-####'],
+    ['CN','Китай','86','### #### ####','0'],
+    ['JP','Япония','81','## #### ####','0'],
+    ['KR','Южная Корея','82','## #### ####','0',9],
+    ['IN','Индия','91','##### #####','0'],
+    ['TH','Таиланд','66','## ### ####','0'],
+    ['VN','Вьетнам','84','## ### ####','0'],
+    ['AU','Австралия','61','### ### ###','0']
+  ];
+  var C = LIST.map(function(a){
+    var max = (a[3].match(/#/g) || []).length;
+    return { iso:a[0], name:a[1], dial:a[2], mask:a[3], trunk:a[4] || '', max:max, min:a[5] || max };
+  });
+  var BY_ISO = {};
+  C.forEach(function(c){ BY_ISO[c.iso] = c; });
+  function country(iso){ return BY_ISO[String(iso || '').toUpperCase()] || null; }
+  function digitsOf(s){ return String(s == null ? '' : s).replace(/\D/g, ''); }
+
+  // Страна по набранным цифрам: самый длинный подходящий код, при равенстве — первая в списке.
+  function detect(d){
+    var best = null;
+    for(var i = 0; i < C.length; i++){
+      var c = C[i];
+      if(d.indexOf(c.dial) === 0 && (!best || c.dial.length > best.dial.length)) best = c;
+    }
+    return best;
+  }
+  // Разбор введённого: { c: страна, nat: цифры национальной части }.
+  function parse(raw, cur){
+    var d = digitsOf(raw);
+    if(!d) return { c:cur, nat:'' };
+    // пока набрано только то, что целиком внутри кода страны, — номера ещё нет
+    if(d.length <= cur.dial.length && cur.dial.indexOf(d) === 0) return { c:cur, nat:'' };
+    if(d.indexOf(cur.dial) === 0) return { c:cur, nat:d.slice(cur.dial.length) };
+    var other = detect(d);
+    if(other) return { c:other, nat:d.slice(other.dial.length) };
+    // кода нет — это национальный номер, возможно с междугородним префиксом (8…, 0…, 80…)
+    var nat = d;
+    if(cur.trunk && nat.indexOf(cur.trunk) === 0 && nat.length === cur.trunk.length + cur.max) nat = nat.slice(cur.trunk.length);
+    return { c:cur, nat:nat };
+  }
+  // Маска: литералы ставим, только когда за ними есть цифра; закрывающая скобка — сразу после группы.
+  function applyMask(mask, nat, max){
+    nat = nat.slice(0, max);
+    var out = '', i = 0;
+    for(var k = 0; k < mask.length; k++){
+      var ch = mask.charAt(k);
+      if(ch === '#'){ if(i >= nat.length) break; out += nat.charAt(i++); }
+      else if(i < nat.length || (ch === ')' && /\d$/.test(out))) out += ch;
+      else break;
+    }
+    return out;
+  }
+  function fmt(c, nat){ return '+' + c.dial + ' ' + applyMask(c.mask, nat, c.max); }
+  function sample(c){ return fmt(c, '1234567890123456'.slice(0, c.max)); }
+  function posAfterDigits(s, k){
+    if(k <= 0) return 1;
+    var n = 0;
+    for(var i = 0; i < s.length; i++){
+      if(/\d/.test(s.charAt(i)) && ++n === k) return i + 1;
+    }
+    return s.length;
+  }
+
+  // ----- страна по умолчанию: студия → IP → язык → Беларусь -----
+  var DEF = { studio:null, ip:null };
+  var LANG = { ru:'RU', be:'BY', uk:'UA', kk:'KZ', pl:'PL', lt:'LT', lv:'LV', et:'EE', de:'DE', fr:'FR', it:'IT', es:'ES', tr:'TR', ka:'GE', hy:'AM', az:'AZ', uz:'UZ' };
+  function langIso(){
+    var l = (navigator.languages && navigator.languages[0]) || navigator.language || '';
+    var m = /[-_]([A-Za-z]{2})$/.exec(l);
+    if(m && country(m[1])) return m[1].toUpperCase();
+    return LANG[l.slice(0, 2).toLowerCase()] || null;
+  }
+  function bestIso(){ return DEF.studio || DEF.ip || langIso() || 'BY'; }
+
+  var fields = [];
+  function live(){ fields = fields.filter(function(f){ return document.body.contains(f.el); }); return fields; }
+  // Новый умолчательный выбор применяем только к полям, которых человек ещё не трогал.
+  function refresh(){
+    live().forEach(function(f){ if(!f.touched && !f.nat) f.setCountry(bestIso(), true); });
+  }
+
+  // ----- выпадающий список -----
+  var openPop = null;
+  function closePop(){
+    if(!openPop) return;
+    openPop.pop.remove();
+    document.removeEventListener('mousedown', openPop.out, true);
+    document.removeEventListener('touchstart', openPop.out, true);
+    document.removeEventListener('keydown', openPop.key, true);
+    window.removeEventListener('resize', closePop);
+    window.removeEventListener('scroll', openPop.scroll, true);
+    openPop = null;
+  }
+  function flagEl(c){
+    var img = document.createElement('img');
+    img.className = 'pf-flag'; img.alt = ''; img.loading = 'lazy'; img.decoding = 'async';
+    img.src = 'https://flagcdn.com/w40/' + c.iso.toLowerCase() + '.png';
+    img.onerror = function(){
+      var s = document.createElement('span'); s.className = 'pf-iso'; s.textContent = c.iso;
+      if(img.parentNode) img.parentNode.replaceChild(s, img);
+    };
+    return img;
+  }
+  function openList(f){
+    closePop();
+    var pop = document.createElement('div');
+    pop.className = 'pf-pop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Страна');
+    var q = document.createElement('input');
+    q.className = 'pf-q'; q.type = 'search'; q.placeholder = 'Страна или код'; q.setAttribute('aria-label', 'Поиск страны'); q.autocomplete = 'off';
+    var ul = document.createElement('ul');
+    ul.className = 'pf-ul'; ul.setAttribute('role', 'listbox');
+    pop.appendChild(q); pop.appendChild(ul);
+    function draw(){
+      var s = q.value.trim().toLowerCase().replace(/^\+/, '');
+      ul.innerHTML = '';
+      var shown = C.filter(function(c){ return !s || c.name.toLowerCase().indexOf(s) !== -1 || c.dial.indexOf(s) === 0 || c.iso.toLowerCase() === s; });
+      if(!shown.length){ var e = document.createElement('li'); e.className = 'pf-empty'; e.textContent = 'Ничего не найдено'; ul.appendChild(e); return; }
+      shown.forEach(function(c){
+        var li = document.createElement('li');
+        li.className = 'pf-li'; li.setAttribute('role', 'option'); li.dataset.iso = c.iso;
+        li.dataset.on = String(c === f.c); li.setAttribute('aria-selected', String(c === f.c));
+        li.appendChild(flagEl(c));
+        var nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = c.name; li.appendChild(nm);
+        var dl = document.createElement('span'); dl.className = 'dl'; dl.textContent = '+' + c.dial; li.appendChild(dl);
+        li.addEventListener('click', function(){ pick(c); });
+        ul.appendChild(li);
+      });
+    }
+    function pick(c){ closePop(); f.setCountry(c.iso, false); f.focusEnd(); }
+    q.addEventListener('input', draw);
+    q.addEventListener('keydown', function(e){
+      if(e.key === 'Enter'){ e.preventDefault(); var first = ul.querySelector('.pf-li'); if(first) pick(BY_ISO[first.dataset.iso]); }
+    });
+    document.body.appendChild(pop);
+    draw();
+    // позиция: под полем, а если снизу тесно — над ним
+    var r = f.wrap.getBoundingClientRect(), vw = window.innerWidth, vh = window.innerHeight;
+    var w = Math.min(Math.max(r.width, 280), vw - 16);
+    pop.style.width = w + 'px';
+    pop.style.left = Math.max(8, Math.min(r.left, vw - w - 8)) + 'px';
+    var below = vh - r.bottom - 8, above = r.top - 8, h = Math.min(320, pop.offsetHeight);
+    if(below >= Math.min(h, 220) || below >= above){
+      pop.style.top = (r.bottom + 4) + 'px';
+      ul.style.maxHeight = Math.max(120, Math.min(240, below - 60)) + 'px';
+    } else {
+      pop.style.bottom = (vh - r.top + 4) + 'px';
+      ul.style.maxHeight = Math.max(120, Math.min(240, above - 60)) + 'px';
+    }
+    var cur = ul.querySelector('[data-on="true"]');
+    if(cur) ul.scrollTop = Math.max(0, cur.offsetTop - ul.clientHeight / 2 + cur.offsetHeight / 2);
+    var st = { pop:pop };
+    st.out = function(e){ if(!pop.contains(e.target) && !f.btn.contains(e.target)) closePop(); };
+    st.key = function(e){ if(e.key === 'Escape'){ e.stopPropagation(); closePop(); f.btn.focus(); } };
+    st.scroll = function(e){ if(!pop.contains(e.target)) closePop(); };
+    document.addEventListener('mousedown', st.out, true);
+    document.addEventListener('touchstart', st.out, true);
+    document.addEventListener('keydown', st.key, true);
+    window.addEventListener('resize', closePop);
+    window.addEventListener('scroll', st.scroll, true);
+    openPop = st;
+  }
+
+  // ----- само поле -----
+  function attach(el, opts){
+    if(el._pf) return el._pf;
+    var f = { el:el, c:country(opts && opts.iso) || country(bestIso()), nat:'', touched:false };
+    var wrap = document.createElement('div'); wrap.className = 'pf';
+    el.parentNode.insertBefore(wrap, el); wrap.appendChild(el);
+    var btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'pf-c'; btn.setAttribute('aria-haspopup', 'dialog');
+    wrap.insertBefore(btn, el);
+    el.classList.add('pf-in'); el.setAttribute('inputmode', 'tel'); el.setAttribute('autocomplete', 'tel');
+    f.wrap = wrap; f.btn = btn;
+
+    function renderBtn(){
+      btn.innerHTML = '';
+      btn.appendChild(flagEl(f.c));
+      var chev = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      chev.setAttribute('viewBox', '0 0 10 10'); chev.setAttribute('class', 'pf-chev');
+      chev.innerHTML = '<path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>';
+      btn.appendChild(chev);
+      btn.setAttribute('aria-label', 'Страна: ' + f.c.name + ' +' + f.c.dial + '. Изменить');
+      el.placeholder = sample(f.c);
+    }
+    f.setCountry = function(iso, soft){
+      var c = country(iso); if(!c) return;
+      if(!soft) f.touched = true;
+      if(c === f.c) return;
+      f.c = c;
+      renderBtn();
+      if(f.nat || el.value || document.activeElement === el){ f.nat = f.nat.slice(0, c.max); el.value = fmt(c, f.nat); }
+      if(!soft) el.dispatchEvent(new Event('input', { bubbles:true }));
+    };
+    f.setValue = function(raw){
+      var d = digitsOf(raw);
+      if(!d){ f.nat = ''; el.value = ''; return; }
+      var p = parse(raw, f.c);
+      if(p.c !== f.c){ f.c = p.c; renderBtn(); }
+      f.nat = p.nat.slice(0, f.c.max);
+      if(f.nat) f.touched = true;
+      el.value = f.nat ? fmt(f.c, f.nat) : '';
+    };
+    // Вернуть фокус в поле после выбора страны — курсор в конец номера.
+    f.focusEnd = function(){ el.focus(); if(!el.value) el.value = fmt(f.c, f.nat); var n = el.value.length; try{ el.setSelectionRange(n, n); }catch(e){} };
+    f.clear = function(){ f.nat = ''; f.touched = false; f.c = country(bestIso()); renderBtn(); el.value = ''; };
+    f.e164 = function(){ return f.nat ? '+' + f.c.dial + f.nat : ''; };
+    f.isValid = function(){ return f.nat.length >= f.c.min && f.nat.length <= f.c.max; };
+    f.isBlank = function(){ return !f.nat; };
+
+    btn.addEventListener('click', function(){ if(openPop) closePop(); else openList(f); });
+    // Пока номера нет, курсор всегда после кода страны: цифра, попавшая внутрь кода,
+    // сменила бы страну.
+    function caretToEnd(){ if(f.nat) return; var n = el.value.length; try{ el.setSelectionRange(n, n); }catch(e){} }
+    el.addEventListener('focus', function(){
+      if(!el.value) el.value = fmt(f.c, f.nat);
+      caretToEnd();
+      setTimeout(function(){ if(document.activeElement === el) caretToEnd(); }, 0);
+    });
+    el.addEventListener('click', caretToEnd);
+    el.addEventListener('blur', function(){ if(!f.nat) el.value = ''; });
+    el.addEventListener('input', function(){
+      var raw = el.value;
+      var caret = el.selectionStart == null ? raw.length : el.selectionStart;
+      var before = digitsOf(raw.slice(0, caret)).length;
+      var p = parse(raw, f.c);
+      if(p.c !== f.c){ f.c = p.c; renderBtn(); }
+      f.nat = p.nat.slice(0, f.c.max);
+      if(f.nat) f.touched = true;
+      var out = fmt(f.c, f.nat);
+      el.value = out;
+      var total = digitsOf(out).length;
+      // Каретка — сразу за тем же по счёту числом цифр, а не в конце строки: иначе
+      // после «(29)» backspace упирался бы в закрывающую скобку, которую маска
+      // тут же возвращает.
+      var pos = f.nat ? posAfterDigits(out, Math.min(before, total)) : out.length;
+      try{ el.setSelectionRange(pos, pos); }catch(e){}
+    });
+    renderBtn();
+    el._pf = f; fields.push(f);
+    return f;
+  }
+
+  function loadGeo(url){
+    var c = null;
+    try{ c = sessionStorage.getItem('pf_geo'); }catch(e){}
+    if(c && country(c)){ DEF.ip = c; refresh(); return; }
+    if(!url || !window.fetch) return;
+    fetch(url).then(function(r){ return r.ok ? r.json() : null; }).then(function(d){
+      if(d && d.country && country(d.country)){
+        DEF.ip = d.country.toUpperCase();
+        try{ sessionStorage.setItem('pf_geo', DEF.ip); }catch(e){}
+        refresh();
+      }
+    }).catch(function(){});
+  }
+
+  return {
+    attach: attach,
+    countries: C,
+    // страна студии — главный источник по умолчанию
+    setStudio: function(iso){ DEF.studio = country(iso) ? String(iso).toUpperCase() : null; refresh(); },
+    loadGeo: loadGeo,
+    bestIso: bestIso,
+    // номер в привычном виде по каноническому (+375291234567 -> +375 (29) 123-45-67)
+    pretty: function(raw){
+      var d = digitsOf(raw);
+      if(!d) return '';
+      var c = detect(d);
+      if(!c) return String(raw);
+      var nat = d.slice(c.dial.length);
+      return nat ? fmt(c, nat) : '+' + c.dial;
+    },
+    e164: function(el){ return el._pf ? el._pf.e164() : ''; },
+    isValid: function(el){ return !!el._pf && el._pf.isValid(); },
+    isBlank: function(el){ return !el._pf || el._pf.isBlank(); },
+    setValue: function(el, raw){ if(el._pf) el._pf.setValue(raw); else el.value = raw || ''; },
+    clear: function(el){ if(el._pf) el._pf.clear(); else el.value = ''; },
+    setCountry: function(el, iso, soft){ if(el._pf) el._pf.setCountry(iso, soft); },
+    // служебное — для тестов
+    _parse: function(raw, iso){ var p = parse(raw, country(iso) || BY_ISO.BY); return { iso:p.c.iso, nat:p.nat }; },
+    _format: function(iso, nat){ var c = country(iso); return fmt(c, nat); }
+  };
+})();
+/* PF:END */
+</script>
 <script>
 (function(){
   var API_BASE = 'https://api.poont.space';
@@ -369,52 +734,13 @@
   // ---------- Вход по номеру телефона — рядом с Login Widget, не вместо
   // него (тот же /api/verify/start|check, что уже обслуживает клиентский
   // мини-апп; сессия — тот же signSession, что и у Telegram-входа выше). ----------
-  function digitsAfterPrefix(raw){
-    var d = raw.replace(/\D/g,'');
-    if(d.indexOf('375')===0) d = d.slice(3);
-    return d.slice(0,9);
-  }
-  function formatByPhone(raw){
-    var d = digitsAfterPrefix(raw);
-    var out = '+375';
-    if(d.length>0) out += ' ('+d.slice(0,2);
-    if(d.length>=2) out += ')';
-    if(d.length>2) out += ' '+d.slice(2,5);
-    if(d.length>5) out += '-'+d.slice(5,7);
-    if(d.length>7) out += '-'+d.slice(7,9);
-    return out;
-  }
-  function dDigitsBeforeCaret(rawValue, caretPos){
-    var raw = rawValue.slice(0, caretPos).replace(/\D/g,'');
-    if(raw.indexOf('375')===0) raw = raw.slice(3);
-    else if('375'.indexOf(raw)===0) raw = '';
-    return raw.length;
-  }
-  function caretPosForDDigitCount(formatted, target){
-    if(target<=0) return 5;
-    var seenPrefix=0, seenD=0;
-    for(var i=0;i<formatted.length;i++){
-      if(/\d/.test(formatted[i])){
-        if(seenPrefix<3){ seenPrefix++; continue; }
-        seenD++;
-        if(seenD===target) return i+1;
-      }
-    }
-    return formatted.length;
-  }
-  function toE164Phone(){ return '+375' + digitsAfterPrefix($('loginPhone').value); }
-
-  $('loginPhone').addEventListener('focus', function(){
-    if(!$('loginPhone').value) $('loginPhone').value = '+375 ';
-  });
+  // Поле телефона со страной — общий модуль PF (исходник _dev/phone-field.js).
+  // Страна по умолчанию: IP -> язык устройства -> Беларусь (студии на входе ещё нет).
+  PF.attach($('loginPhone'));
+  PF.loadGeo(API_BASE + '/api/geo');
+  function toE164Phone(){ return PF.e164($('loginPhone')); }
   $('loginPhone').addEventListener('input', function(){
-    var el = $('loginPhone');
-    var caret = el.selectionStart;
-    var target = dDigitsBeforeCaret(el.value, caret);
-    el.value = formatByPhone(el.value);
-    var newPos = caretPosForDDigitCount(el.value, target);
-    el.setSelectionRange(newPos, newPos);
-    $('phoneSendBtn').disabled = digitsAfterPrefix(el.value).length !== 9;
+    $('phoneSendBtn').disabled = !PF.isValid($('loginPhone'));
   });
 
   var resendAt = 0, resendTimer = null;
@@ -462,7 +788,7 @@
   $('phoneSendBtn').addEventListener('click', function(){
     if($('phoneSendBtn').disabled) return;
     hide($('phoneErr'));
-    $('phoneHint').textContent = 'Отправим код в Telegram на ' + formatByPhone(toE164Phone());
+    $('phoneHint').textContent = 'Отправим код в Telegram на ' + PF.pretty(toE164Phone());
     $('loginCode').value = '';
     $('phoneVerifyBtn').disabled = true;
     hide($('phoneStep1')); show($('phoneStep2'));
