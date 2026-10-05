@@ -3727,18 +3727,32 @@
   // closedAt — разобранную бронь закрывать второй раз нечего.
   // p:'close' — не роут, а признак «открыть окно закрытия» (там сумма и
   // оценка, и уже оно шлёт POST .../close).
+  // Где бронь по времени относительно «сейчас» в таймзоне студии:
+  // 'future' — ещё не началась, 'started' — идёт, 'ended' — закончилась.
+  function bkPhase(b){
+    var now = qbWallClock(), d = String(b.date).slice(0, 10);
+    if(d > now.date) return 'future';
+    if(d < now.date) return 'ended';
+    if(now.minutes < b.start) return 'future';
+    return now.minutes >= b.end ? 'ended' : 'started';
+  }
   function bkActions(b){
     var st = b.status;
     if(st === 'pending') return [
       { p:'confirm', t:'Подтвердить', c:'go' },
       { p:'decline', t:'Отклонить',  c:'stop' } ];
-    if(st === 'confirmed') return [
+    if(st === 'confirmed'){
       // «Закрыть» вместо прежнего «Завершить»: просто сменить статус мало —
       // съёмку надо разобрать (сумма с допродажами, оценка), иначе статистика
-      // так и остаётся приблизительной.
-      { p:'close',   t:'Закрыть',    c:'go' },
-      { p:'no-show', t:'Не пришёл',  c:'stop' },
-      { p:'cancel',  t:'Отменить',   c:'ghost' } ];
+      // так и остаётся приблизительной. Но только после окончания, а «не
+      // пришёл» — после начала: по будущей брони случайный тап делал её
+      // состоявшейся (клиент уже не мог отменить) или записывал ему долг.
+      var ph = bkPhase(b), out = [];
+      if(ph === 'ended') out.push({ p:'close', t:'Закрыть', c:'go' });
+      if(ph !== 'future') out.push({ p:'no-show', t:'Не пришёл', c:'stop' });
+      out.push({ p:'cancel', t:'Отменить', c:'ghost' });
+      return out;
+    }
     // Автозавершённая страховкой бронь: статус уже completed, но не разобрана.
     if(st === 'completed' && !b.closedAt) return [
       { p:'close',   t:'Закрыть',    c:'go' },
