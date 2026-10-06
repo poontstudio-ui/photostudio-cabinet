@@ -588,6 +588,9 @@
   @media (max-width:760px){
     .pm-tiles{grid-template-columns:repeat(2,minmax(0,1fr));}
     .pm-tile-top{flex-wrap:wrap;row-gap:6px;}
+    /* flex:1 (база 0) никогда не переносил статус — название сжималось до обрезки;
+       база «вся ширина минус иконка» гарантированно уводит статус на вторую строку */
+    .pm-tile-n{flex:1 1 calc(100% - 38px);overflow-wrap:anywhere;}
     .pm-tile-top .pm-pill{order:3;}
     .pm-models{grid-template-columns:minmax(0,1fr);}
     .pm-row{grid-template-columns:minmax(0,1fr);gap:6px;}
