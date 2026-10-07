@@ -546,6 +546,8 @@
   .pm-cp.on{border-color:var(--accent);background:var(--accent-bg);}
   .pm-cp.on .pm-ic{background:var(--surface);color:var(--accent-dark);}
   .pm-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}
+  .pm-facts[data-n="1"]{grid-template-columns:minmax(0,1fr);}
+  .pm-facts[data-n="2"],.pm-facts[data-n="4"]{grid-template-columns:repeat(2,minmax(0,1fr));}
   .pm-facts div{background:var(--surface);border-radius:var(--r-sm);padding:8px 10px;}
   .pm-facts small{display:block;font-size:var(--fs-xs);color:var(--text-3);}
   .pm-facts b{font-size:var(--fs-sm);font-weight:600;font-variant-numeric:tabular-nums;}
@@ -2634,7 +2636,7 @@ var PF = (function(){
   });
 
   var hallsDraft = [], equipDraft = [], hoursDraft = [];
-  var settingsDraft = { autoConfirm:false, bufferMin:10, minBookingMin:60, cancelFreeHours:24,
+  var settingsDraft = { autoConfirm:false, bufferMin:10, minBookingMin:60,
     lastminuteEnabled:false, lastminuteHours:24, lastminutePct:20,
     reminderEnabled:true, reminderMinutesBefore:60,
     noShowFeePct:100, rescheduleFeePct:25, debtBlocksAutoconfirm:true };
@@ -3374,6 +3376,14 @@ var PF = (function(){
   }
 
   // ---------- предпросмотр: страница клиента ----------
+  // Последние плитки фактов — как на странице клиента: у праздника «Стоя/Сидя»
+  // (если заданы) вместо площади; у остальных площадь, когда она указана.
+  function pmFactsTail(h, p, code){
+    function tile(l, v){ return '<div><small>' + l + '</small><b>' + v + '</b></div>'; }
+    var st = Number.isInteger(p.standingCapacity), se = Number.isInteger(p.seatedCapacity);
+    if(code === 'event' && (st || se)) return (st ? tile('Стоя', 'до ' + p.standingCapacity) : '') + (se ? tile('Сидя', 'до ' + p.seatedCapacity) : '');
+    return h.areaM2 ? tile('Площадь', h.areaM2 + ' м²') : '';
+  }
   function pmClient(i, code){
     var h = hallsDraft[i], p = pmCur(i, code);
     var list = HALL_PURPOSE_LIST.filter(function(x){ var q = pmCur(i, x.v); return q && (q.active !== false || x.v === code); });
@@ -3395,13 +3405,16 @@ var PF = (function(){
         var q = pmCur(i, x.v);
         return '<button type="button" class="pm-cp' + (x.v === code ? ' on' : '') + '" data-pv-p="' + x.v + '"><span class="pm-ic">' + purposeIconSvg(x.v) + '</span><span><b>' + esc(x.label) + '</b><small>' + esc(pmShortPrice(q) || '—') + '</small></span></button>';
       }).join('') + '</div>' : '') +
-      '<div class="pm-facts"><div><small>Гостей</small><b>до ' + cap + '</b></div><div><small>Минимум</small><b>' + pmMinTxt(minM) + '</b></div><div><small>Площадь</small><b>' + (h.areaM2 ? h.areaM2 + ' м²' : '—') + '</b></div></div>' +
+      (function(){
+        var tail = pmFactsTail(h, p, code), n = 2 + (tail.match(/<small>/g) || []).length;
+        return '<div class="pm-facts" data-n="' + n + '"><div><small>Гостей</small><b>до ' + cap + '</b></div><div><small>Минимум</small><b>' + pmMinTxt(minM) + '</b></div>' + tail + '</div>';
+      })() +
       '<div><div class="pm-cl-sl">Цена</div><div class="pm-price"><div class="pm-price-big">' + big + '</div>' +
         (pmModel(p) === 'guest' && g.tiers.length > 1 ? '<div class="pm-ptiers">' + g.tiers.map(function(t, k){ return '<span>' + (k === 0 && g.tiers[1].from === 2 ? '1 гость' : 'от ' + (t.from || 1)) + ' — <b>' + gpMoney(t.price || 0) + '</b></span>'; }).join('') + '</div>' : '') +
         pmRule(p).map(function(s){ return '<p>' + esc(s) + '</p>'; }).join('') +
         (pks.length ? '<div class="pm-ptiers">' + pks.map(function(x){ return '<span>Пакет ' + String(x.hours).replace('.', ',') + ' ч — <b>' + gpMoney(x.price) + ' ' + CUR + '</b></span>'; }).join('') + '</div>' : '') +
       '</div></div>' +
-      (have.length ? '<div><div class="pm-cl-sl">Входит в аренду для ' + purposeGen(code) + '</div><ul class="pm-ck">' + show.map(function(x){
+      (have.length ? '<div><div class="pm-cl-sl">Оснащение для ' + purposeGen(code) + '</div><ul class="pm-ck">' + show.map(function(x){
         return '<li>' + esc(x.label) + (x.q && Number.isInteger(x.v) ? ' <span>· ' + x.v + ' шт.</span>' : '') + '</li>'; }).join('') + '</ul>' +
         (have.length > 6 ? '<button type="button" class="pm-more" data-pv="all">' + (PM.pv.all ? 'Свернуть' : 'Показать всё · ' + have.length) + '</button>' : '') + '</div>' : '') +
       '</div>' +
@@ -7463,7 +7476,6 @@ var PF = (function(){
         autoConfirm: typeof u.autoConfirm === 'boolean' ? u.autoConfirm : prev.autoConfirm,
         bufferMin: Number.isInteger(u.bufferMin) ? u.bufferMin : prev.bufferMin,
         minBookingMin: Number.isInteger(u.minBookingMin) ? u.minBookingMin : prev.minBookingMin,
-        cancelFreeHours: Number.isInteger(u.cancelFreeHours) ? u.cancelFreeHours : prev.cancelFreeHours,
         lastminuteEnabled: !!lm.enabled,
         lastminuteHours: Number.isInteger(lm.hours) ? lm.hours : 24,
         lastminutePct: Number.isInteger(lm.pct) ? lm.pct : 20,
@@ -8106,7 +8118,6 @@ var PF = (function(){
           autoConfirm: !!cfg.autoConfirm,
           bufferMin: Number.isInteger(cfg.bufferMin) ? cfg.bufferMin : 10,
           minBookingMin: Number.isInteger(cfg.minBookingMin) ? cfg.minBookingMin : 60,
-          cancelFreeHours: Number.isInteger(cfg.cancelFreeHours) ? cfg.cancelFreeHours : 24,
           lastminuteEnabled: !!lm.enabled,
           lastminuteHours: Number.isInteger(lm.hours) ? lm.hours : 24,
           lastminutePct: Number.isInteger(lm.pct) ? lm.pct : 20,
