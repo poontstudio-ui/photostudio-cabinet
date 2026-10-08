@@ -3266,6 +3266,11 @@ var PF = (function(){
     }
     var gc = gpCharge(p.guestPricing, n, hrs);
     r.guests = isFinite(gc) ? gc : 0;
+    // «Целый день»: скидка на аренду и гостей от 8 часов (пакет — фикс-цена, без скидки).
+    if(!r.pkg && Number.isInteger(p.fullDayDiscountPct) && p.fullDayDiscountPct > 0 && hrs >= 8){
+      r.disc = p.fullDayDiscountPct;
+      r.rent = r.rent * (100 - r.disc) / 100; r.guests = r.guests * (100 - r.disc) / 100;
+    }
     r.total = r.rent + r.guests;
     return r;
   }
@@ -3437,8 +3442,8 @@ var PF = (function(){
       pmRow('Минимальная бронь', pmSeg('minH', minOpts, Number.isInteger(p.minBookingMin) ? p.minBookingMin : 'inherit'), { hint:p.minBookingMin == null ? 'У студии — ' + pmMinTxt(pmStudioMin()) + '.' : '' }) +
       pmRow('Подтверждение', pmSeg('confirm', [['inherit','Как у студии'],['yes','Сразу'],['no','Вручную']], p.autoConfirm == null ? 'inherit' : p.autoConfirm ? 'yes' : 'no'),
         { hint:p.autoConfirm == null ? 'Сейчас у студии — ' + (settingsDraft.autoConfirm ? 'сразу.' : 'вручную.') : p.autoConfirm ? 'Бронь сразу встаёт в расписание.' : 'Каждая заявка ждёт вашего ответа.' }) +
-      (pmRent(p) ? pmRow('Целый день', pmIn('dayPct', p.fullDayDiscountPct, { int:true, sm:true, ph:'0', bad:e.dayPct }) + '<span class="pm-u">% скидки на бронь от 8 часов</span>',
-        { err:e.dayPct, hint:'Пока только для справки: в сумму брони скидка ещё не входит.' }) : '') +
+      (pmRent(p) ? pmRow('Целый день', pmIn('dayPct', p.fullDayDiscountPct, { int:true, sm:true, ph:'0', bad:e.dayPct }) + '<span class="pm-u">% скидки на бронь в 8 часов</span>',
+        { err:e.dayPct, hint:'Скидка на аренду и гостей, когда бронь — 8 часов. Оборудование и пакеты не участвуют.' }) : '') +
       '</div>';
 
     // ---- Что входит ----
@@ -3506,7 +3511,7 @@ var PF = (function(){
       '<div class="pm-bar"><div class="pm-bar-ctl">' +
         '<span>Гостей <button type="button" class="pm-rb" data-pv="n-"' + (n <= 1 ? ' disabled' : '') + ' aria-label="Меньше гостей">−</button><b>' + n + '</b><button type="button" class="pm-rb" data-pv="n+"' + (n >= cap ? ' disabled' : '') + ' aria-label="Больше гостей">+</button></span>' +
         '<span>Часов <button type="button" class="pm-rb" data-pv="h-"' + (hh <= minH ? ' disabled' : '') + ' aria-label="Меньше часов">−</button><b>' + hh + '</b><button type="button" class="pm-rb" data-pv="h+"' + (hh >= 12 ? ' disabled' : '') + ' aria-label="Больше часов">+</button></span></div>' +
-        '<div class="pm-bar-sum"><div><div class="pm-tot">' + gpMoney(r.total) + ' ' + CUR + '</div><div class="pm-tot-b">' + esc(parts.join(' + ')) + '</div></div>' +
+        '<div class="pm-bar-sum"><div><div class="pm-tot">' + gpMoney(r.total) + ' ' + CUR + '</div><div class="pm-tot-b">' + esc(parts.join(' + ') + (r.disc ? ' · −' + r.disc + '% целый день' : '')) + '</div></div>' +
         '<span class="pm-go">Выбрать время</span></div></div>';
   }
   function pmPreview(i){
@@ -4841,6 +4846,7 @@ var PF = (function(){
     if(Array.isArray(p.priceRules)) out.priceRules = p.priceRules;
     if(Number.isInteger(p.capacity)) out.capacity = p.capacity;
     out.guestPricing = p.guestPricing || null;
+    out.fullDayDiscountPct = Number.isInteger(p.fullDayDiscountPct) ? p.fullDayDiscountPct : null;
     return out;
   }
   function qbPrice(){
@@ -4859,6 +4865,8 @@ var PF = (function(){
     if(!gpRentApplies(hall.guestPricing)) base = 0;
     var people = parseInt(($('qbPeople') || {}).value, 10) || 1;
     base += gpCharge(hall.guestPricing, people, (end-start)/60);
+    // «Целый день»: скидка назначения на аренду и гостей при брони от 8 часов (зеркало сервера).
+    if(Number.isInteger(hall.fullDayDiscountPct) && hall.fullDayDiscountPct > 0 && (end-start) >= 480) base = base*(100-hall.fullDayDiscountPct)/100;
     if(QB.lastMinute.enabled && QB.lastMinute.pct>=1 && QB.lastMinute.pct<=90 && QB.lastMinute.hours>=1){
       var now = qbWallClock();
       var dayDiff = Math.round((new Date(QB.date+'T00:00:00') - new Date(now.date+'T00:00:00')) / 86400000);
@@ -6981,7 +6989,7 @@ var PF = (function(){
         var acc = hallAccessLabels(h);
         return (acc.length ? esc(acc.join(' · ')) + '<br>' : '') +
           ((h.aboutAccess || '').trim() ? esc(clip(h.aboutAccess, 180)) : emptyLine('Как найти пространство и попасть внутрь — не указано')) + '<br>' +
-          ((h.wifiSsid || '').trim() ? 'Wi-Fi: «' + esc(h.wifiSsid) + '» · виден только после брони' : emptyLine('Wi-Fi не указан'));
+          ((h.wifiSsid || '').trim() ? 'Wi-Fi: «' + esc(h.wifiSsid) + '» · виден клиенту после подтверждения брони' : emptyLine('Wi-Fi не указан'));
       case 'hallLocation':
         return h.lat != null ? esc([h.city, h.address].filter(Boolean).join(', ') || 'своя метка на карте')
           : esc([profileDraft.city, profileDraft.address].filter(Boolean).join(', ') || 'адрес студии ещё не указан') +
@@ -8040,7 +8048,7 @@ var PF = (function(){
       frow('Как пройти', frArea('wzAboutAccess', h.aboutAccess, 3, ' maxlength="1000" placeholder="Этаж, куда поворачивать, домофон, кому звонить"'), { forId:'wzAboutAccess' }) +
       frow('Wi-Fi', '<div class="fr-pair">' + frInput('wzWifiSsid', h.wifiSsid || '', ' maxlength="100" placeholder="Название сети" aria-label="Название сети"') +
         frInput('wzWifiPassword', h.wifiPassword || '', ' maxlength="100" placeholder="Пароль" aria-label="Пароль Wi-Fi"') + '</div>',
-        { note:'Не публичный — его видит только тот, кто забронировал' });
+        { note:'Не публичный: клиент увидит его в «Моих бронях» после подтверждения брони' });
     frWireBools(h);
   };
   WZ_SAVERS.access = function(){
