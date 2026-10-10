@@ -41,6 +41,7 @@
       try{ tg.setHeaderColor(cs.getPropertyValue('--surface').trim() || (t === 'dark' ? '#1e2127' : '#ffffff')); }catch(e){}
     }
     paintButtons(t);
+    try{ window.dispatchEvent(new CustomEvent('poont-theme', { detail: { theme: t } })); }catch(e){}
   }
   function set(t){ try{ localStorage.setItem(KEY, t); }catch(e){} apply(); }
   window.PTheme = { get: get, set: set, toggle: function(){ set(get() === 'dark' ? 'light' : 'dark'); }, apply: apply };
