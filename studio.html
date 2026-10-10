@@ -147,7 +147,6 @@
         pin.textContent = o.label(s);
         pin.setAttribute('role', 'button');
         pin.setAttribute('aria-label', (s.name || '') + ' · ' + o.label(s));
-        pin.addEventListener('click', function(e){ e.stopPropagation(); o.onPick(s); });
         pin._order = s._order;
         return pin;
       }
@@ -158,8 +157,8 @@
         c.textContent = n > 99 ? '99+' : String(n);
         c.setAttribute('role', 'button');
         c.setAttribute('aria-label', n + ' студий — приблизить');
-        c.addEventListener('click', function(e){
-          e.stopPropagation();
+        // Тап по маркеру карта ловит сама (DOM-клик до элемента не доходит) — отдаём onClick маркеру.
+        c._zoomIn = function(){
           var lo = coords.map(function(p){ return p[0]; }), la = coords.map(function(p){ return p[1]; });
           var x0 = Math.min.apply(null, lo), x1 = Math.max.apply(null, lo), y0 = Math.min.apply(null, la), y1 = Math.max.apply(null, la);
           if(x1 - x0 < 1e-4 && y1 - y0 < 1e-4){
@@ -169,7 +168,7 @@
             var px = (x1 - x0) * .2 + 1e-4, py = (y1 - y0) * .2 + 1e-4;
             map.setLocation({ bounds: [[x0 - px, y0 - py], [x1 + px, y1 + py]], duration: 300 });
           }
-        });
+        };
         return c;
       }
 
@@ -200,6 +199,9 @@
         }); });
       }
 
+      function pinMarker(s){
+        return new y.YMapMarker({ coordinates: [s.lon, s.lat], onClick: function(){ o.onPick(s); } }, pinEl(s));
+      }
       pts.forEach(function(s, i){ s._order = i; });
       var drawn = false;
       try{
@@ -210,16 +212,16 @@
           features: pts.map(function(s, i){
             return { type: 'Feature', id: String(i), geometry: { type: 'Point', coordinates: [s.lon, s.lat] }, properties: { s: s } };
           }),
-          marker: function(f){ return new y.YMapMarker({ coordinates: f.geometry.coordinates }, pinEl(f.properties.s)); },
+          marker: function(f){ return pinMarker(f.properties.s); },
           cluster: function(coords, features){
-            return new y.YMapMarker({ coordinates: coords },
-              clusterEl(features.length, features.map(function(f){ return f.geometry.coordinates; })));
+            var c = clusterEl(features.length, features.map(function(f){ return f.geometry.coordinates; }));
+            return new y.YMapMarker({ coordinates: coords, onClick: function(){ c._zoomIn(); } }, c);
           },
         }));
         drawn = true;
       }catch(e){ /* без кластеров — просто метки, расчистка всё равно работает */ }
       if(!drawn){
-        pts.forEach(function(s){ map.addChild(new y.YMapMarker({ coordinates: [s.lon, s.lat] }, pinEl(s))); });
+        pts.forEach(function(s){ map.addChild(pinMarker(s)); });
       }
       map.addChild(new y.YMapListener({ onUpdate: declutter }));
       declutter();
