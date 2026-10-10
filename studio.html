@@ -127,7 +127,9 @@
       var minLat = Math.min.apply(null, lats), maxLat = Math.max.apply(null, lats);
       // Поля вокруг крайних меток — рамкой расширяем границы (margin у v3 тут не держит).
       var padLon = Math.max((maxLon - minLon) * 0.3, 0.004), padLat = Math.max((maxLat - minLat) * 0.3, 0.003);
-      var loc = pts.length > 1
+      // o.view — {center:[lon,lat], zoom}: вернуть карту туда, где её оставили.
+      var loc = o.view && o.view.center ? { center: o.view.center, zoom: o.view.zoom }
+        : pts.length > 1
         ? { bounds: [[minLon - padLon, minLat - padLat], [maxLon + padLon, maxLat + padLat]] }
         : { center: [pts[0].lon, pts[0].lat], zoom: 14 };
       // zoomRounding 'auto' — без привязки к целому масштабу: иначе границы «подрезаются» и крайние метки у края.
