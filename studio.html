@@ -60,6 +60,123 @@
 })();
 /* TH:END */
 </script>
+<script>
+/* MP:BEGIN — карты: Яндекс.Карты JS API v3 со светлой и тёмной схемой (_dev/maps.js) */
+(function(){
+  // Координаты в v3 — [долгота, широта] (в 2.1 было наоборот).
+  var _promise = null, _theme = 'light', _layers = [];
+  function curTheme(){ return (window.PTheme && window.PTheme.get && window.PTheme.get()) || _theme; }
+  function load(key){
+    if(_promise) return _promise;
+    if(!key) return Promise.reject(new Error('нет ключа карт'));
+    _promise = new Promise(function(resolve, reject){
+      var s = document.createElement('script');
+      s.src = 'https://api-maps.yandex.ru/v3/?apikey=' + encodeURIComponent(key) + '&lang=ru_RU';
+      s.async = true;
+      s.onerror = function(){ _promise = null; reject(new Error('карты не загрузились')); };
+      s.onload = function(){
+        if(!window.ymaps3){ _promise = null; reject(new Error('карты не загрузились')); return; }
+        window.ymaps3.ready.then(function(){
+          return window.ymaps3.import('@yandex/ymaps3-controls@0.0.1');
+        }).then(function(ctl){ resolve({ y: window.ymaps3, ctl: ctl }); })
+          .catch(function(e){ _promise = null; reject(e); });
+      };
+      document.head.appendChild(s);
+    });
+    return _promise;
+  }
+  function baseMap(api, el, location, opts){
+    var y = api.y;
+    var map = new y.YMap(el, Object.assign({
+      location: location,
+      // Колесо мыши листает страницу, а не масштабирует карту — как и раньше.
+      behaviors: ['drag', 'pinchZoom', 'dblClick'],
+    }, opts || {}));
+    var scheme = new y.YMapDefaultSchemeLayer({ theme: curTheme() });
+    map.addChild(scheme);
+    map.addChild(new y.YMapDefaultFeaturesLayer({}));
+    var controls = new y.YMapControls({ position: 'right' });
+    controls.addChild(new api.ctl.YMapZoomControl({}));
+    map.addChild(controls);
+    _layers.push({ map: map, scheme: scheme, el: el });
+    return map;
+  }
+  // Смена темы приложения — перекрашиваем уже нарисованные карты.
+  window.addEventListener('poont-theme', function(e){
+    _theme = e.detail && e.detail.theme || curTheme();
+    _layers = _layers.filter(function(l){ return l.el.isConnected; });
+    _layers.forEach(function(l){ try{ l.scheme.update({ theme: _theme }); }catch(err){} });
+  });
+  // Карта одной точки: красная метка, масштаб улицы.
+  function studio(key, el, p){
+    return load(key).then(function(api){
+      el.innerHTML = '';
+      var map = baseMap(api, el, { center: [p.lon, p.lat], zoom: 16 });
+      var dot = document.createElement('div');
+      dot.className = 'pmap-dot';
+      map.addChild(new api.y.YMapMarker({ coordinates: [p.lon, p.lat] }, dot));
+      return map;
+    });
+  }
+  // Карта каталога: метка-«таблетка» на каждой студии, клик — onPick(студия).
+  function catalog(key, el, pts, o){
+    return load(key).then(function(api){
+      el.innerHTML = '';
+      var lons = pts.map(function(s){ return s.lon; }), lats = pts.map(function(s){ return s.lat; });
+      var minLon = Math.min.apply(null, lons), maxLon = Math.max.apply(null, lons);
+      var minLat = Math.min.apply(null, lats), maxLat = Math.max.apply(null, lats);
+      // Поля вокруг крайних меток — рамкой расширяем границы (margin у v3 тут не держит).
+      var padLon = Math.max((maxLon - minLon) * 0.3, 0.004), padLat = Math.max((maxLat - minLat) * 0.3, 0.003);
+      var loc = pts.length > 1
+        ? { bounds: [[minLon - padLon, minLat - padLat], [maxLon + padLon, maxLat + padLat]] }
+        : { center: [pts[0].lon, pts[0].lat], zoom: 14 };
+      // zoomRounding 'auto' — без привязки к целому масштабу: иначе границы «подрезаются» и крайние метки у края.
+      var map = baseMap(api, el, loc, { zoomRounding: 'auto' });
+      pts.forEach(function(s){
+        var pin = document.createElement('div');
+        pin.className = 'map-pin pmap-pin';
+        pin.textContent = o.label(s);
+        pin.addEventListener('click', function(){ o.onPick(s); });
+        map.addChild(new api.y.YMapMarker({ coordinates: [s.lon, s.lat] }, pin));
+      });
+      return map;
+    });
+  }
+  // Карта выбора точки (кабинет): клик ставит метку, метку можно перетащить.
+  // p — {lat, lon} или null (центр по умолчанию), o.onChange(lat, lon) — новая точка.
+  function picker(key, el, p, o){
+    return load(key).then(function(api){
+      el.innerHTML = '';
+      var has = p && p.lat != null && p.lon != null;
+      var map = baseMap(api, el,
+        { center: has ? [p.lon, p.lat] : (o.center || [27.5590, 53.9006]), zoom: has ? 16 : 11 },
+        { behaviors: ['drag', 'scrollZoom', 'pinchZoom', 'dblClick'] });
+      var marker = null;
+      function setPin(lat, lon){
+        if(marker){ marker.update({ coordinates: [lon, lat] }); return; }
+        var dot = document.createElement('div');
+        dot.className = 'pmap-dot';
+        marker = new api.y.YMapMarker({
+          coordinates: [lon, lat], draggable: true,
+          onDragEnd: function(c){ o.onChange(c[1], c[0]); },
+        }, dot);
+        map.addChild(marker);
+      }
+      if(has) setPin(p.lat, p.lon);
+      map.addChild(new api.y.YMapListener({
+        layer: 'any',
+        onClick: function(obj, ev){ var c = ev.coordinates; setPin(c[1], c[0]); o.onChange(c[1], c[0]); },
+      }));
+      return {
+        setPin: setPin,
+        center: function(lat, lon, zoom){ map.setLocation({ center: [lon, lat], zoom: zoom || 16 }); },
+      };
+    });
+  }
+  window.PMaps = { load: load, studio: studio, catalog: catalog, picker: picker };
+})();
+/* MP:END */
+</script>
 <style>
   /* ============================================================
      ЕДИНАЯ СИСТЕМА POONT. Тот же блок — в photostudio-frontend/index.html.
@@ -1407,6 +1524,12 @@
 .theme-btn svg{width:18px;height:18px;flex:none;}
 .theme-btn[data-label]{width:100%;justify-content:flex-start;}
 /* TH:END */
+/* MP:BEGIN — карты (_dev/maps.css) */
+.pmap-dot{width:18px;height:18px;border-radius:50%;background:#ff4d3d;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);transform:translate(-50%,-50%);}
+.pmap-pin{transform:translate(-50%,-50%);}
+/* «Открыть Яндекс Карты» (необязательный промо-блок; обязательные © и «Условия использования» не трогаем). */
+.ymaps3--controls_bottom.ymaps3--controls_left{display:none!important;}
+/* MP:END */
 </style>
 </head>
 <body>
@@ -2532,29 +2655,7 @@ var PF = (function(){
 
   // Yandex Maps JS API — ленивая загрузка, ключ из /config.
   var MAPS_KEY = '';
-  var _ymapsPromise = null;
-  function loadYmaps(){
-    if(_ymapsPromise) return _ymapsPromise;
-    if(!MAPS_KEY) return Promise.reject(new Error('нет ключа карт'));
-    _ymapsPromise = new Promise(function(resolve, reject){
-      var s = document.createElement('script');
-      s.src = 'https://api-maps.yandex.ru/2.1/?apikey=' + encodeURIComponent(MAPS_KEY) + '&lang=ru_RU';
-      s.async = true;
-      s.onload = function(){ window.ymaps.ready(function(){ resolve(window.ymaps); }); };
-      s.onerror = function(){ _ymapsPromise = null; reject(new Error('карты не загрузились')); };
-      document.head.appendChild(s);
-    });
-    return _ymapsPromise;
-  }
-  // «В Карты →» — необязательный промо-блок Яндекса, физически отдельный от
-  // обязательной атрибуции «© Яндекс Условия» (её не трогаем). Control
-  // рендерится асинхронно, поэтому опрашиваем немного.
-  function hideMapOpenPromo(mapEl, tries){
-    tries = tries || 0;
-    var el = mapEl.querySelector('[class*="-map-copyrights-promo"]');
-    if(el){ el.style.display = 'none'; return; }
-    if(tries < 20) setTimeout(function(){ hideMapOpenPromo(mapEl, tries + 1); }, 100);
-  }
+  // Карты — модуль PMaps (Яндекс.Карты JS API v3, светлая и тёмная схема).
 
   // /api/session/me is NOT tenant-scoped
   function meApi(){
@@ -6665,7 +6766,7 @@ var PF = (function(){
   // адреса у конкретного зала (шаг «О зале»). target — объект с lat/lon,
   // который функция мутирует напрямую (profileDraft или сам зал).
   function wzAddrHelper(ids, target){
-    var state = { items:[], active:-1, timer:null, map:null, pin:null };
+    var state = { items:[], active:-1, timer:null, map:null };
     function closeSuggest(){
       state.items = []; state.active = -1;
       var box = $(ids.box); if(box){ box.hidden = true; box.innerHTML = ''; }
@@ -6684,25 +6785,14 @@ var PF = (function(){
     }
     function placePin(coords){
       target.lat = +coords[0].toFixed(6); target.lon = +coords[1].toFixed(6);
-      if(!state.map) return;
-      if(state.pin){ state.pin.geometry.setCoordinates(coords); }
-      else {
-        loadYmaps().then(function(ymaps){
-          state.pin = new ymaps.Placemark(coords, {}, { draggable:true, preset:'islands#redDotIcon' });
-          state.pin.events.add('dragend', function(){
-            var c = state.pin.geometry.getCoordinates();
-            target.lat = +c[0].toFixed(6); target.lon = +c[1].toFixed(6);
-          });
-          state.map.geoObjects.add(state.pin);
-        });
-      }
+      if(state.map) state.map.setPin(coords[0], coords[1]);
     }
     function pick(idx){
       var it = state.items[idx]; if(!it) return;
       $(ids.addr).value = it.address;
       closeSuggest();
       api('GET', '/admin/geocode?address=' + encodeURIComponent(it.address))
-        .then(function(g){ if(g && g.lat != null && g.lon != null){ placePin([g.lat, g.lon]); if(state.map) state.map.setCenter([g.lat, g.lon], 16); } })
+        .then(function(g){ if(g && g.lat != null && g.lon != null){ placePin([g.lat, g.lon]); if(state.map) state.map.center(g.lat, g.lon, 16); } })
         .catch(function(){ /* пин просто не подвинется, можно вручную на карте */ });
     }
     function fetchSuggest(text){
@@ -6719,22 +6809,10 @@ var PF = (function(){
       if(!ids.map) return;
       if(!MAPS_KEY){ $(ids.map).hidden = true; if(ids.mapHint) $(ids.mapHint).hidden = true; return; }
       $(ids.map).hidden = false; if(ids.mapHint) $(ids.mapHint).hidden = false;
-      var center = (target.lat != null && target.lon != null) ? [target.lat, target.lon] : [53.9006, 27.5590];
-      loadYmaps().then(function(ymaps){
-        state.map = new ymaps.Map($(ids.map),
-          { center: center, zoom: target.lat != null ? 16 : 11, controls: ['zoomControl'] },
-          { suppressMapOpenBlock: true });
-        state.map.events.add('click', function(e){ placePin(e.get('coords')); });
-        if(target.lat != null){
-          state.pin = new ymaps.Placemark([target.lat, target.lon], {}, { draggable:true, preset:'islands#redDotIcon' });
-          state.pin.events.add('dragend', function(){
-            var c = state.pin.geometry.getCoordinates();
-            target.lat = +c[0].toFixed(6); target.lon = +c[1].toFixed(6);
-          });
-          state.map.geoObjects.add(state.pin);
-        }
-        hideMapOpenPromo($(ids.map));
-      }).catch(function(){ $(ids.map).hidden = true; if(ids.mapHint) $(ids.mapHint).hidden = true; });
+      PMaps.picker(MAPS_KEY, $(ids.map), target, {
+        onChange: function(lat, lon){ target.lat = +lat.toFixed(6); target.lon = +lon.toFixed(6); },
+      }).then(function(ctl){ state.map = ctl; })
+        .catch(function(){ $(ids.map).hidden = true; if(ids.mapHint) $(ids.mapHint).hidden = true; });
     }
     var addrEl = $(ids.addr);
     if(addrEl){
