@@ -156,8 +156,8 @@
         </tr></thead>
         <tbody></tbody>
       </table></div>
+      <div class="pager" id="userPager"></div>
       <div class="bar">
-        <button class="btn" id="uMore" hidden>Показать ещё</button>
         <span class="muted grow" id="uInfo"></span>
         <button class="btn primary" id="uWriteSel" disabled>Написать выбранным</button>
         <button class="btn primary" id="uWriteAll">Написать всем по фильтру</button>
@@ -191,6 +191,15 @@
 
     <div class="card">
       <h2>Студии <span class="muted" id="studioCount"></span></h2>
+      <div class="filters">
+        <input type="search" id="sQ" placeholder="Название, город, адрес или id">
+        <select id="sStatus">
+          <option value="">Все статусы</option>
+          <option value="draft">Черновики</option>
+          <option value="published">Опубликованные</option>
+          <option value="suspended">Приостановленные</option>
+        </select>
+      </div>
       <div class="scroll"><table id="studioTable">
         <thead><tr>
           <th>Студия</th><th>Статус</th><th class="num">Пространства</th><th class="num">Брони</th><th class="num">Команда</th><th>Действия</th>
@@ -255,23 +264,32 @@
     return [];
   }
 
-  // ---------- Студии: по 20 на странице ----------
-  var SPAGE = 20, sPage = 0, sTotal = 0;
-  function renderPager(){
-    var box = $('studioPager'), pages = Math.max(1, Math.ceil(sTotal / SPAGE));
-    if(pages <= 1){ box.innerHTML = ''; return; }
-    // 1 … (текущая-1) текущая (текущая+1) … последняя
+  // ---------- Постраничный переключатель (студии и пользователи) ----------
+  // 1 … (текущая-1) текущая (текущая+1) … последняя; page — с нуля.
+  function pagerHtml(page, total, per){
+    var pages = Math.max(1, Math.ceil(total / per));
+    if(pages <= 1) return total ? '<span class="muted">Всего ' + total + '</span>' : '';
     var nums = {};
-    [0, pages - 1, sPage - 1, sPage, sPage + 1].forEach(function(n){ if(n >= 0 && n < pages) nums[n] = true; });
+    [0, pages - 1, page - 1, page, page + 1].forEach(function(n){ if(n >= 0 && n < pages) nums[n] = true; });
     var keys = Object.keys(nums).map(Number).sort(function(a, b){ return a - b; });
-    var html = '<button class="btn" data-p="' + (sPage - 1) + '"' + (sPage === 0 ? ' disabled' : '') + '>← Назад</button>';
+    var html = '<button class="btn" data-p="' + (page - 1) + '"' + (page === 0 ? ' disabled' : '') + '>← Назад</button>';
     keys.forEach(function(n, i){
       if(i && n - keys[i - 1] > 1) html += '<span class="muted">…</span>';
-      html += '<button class="btn' + (n === sPage ? ' primary' : '') + '" data-p="' + n + '">' + (n + 1) + '</button>';
+      html += '<button class="btn' + (n === page ? ' primary' : '') + '" data-p="' + n + '">' + (n + 1) + '</button>';
     });
-    html += '<button class="btn" data-p="' + (sPage + 1) + '"' + (sPage >= pages - 1 ? ' disabled' : '') + '>Вперёд →</button>';
-    html += '<span class="muted">' + (sPage * SPAGE + 1) + '–' + Math.min((sPage + 1) * SPAGE, sTotal) + ' из ' + sTotal + '</span>';
-    box.innerHTML = html;
+    html += '<button class="btn" data-p="' + (page + 1) + '"' + (page >= pages - 1 ? ' disabled' : '') + '>Вперёд →</button>';
+    html += '<span class="muted">' + (page * per + 1) + '–' + Math.min((page + 1) * per, total) + ' из ' + total + '</span>';
+    return html;
+  }
+
+  // ---------- Студии: по 20 на странице, поиск и статус ----------
+  var SPAGE = 20, sPage = 0, sTotal = 0, sTimer = null, sSeq = 0;
+  function renderPager(){ $('studioPager').innerHTML = pagerHtml(sPage, sTotal, SPAGE); }
+  function studioQuery(){
+    var qs = ['limit=' + SPAGE, 'offset=' + (sPage * SPAGE)], q = $('sQ').value.trim(), st = $('sStatus').value;
+    if(q) qs.push('q=' + encodeURIComponent(q));
+    if(st) qs.push('status=' + encodeURIComponent(st));
+    return qs.join('&');
   }
   $('studioPager').addEventListener('click', function(e){
     var b = e.target.closest('button[data-p]');
@@ -280,18 +298,24 @@
     loadStudios().then(function(){ $('studioTable').scrollIntoView({ block:'start' }); });
   });
   function loadStudios(){
-    return api('GET', '/api/platform/studios?limit=' + SPAGE + '&offset=' + (sPage * SPAGE)).then(function(r){
+    var seq = ++sSeq;
+    return api('GET', '/api/platform/studios?' + studioQuery()).then(function(r){
+      if(seq !== sSeq) return;                       // пришёл ответ на устаревший запрос
       sTotal = r.total;
       // последняя страница опустела (студии удалили) — шаг назад
       if(!r.studios.length && sPage > 0){ sPage = Math.max(0, Math.ceil(sTotal / SPAGE) - 1); return loadStudios(); }
       renderStudios(r.studios); renderPager();
     });
   }
+  // Новый запрос или фильтр — с первой страницы.
+  function studiosSearch(){ sPage = 0; return loadStudios(); }
+  $('sQ').addEventListener('input', function(){ clearTimeout(sTimer); sTimer = setTimeout(studiosSearch, 300); });
+  $('sStatus').addEventListener('change', studiosSearch);
 
   function renderStudios(list){
     $('studioCount').textContent = '· ' + sTotal;
     var tb = $('studioTable').querySelector('tbody');
-    tb.innerHTML = '';
+    tb.innerHTML = list.length ? '' : '<tr><td colspan="6" class="muted">Ничего не найдено</td></tr>';
     list.forEach(function(s){
       var tr = document.createElement('tr');
       tr.innerHTML =
@@ -323,7 +347,8 @@
   // ---------- Пользователи ----------
   var PAGE = 50;
   var selected = {};            // id -> true, сохраняется между страницами и фильтрами
-  var loaded = [];              // уже показанные строки
+  var loaded = [];              // строки текущей страницы
+  var uPage = 0;
   var uTotal = 0, uReachable = 0, uTimer = null, uSeq = 0;
   function selCount(){ return Object.keys(selected).length; }
 
@@ -369,8 +394,8 @@
         '<td class="num">' + esc(u.bookings) + '</td>' +
         '<td class="muted">' + esc(fmtDate(u.lastSeen)) + '</td></tr>';
     }).join('') || '<tr><td colspan="6" class="muted">Никого не найдено</td></tr>';
-    $('uMore').hidden = loaded.length >= uTotal;
-    $('uInfo').textContent = 'Показано ' + loaded.length + ' из ' + uTotal + ' · доступны в Telegram: ' + uReachable;
+    $('userPager').innerHTML = pagerHtml(uPage, uTotal, PAGE);
+    $('uInfo').textContent = 'Найдено ' + uTotal + ' · доступны в Telegram: ' + uReachable;
     $('userCount').textContent = '· ' + uTotal;
     $('uWriteSel').textContent = 'Написать выбранным' + (selCount() ? ' (' + selCount() + ')' : '');
     $('uWriteSel').disabled = !selCount();
@@ -392,19 +417,23 @@
     return { q: $('uQ').value.trim(), segment: $('uSegment').value, city: $('uCity').value, reachable: $('uReach').checked ? '1' : '' };
   }
 
-  function loadUsers(append){
-    var seq = ++uSeq, offset = append ? loaded.length : 0;
+  // reset — с первой страницы (новый фильтр/поиск); без него остаёмся на текущей.
+  function loadUsers(reset){
+    if(reset !== false) uPage = 0;
+    var seq = ++uSeq, offset = uPage * PAGE;
     return api('GET', '/api/platform/users?' + userQuery(offset)).then(function(r){
       if(seq !== uSeq) return;                      // пришёл ответ на устаревший фильтр
-      loaded = append ? loaded.concat(r.users) : r.users;
+      // страница опустела (например, после смены фильтра извне) — шаг назад
+      if(!r.users.length && uPage > 0){ uPage = Math.max(0, Math.ceil((r.total || 0) / PAGE) - 1); return loadUsers(false); }
+      loaded = r.users;
       uTotal = r.total; uReachable = r.reachable;
       // при пустой выдаче total/reachable из оконных функций недоступны
-      if(!r.users.length && !append){ uTotal = 0; uReachable = 0; }
+      if(!r.users.length && uPage === 0){ uTotal = 0; uReachable = 0; }
       renderUserSummary(r.summary);
       renderUserRows();
     }).catch(function(e){ $('uInfo').textContent = e.message; });
   }
-  function loadUsersSoon(){ clearTimeout(uTimer); uTimer = setTimeout(function(){ loadUsers(false); }, 300); }
+  function loadUsersSoon(){ clearTimeout(uTimer); uTimer = setTimeout(function(){ loadUsers(true); }, 300); }
 
   function fillCities(ov){
     var sel = $('uCity');
@@ -414,8 +443,13 @@
   }
 
   $('uQ').addEventListener('input', loadUsersSoon);
-  ['uSegment','uCity','uReach'].forEach(function(id){ $(id).addEventListener('change', function(){ loadUsers(false); }); });
-  $('uMore').addEventListener('click', function(){ loadUsers(true); });
+  ['uSegment','uCity','uReach'].forEach(function(id){ $(id).addEventListener('change', function(){ loadUsers(true); }); });
+  $('userPager').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-p]');
+    if(!b || b.disabled) return;
+    uPage = +b.getAttribute('data-p');
+    loadUsers(false).then(function(){ $('userTable').scrollIntoView({ block:'start' }); });
+  });
   $('userTable').addEventListener('change', function(e){
     var t = e.target;
     if(t.id === 'uAll'){
@@ -521,7 +555,7 @@
       .then(function(r){
         renderOverview(r[0]);
         if($('uCity').options.length === 1) fillCities(r[0]);
-        loadUsers(false); loadBroadcasts();
+        loadUsers(!keepPage); loadBroadcasts();
       });
   }
 
