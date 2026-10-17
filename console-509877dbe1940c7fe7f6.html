@@ -51,6 +51,7 @@
      background:var(--surface-2);}
   tr:last-child td{border-bottom:none;}
   td.num,th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;}
+  .pager{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px;}
   .scroll{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r-sm);}
 
   .badge{font-family:var(--f-mono);font-size:10px;text-transform:uppercase;letter-spacing:.05em;
@@ -196,6 +197,7 @@
         </tr></thead>
         <tbody></tbody>
       </table></div>
+      <div class="pager" id="studioPager"></div>
       <div class="muted" id="modNote" style="margin-top:8px"></div>
     </div>
   </div>
@@ -253,8 +255,41 @@
     return [];
   }
 
+  // ---------- Студии: по 20 на странице ----------
+  var SPAGE = 20, sPage = 0, sTotal = 0;
+  function renderPager(){
+    var box = $('studioPager'), pages = Math.max(1, Math.ceil(sTotal / SPAGE));
+    if(pages <= 1){ box.innerHTML = ''; return; }
+    // 1 … (текущая-1) текущая (текущая+1) … последняя
+    var nums = {};
+    [0, pages - 1, sPage - 1, sPage, sPage + 1].forEach(function(n){ if(n >= 0 && n < pages) nums[n] = true; });
+    var keys = Object.keys(nums).map(Number).sort(function(a, b){ return a - b; });
+    var html = '<button class="btn" data-p="' + (sPage - 1) + '"' + (sPage === 0 ? ' disabled' : '') + '>← Назад</button>';
+    keys.forEach(function(n, i){
+      if(i && n - keys[i - 1] > 1) html += '<span class="muted">…</span>';
+      html += '<button class="btn' + (n === sPage ? ' primary' : '') + '" data-p="' + n + '">' + (n + 1) + '</button>';
+    });
+    html += '<button class="btn" data-p="' + (sPage + 1) + '"' + (sPage >= pages - 1 ? ' disabled' : '') + '>Вперёд →</button>';
+    html += '<span class="muted">' + (sPage * SPAGE + 1) + '–' + Math.min((sPage + 1) * SPAGE, sTotal) + ' из ' + sTotal + '</span>';
+    box.innerHTML = html;
+  }
+  $('studioPager').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-p]');
+    if(!b || b.disabled) return;
+    sPage = +b.getAttribute('data-p');
+    loadStudios().then(function(){ $('studioTable').scrollIntoView({ block:'start' }); });
+  });
+  function loadStudios(){
+    return api('GET', '/api/platform/studios?limit=' + SPAGE + '&offset=' + (sPage * SPAGE)).then(function(r){
+      sTotal = r.total;
+      // последняя страница опустела (студии удалили) — шаг назад
+      if(!r.studios.length && sPage > 0){ sPage = Math.max(0, Math.ceil(sTotal / SPAGE) - 1); return loadStudios(); }
+      renderStudios(r.studios); renderPager();
+    });
+  }
+
   function renderStudios(list){
-    $('studioCount').textContent = '· ' + list.length;
+    $('studioCount').textContent = '· ' + sTotal;
     var tb = $('studioTable').querySelector('tbody');
     tb.innerHTML = '';
     list.forEach(function(s){
@@ -276,7 +311,7 @@
           if(!confirm('Студия «' + (s.name || s.id) + '» → ' + (STATUS_RU[a.s] || a.s) + '?')) return;
           cell.querySelectorAll('button').forEach(function(x){ x.disabled = true; });
           api('POST', '/api/platform/studios/' + encodeURIComponent(s.id) + '/status', { status: a.s })
-            .then(function(){ $('modNote').textContent = '«' + (s.name || s.id) + '» → ' + (STATUS_RU[a.s] || a.s); load(); })
+            .then(function(){ $('modNote').textContent = '«' + (s.name || s.id) + '» → ' + (STATUS_RU[a.s] || a.s); load(true); })
             .catch(function(e){ $('modNote').textContent = e.message; cell.querySelectorAll('button').forEach(function(x){ x.disabled = false; }); });
         });
         cell.appendChild(btn);
@@ -479,10 +514,12 @@
     }).catch(function(e){ $('bcList').innerHTML = '<span class="err">' + esc(e.message) + '</span>'; });
   }
 
-  function load(){
-    return Promise.all([ api('GET','/api/platform/overview'), api('GET','/api/platform/studios') ])
+  // keepPage: после смены статуса остаёмся на той же странице списка студий.
+  function load(keepPage){
+    if(!keepPage) sPage = 0;
+    return Promise.all([ api('GET','/api/platform/overview'), loadStudios() ])
       .then(function(r){
-        renderOverview(r[0]); renderStudios(r[1]);
+        renderOverview(r[0]);
         if($('uCity').options.length === 1) fillCities(r[0]);
         loadUsers(false); loadBroadcasts();
       });
