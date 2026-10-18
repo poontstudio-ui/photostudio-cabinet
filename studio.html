@@ -5522,16 +5522,12 @@ var PF = (function(){
     bar.hidden = false;
     if(!wasOn) bar.classList.add('qb-bar-in');
   }
-  $('qbGrid').addEventListener('click', function(e){
-    // Клик, которым на самом деле закончилось перетаскивание (см. QBD ниже):
-    // палец/мышь отпустили над броней — без этой проверки следом открылась
-    // бы модалка деталей, хотя владелец только что перенёс бронь на новое
-    // место и ждёт липкую кнопку «Перенести», а не всплывшее окно поверх неё.
-    if(QBD.justDragged){ QBD.justDragged = false; return; }
-    if(QBS.justDragged){ QBS.justDragged = false; return; }
+  // Тап по сетке: по брони — её детали, по свободной клетке — начало выбора.
+  // Тап по самому выбору сюда не приходит — это начало перетаскивания (QG ниже),
+  // а долгий тап по брони — её перенос (QBD): он отменяет тап сам (qbDragArm).
+  function qbTapAt(e){
     var blk = e.target && e.target.closest ? e.target.closest('.qb-booked') : null;
     if(blk){ qbShowDetail(blk.dataset.hall, Number(blk.dataset.start), Number(blk.dataset.end)); return; }
-    if(e.target.closest && e.target.closest('.qb-sel')) return;      // тап по самому выбору — ничего
     var hit = qbSlotAt(e.clientX, e.clientY);
     // Недоступное время (прошло, нерабочее) — тап ничего не меняет, выбор остаётся.
     if(!hit || qbCellState(hit.hallId, hit.slot) !== 'free') return;
@@ -5539,7 +5535,7 @@ var PF = (function(){
     // end): клетки другого зала во время переноса игнорируем.
     if(QB.reschedule && hit.hallId !== QB.reschedule.hallId) return;
     if(qbTapCell(hit.hallId, hit.slot)) qbRenderSel(true);
-  });
+  }
 
   // ---------- Перенос перетаскиванием: долгий тап (телефон) / зажатая мышь ----------
   // Тот же режим переноса, что и по кнопке «Перенести» в деталях брони —
@@ -5557,7 +5553,7 @@ var PF = (function(){
   // там тащим сразу по первому заметному движению, без задержки.
   var QBD = { pointerId:null, armed:false, timer:null, isMouse:false,
     startX:0, startY:0, lastX:0, lastY:0, hallId:null, booking:null, el:null,
-    durSlots:1, justDragged:false };
+    durSlots:1 };
   var QBD_LONGPRESS_MS = 450;
   var QBD_MOVE_CANCEL_PX = 8;   // сенсор: сдвинулись больше — это скролл, не перенос
   var QBD_MOVE_ARM_PX = 4;      // мышь: сдвинулись больше — сразу тащим
@@ -5591,48 +5587,58 @@ var PF = (function(){
     }
     return null;
   }
-  // ---- Перетаскивание и растягивание выбора (не брони — её тащит QBD ниже) ----
-  var QBS = { id:null, mode:null, grab:0, len:0, y0:0, x0:0, moved:false, justDragged:false };
+  // ---- Жест на сетке: тап, перетаскивание и растягивание выбора — один обработчик ----
+  // Опустили палец или мышь — смотрим куда. На блоке выбора его можно тащить,
+  // а за ручку снизу — тянуть. В остальных местах это тап, если отпустили почти
+  // там же, где нажали; сдвиг — это прокрутка, тап отменяется (на сенсоре
+  // браузер к тому же присылает pointercancel). Всё на событиях указателя, без
+  // click: конец перетаскивания не может сработать как тап — флаги не нужны.
+  // Перенос самой брони долгим тапом — отдельный жест (QBD ниже).
+  var QG = null;   // { id, mode:'tap'|'move'|'resize', grab, len, x0, y0, moved }
+  var QG_TAP_SLOP = 10;
   $('qbGrid').addEventListener('pointerdown', function(e){
-    if((e.pointerType === 'mouse' && e.button !== 0) || !qbHasSel()) return;
-    var blk = e.target.closest && e.target.closest('.qb-sel');
-    if(!blk) return;
-    var hit = qbSlotAt(e.clientX, e.clientY);
-    QBS.id = e.pointerId; QBS.moved = false; QBS.x0 = e.clientX; QBS.y0 = e.clientY;
-    QBS.mode = e.target.closest('.qb-sel-handle') ? 'resize' : 'move';
-    QBS.len = QB.sel.end - QB.sel.start;
-    QBS.grab = hit ? Math.max(0, Math.min(hit.slot - QB.sel.start, QBS.len - 1)) : 0;
+    if((e.pointerType === 'mouse' && e.button !== 0) || QG) return;
+    var blk = qbHasSel() && e.target.closest && e.target.closest('.qb-sel');
+    QG = { id:e.pointerId, mode:'tap', grab:0, len:0, x0:e.clientX, y0:e.clientY, moved:false };
+    if(blk){
+      var hit = qbSlotAt(e.clientX, e.clientY);
+      QG.mode = e.target.closest('.qb-sel-handle') ? 'resize' : 'move';
+      QG.len = QB.sel.end - QB.sel.start;
+      QG.grab = hit ? Math.max(0, Math.min(hit.slot - QB.sel.start, QG.len - 1)) : 0;
+    }
   });
   window.addEventListener('pointermove', function(e){
-    if(QBS.id == null || e.pointerId !== QBS.id) return;
-    if(!QBS.moved){
-      if(Math.hypot(e.clientX - QBS.x0, e.clientY - QBS.y0) < 4) return;
-      QBS.moved = true; $('qbGrid').dataset.dragging = 'true';
+    if(!QG || e.pointerId !== QG.id) return;
+    var d = Math.hypot(e.clientX - QG.x0, e.clientY - QG.y0);
+    if(QG.mode === 'tap'){ if(d > QG_TAP_SLOP) QG = null; return; }
+    if(!QG.moved){
+      if(d < 4) return;
+      QG.moved = true; $('qbGrid').dataset.dragging = 'true';
     }
     e.preventDefault();
     var hit = qbSlotAt(e.clientX, e.clientY);
     if(!hit) return;
     var changed = false;
-    if(QBS.mode === 'resize') changed = qbSetEnd(hit.slot + 1);
+    if(QG.mode === 'resize') changed = qbSetEnd(hit.slot + 1);
     else {
       var hallId = QB.reschedule ? QB.reschedule.hallId : hit.hallId;   // при переносе — только свой зал
       var w = qbGridWindow(QB.date);
       var lo = Math.floor(w.start*60/QB.slotMin), hi = Math.ceil(w.end*60/QB.slotMin);
       var k = qbStepK(hallId);
-      var a = Math.floor((hit.slot - QBS.grab) / k) * k;
-      a = Math.max(Math.ceil(lo / k) * k, Math.min(a, hi - QBS.len));
-      if(hallId !== QB.sel.hallId || a !== QB.sel.start) changed = qbSetSel(hallId, a, a + QBS.len);
+      var a = Math.floor((hit.slot - QG.grab) / k) * k;
+      a = Math.max(Math.ceil(lo / k) * k, Math.min(a, hi - QG.len));
+      if(hallId !== QB.sel.hallId || a !== QB.sel.start) changed = qbSetSel(hallId, a, a + QG.len);
     }
-    if(changed) qbRenderSel(QBS.mode === 'move');
+    if(changed) qbRenderSel(QG.mode === 'move');
   }, { passive:false });
-  function qbSelDragEnd(e){
-    if(QBS.id == null || (e && e.pointerId !== QBS.id)) return;
-    var moved = QBS.moved;
-    QBS.id = null; delete $('qbGrid').dataset.dragging;
-    if(moved){ QBS.justDragged = true; setTimeout(function(){ QBS.justDragged = false; }, 60); }
+  function qbGestureEnd(e){
+    if(!QG || e.pointerId !== QG.id) return;
+    var g = QG; QG = null;
+    if(g.mode === 'tap'){ if(e.type === 'pointerup') qbTapAt(e); return; }
+    delete $('qbGrid').dataset.dragging;
   }
-  window.addEventListener('pointerup', qbSelDragEnd);
-  window.addEventListener('pointercancel', qbSelDragEnd);
+  window.addEventListener('pointerup', qbGestureEnd);
+  window.addEventListener('pointercancel', qbGestureEnd);
   function qbDragUpdate(clientX, clientY){
     var hit = qbSlotAt(clientX, clientY);
     // Свой зал — сервер перенос в другой зал и не принимает (см. клик по
@@ -5646,6 +5652,7 @@ var PF = (function(){
   function qbDragArm(){
     QBD.timer = null;
     QBD.armed = true;
+    QG = null;   // долгий тап стал переносом — это уже не тап по брони
     document.body.classList.add('qb-dragging-active');
     if(QBD.el){
       var el = QBD.el;
@@ -5710,13 +5717,7 @@ var PF = (function(){
       document.body.classList.remove('qb-dragging-active');
       try{ $('qbGridScroll').releasePointerCapture(e.pointerId); }catch(err){}
       // Отпустили — режим переноса и уже выбранное время остаются как есть,
-      // подтверждает липкая кнопка «Перенести» (см. qbRenderHint). Следом за
-      // pointerup браузер всё равно пришлёт синтетический click по той же
-      // брони — гасим его один раз (см. начало обработчика клика по сетке);
-      // таймер — подстраховка на случай, если клика вообще не случится
-      // (отпустили не над кликабельным элементом), чтобы флаг не завис.
-      QBD.justDragged = true;
-      setTimeout(function(){ QBD.justDragged = false; }, 50);
+      // подтверждает липкая кнопка «Перенести» (см. qbRenderHint).
     }
     QBD.armed = false;
     QBD.pointerId = null;
