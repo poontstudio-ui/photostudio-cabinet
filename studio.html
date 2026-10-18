@@ -1304,6 +1304,27 @@
   }
   .qb-cell[data-sel="true"],.qb-cell[data-sel="true"]:hover{background:var(--accent-soft);}
   .qb-empty{padding:14px 4px;color:var(--text-3);font-size:var(--fs-sm);}
+  /* Сетка как у клиента: строки — по шагу студии, клетки — по часу (растянуты
+     на свои строки), прошедшее/нерабочее время, брони и выбор — блоками поверх
+     с точностью до шага. 4 px снизу у часа — «зазор» между часами. */
+  #qbGrid{row-gap:0;grid-auto-rows:auto;}
+  #qbGrid .qb-time,#qbGrid .qb-cell{align-self:start;height:34px;}
+  #qbGrid .qb-booked,#qbGrid .qb-off,#qbGrid .qb-sel{margin-bottom:4px;}
+  #qbGrid .qb-booked.flush,#qbGrid .qb-off.flush,#qbGrid .qb-sel.flush{margin-bottom:0;}
+  #qbGrid .qb-cell[data-agg="busy"]{background:none;cursor:default;}
+  #qbGrid .qb-cell[data-agg="free"]:hover{background:var(--hover);}
+  .qb-off{position:relative;z-index:1;border-radius:var(--r-sm);pointer-events:none;
+    background:repeating-linear-gradient(-45deg,var(--stripe),var(--stripe) 5px,var(--stripe-2) 5px,var(--stripe-2) 10px),var(--surface);}
+  .qb-sel{position:relative;z-index:2;border-radius:var(--r-sm);background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--accent);
+    display:flex;justify-content:center;overflow:hidden;touch-action:none;cursor:grab;min-height:8px;}
+  .qb-sel[data-short="true"]{box-shadow:inset 0 0 0 2px var(--amber);}
+  .qb-sel-time{font-family:var(--f-mono);font-size:var(--fs-xs);font-weight:600;color:var(--accent-dark);padding-top:3px;
+    white-space:nowrap;pointer-events:none;line-height:1.15;}
+  /* Ручка снизу — тянуть конец. Зона касания крупнее видимой полоски. */
+  .qb-sel-handle{position:absolute;left:0;right:0;bottom:0;height:12px;display:flex;align-items:flex-end;justify-content:center;
+    padding-bottom:2px;cursor:ns-resize;touch-action:none;}
+  .qb-sel-handle::before{content:'';width:20px;height:4px;border-radius:2px;background:var(--accent);}
+  #qbGrid[data-dragging="true"] .qb-sel{cursor:grabbing;}
   /* Один прямоугольник на бронь/блокировку, поверх сетки, цвет по статусу.
      z-index:1 держит его над обычными qb-cell (z:auto), но под шапкой/часами. */
   /* Без margin: прямоугольник обязан накрывать свою область сетки ровно
@@ -4969,26 +4990,31 @@ var PF = (function(){
     QB.sel = {hallId:hallId, start:a, end:b};
     return true;
   }
-  // Тап — та же логика, что в мини-аппе (index.html tapCell): нет выделения
-  // (или тап в другом зале) — отмечаем только эту клетку; тап вне текущего
-  // выделения, в том же зале — весь промежуток до новой точки; тап ВНУТРИ
-  // выделения — сброс, остаётся только эта клетка.
+  // Тап — начало (как в мини-аппе, index.html tapCell): блок встаёт с этого
+  // места длиной текущего выбора; без выбора — минимум брони (при переносе —
+  // длительность самой брони, пакет — только целиком). Не помещается до
+  // помехи — короче (короче минимума — подсветка и «только блокировка»).
   function qbTapCell(hallId, slot){
-    // Перенос пакетной брони двигается целиком — тап ставит начало, длина
-    // фиксирована (как в клиентском RS-модуле при переносе пакета).
-    if(QB.reschedule && QB.reschedule.pkgSlots){
-      return qbSetSel(hallId, slot, slot + QB.reschedule.pkgSlots);
+    var hall = qbHallById(hallId);
+    if(!hall) return false;
+    if(QB.reschedule && QB.reschedule.pkgSlots) return qbSetSel(hallId, slot, slot + QB.reschedule.pkgSlots);
+    var len = qbHasSel() ? QB.sel.end - QB.sel.start
+      : (QB.reschedule && QB.reschedule.lenSlots) || qbMinSlots(hall, slot);
+    var hi = Math.ceil(qbGridWindow(QB.date).end * 60 / QB.slotMin);
+    for(var n = Math.min(len, hi - slot); n >= 1; n--) if(qbSetSel(hallId, slot, slot + n)) return true;
+    return false;
+  }
+  // Конец выбора (ручка): начало на месте, тянем до первой помехи.
+  function qbSetEnd(end){
+    if(!qbHasSel() || (QB.reschedule && QB.reschedule.pkgSlots)) return false;
+    var hi = Math.ceil(qbGridWindow(QB.date).end * 60 / QB.slotMin);
+    var b = Math.max(QB.sel.start + 1, Math.min(end, QB.sel.start + qbMaxSlots(), hi));
+    if(b === QB.sel.end) return false;
+    if(b > QB.sel.end){
+      for(var t = b; t > QB.sel.end; t--) if(qbSetSel(QB.sel.hallId, QB.sel.start, t)) return true;
+      return false;
     }
-    if(QB.sel.hallId === hallId && qbHasSel()){
-      if(slot >= QB.sel.start && slot < QB.sel.end) return qbSetSel(hallId, slot, slot+1);
-      var a = Math.min(QB.sel.start, slot);
-      var b = Math.max(QB.sel.end - 1, slot) + 1;
-      // Между текущим выделением и тапнутой клеткой есть занятое время —
-      // промежуток не выделяется. Не оставляем тап без ответа (не будет
-      // выглядеть как «не нажимается») — начинаем выбор заново с этой клетки.
-      return qbSetSel(hallId, a, b) || qbSetSel(hallId, slot, slot+1);
-    }
-    return qbSetSel(hallId, slot, slot+1);
+    return qbSetSel(QB.sel.hallId, QB.sel.start, b);
   }
   function qbHall(){ return QB.halls.find(function(h){ return h.id === QB.sel.hallId; }) || null; }
   function qbSelectionValid(){
@@ -5095,16 +5121,40 @@ var PF = (function(){
     // ниже, — без единого авто-расставленного элемента конфликт, что ломал
     // сетку раньше (авто-элемент съезжал, если его ячейка уже занята
     // explicit-элементом), структурно невозможен.
+    var SPR = Math.max(1, Math.round(60 / QB.slotMin));
+    wrap.style.gridTemplateRows = 'repeat(' + (end - start) + ', ' + (38 / SPR) + 'px)';
+    var flush = function(slotAbs){ return (slotAbs % SPR) ? ' flush' : ''; };
+    var states = {};
+    QB.halls.forEach(function(h){ var a = []; for(var i=start;i<end;i++) a.push(qbCellState(h.id, i)); states[h.id] = a; });
     var html = '';
-    for(var i=start;i<end;i++){
-      var row = i-start+1;
-      html += '<div class="qb-time" style="grid-column:1;grid-row:'+row+'">'+minLabel(i*QB.slotMin)+'</div>';
+    for(var i=start;i<end;i+=SPR){
+      var row = i-start+1, span = Math.min(SPR, end - i);
+      html += '<div class="qb-time" style="grid-column:1;grid-row:'+row+' / span '+span+'">'+minLabel(i*QB.slotMin)+'</div>';
       QB.halls.forEach(function(h, idx){
-        var st = qbCellState(h.id, i);
-        var on = qbHasSel() && QB.sel.hallId===h.id && i>=QB.sel.start && i<QB.sel.end;
-        html += '<div class="qb-cell" style="grid-column:'+(idx+2)+';grid-row:'+row+'" data-hall="'+esc(h.id)+'" data-slot="'+i+'" data-state="'+st+'"'
-          + (on ? ' data-sel="true"' : '') + '></div>';
+        var part = states[h.id].slice(i - start, i - start + span);
+        var agg = part.every(function(x){ return x === part[0]; }) ? part[0] : 'mixed';
+        html += '<div class="qb-cell" style="grid-column:'+(idx+2)+';grid-row:'+row+' / span '+span+'" data-hall="'+esc(h.id)+'" data-slot="'+i+'" data-agg="'+agg+'"></div>';
       });
+    }
+    // Прошедшее и нерабочее время — штриховкой, одним блоком на отрезок.
+    QB.halls.forEach(function(h, idx){
+      var col = states[h.id], rs = -1;
+      for(var k=0;k<=col.length;k++){
+        var on = k < col.length && (col[k] === 'past' || col[k] === 'closed');
+        if(on && rs < 0) rs = k;
+        if(!on && rs >= 0){ html += '<div class="qb-off'+flush(start + k)+'" style="grid-column:'+(idx+2)+';grid-row:'+(rs+1)+' / '+(k+1)+'"></div>'; rs = -1; }
+      }
+    });
+    // Выбор — один блок с временем и ручкой снизу (у пакета при переносе ручки нет).
+    if(qbHasSel()){
+      var si = QB.halls.findIndex(function(h){ return h.id === QB.sel.hallId; });
+      var sa = Math.max(QB.sel.start, start), sb = Math.min(QB.sel.end, end);
+      if(si >= 0 && sb > sa){
+        var pkg = QB.reschedule && QB.reschedule.pkgSlots;
+        html += '<div class="qb-sel'+flush(sb)+'" data-short="'+(!qbSelectionValid())+'" style="grid-column:'+(si+2)+';grid-row:'+(sa-start+1)+' / '+(sb-start+1)+'">'
+          + '<span class="qb-sel-time">'+minLabel(QB.sel.start*QB.slotMin)+'–'+minLabel(QB.sel.end*QB.slotMin)+'</span>'
+          + (pkg ? '' : '<span class="qb-sel-handle" role="slider" aria-label="Длительность"></span>') + '</div>';
+      }
     }
     // Занятость сливается в один прямоугольник на бронь/блокировку (а не
     // заливка отдельных ячеек) — цвет по статусу: подтверждена/завершена —
@@ -5121,7 +5171,7 @@ var PF = (function(){
         var title = info.kind === 'booking' ? (info.data.name || 'Бронь')
           : info.kind === 'block' ? (info.data.note || 'Блокировка') : 'Занято';
         var span = (info.kind === 'booking' || info.kind === 'block') ? info.data : iv;
-        html += '<div class="qb-booked" data-status="'+esc(statusKey)+'" data-rows="'+(e0-s0)+'" data-hall="'+esc(h.id)+'"'
+        html += '<div class="qb-booked'+flush(e0)+'" data-status="'+esc(statusKey)+'" data-rows="'+(e0-s0 <= SPR ? 1 : 2)+'" data-hall="'+esc(h.id)+'"'
           + ' data-start="'+iv.start+'" data-end="'+iv.end+'"'
           + ' title="'+esc(title)+' · '+minLabel(span.start)+'–'+minLabel(span.end)+'"'
           + ' style="grid-column:'+(idx+2)+';grid-row:'+(s0-start+1)+' / '+(e0-start+1)+'">'
@@ -5331,14 +5381,14 @@ var PF = (function(){
       hint.textContent = QB.reschedule
         ? (QB.reschedule.pkgSlots
             ? 'Пакет переносится целиком — выберите начало на сетке'
-            : (qbSelectionPending() ? 'Отметьте вторую точку промежутка'
+            : (qbSelectionPending() ? 'Короче минимальной брони — потяните нижний край'
                : 'Выберите новое время в пространстве «' + QB.reschedule.hallName + '»'))
         // В обычном режиме подсказки в покое нет — сетка говорит сама за себя.
         // «Вторая точка» остаётся: это уже начатое действие, на нём без
         // подсказки непонятно, почему бронь ещё не готова. Сама подсказка —
         // только про бронь: для блокировки готового чипа уже достаточно, и
         // как только выбор станет непустым, ниже появится сводка с кнопкой.
-        : (qbSelectionPending() ? 'Отметьте вторую точку промежутка' : '');
+        : (qbSelectionPending() ? 'Короче минимальной брони — потяните нижний край' : '');
       return;
     }
     hint.textContent = '';
@@ -5387,14 +5437,17 @@ var PF = (function(){
     // бы модалка деталей, хотя владелец только что перенёс бронь на новое
     // место и ждёт липкую кнопку «Перенести», а не всплывшее окно поверх неё.
     if(QBD.justDragged){ QBD.justDragged = false; return; }
+    if(QBS.justDragged){ QBS.justDragged = false; return; }
     var blk = e.target && e.target.closest ? e.target.closest('.qb-booked') : null;
     if(blk){ qbShowDetail(blk.dataset.hall, Number(blk.dataset.start), Number(blk.dataset.end)); return; }
-    var el = e.target && e.target.closest ? e.target.closest('.qb-cell') : null;
-    if(!el || el.dataset.state !== 'free') return;
+    if(e.target.closest && e.target.closest('.qb-sel')) return;      // тап по самому выбору — ничего
+    var hit = qbSlotAt(e.clientX, e.clientY);
+    // Недоступное время (прошло, нерабочее) — тап ничего не меняет, выбор остаётся.
+    if(!hit || qbCellState(hit.hallId, hit.slot) !== 'free') return;
     // Перенос не меняет зал — сервер его и не принимает (только date/start/
     // end): клетки другого зала во время переноса игнорируем.
-    if(QB.reschedule && el.dataset.hall !== QB.reschedule.hallId) return;
-    if(qbTapCell(el.dataset.hall, Number(el.dataset.slot))) qbRenderGrid();
+    if(QB.reschedule && hit.hallId !== QB.reschedule.hallId) return;
+    if(qbTapCell(hit.hallId, hit.slot)) qbRenderGrid();
   });
 
   // ---------- Перенос перетаскиванием: долгий тап (телефон) / зажатая мышь ----------
@@ -5423,15 +5476,63 @@ var PF = (function(){
   // у нас нет отдельного «слоя предпросмотра», подсветка выбора рисуется
   // прямо в сетке через QB.sel, поэтому и цель ищем по факту того, что
   // сейчас лежит в этой точке документа.
+  // По геометрии сетки: строка = шаг студии, столбец — по клеткам первого часа.
+  // Так и брони, и выбор, и зазоры между часами относятся к нужному времени.
   function qbSlotAt(clientX, clientY){
-    var el = document.elementFromPoint(clientX, clientY);
-    if(!el || !el.closest) return null;
-    var cell = el.closest('.qb-cell');
-    if(cell) return { hallId: cell.dataset.hall, slot: Number(cell.dataset.slot) };
-    var blk = el.closest('.qb-booked');
-    if(blk) return { hallId: blk.dataset.hall, slot: Math.round(Number(blk.dataset.start) / QB.slotMin) };
+    var grid = $('qbGrid');
+    var w = qbGridWindow(QB.date);
+    var start = Math.floor(w.start*60/QB.slotMin), end = Math.ceil(w.end*60/QB.slotMin);
+    if(end <= start) return null;
+    var gr = grid.getBoundingClientRect();
+    var k = Math.floor((clientY - gr.top) / (38 / Math.max(1, Math.round(60 / QB.slotMin))));
+    if(k < 0 || k >= end - start) return null;
+    var cells = grid.querySelectorAll('.qb-cell[data-slot="' + start + '"]');
+    for(var i=0;i<cells.length;i++){
+      var r = cells[i].getBoundingClientRect();
+      if(clientX >= r.left && clientX < r.right + 4) return { hallId: cells[i].dataset.hall, slot: start + k };
+    }
     return null;
   }
+  // ---- Перетаскивание и растягивание выбора (не брони — её тащит QBD ниже) ----
+  var QBS = { id:null, mode:null, grab:0, len:0, y0:0, x0:0, moved:false, justDragged:false };
+  $('qbGrid').addEventListener('pointerdown', function(e){
+    if((e.pointerType === 'mouse' && e.button !== 0) || !qbHasSel()) return;
+    var blk = e.target.closest && e.target.closest('.qb-sel');
+    if(!blk) return;
+    var hit = qbSlotAt(e.clientX, e.clientY);
+    QBS.id = e.pointerId; QBS.moved = false; QBS.x0 = e.clientX; QBS.y0 = e.clientY;
+    QBS.mode = e.target.closest('.qb-sel-handle') ? 'resize' : 'move';
+    QBS.len = QB.sel.end - QB.sel.start;
+    QBS.grab = hit ? Math.max(0, Math.min(hit.slot - QB.sel.start, QBS.len - 1)) : 0;
+  });
+  window.addEventListener('pointermove', function(e){
+    if(QBS.id == null || e.pointerId !== QBS.id) return;
+    if(!QBS.moved){
+      if(Math.hypot(e.clientX - QBS.x0, e.clientY - QBS.y0) < 4) return;
+      QBS.moved = true; $('qbGrid').dataset.dragging = 'true';
+    }
+    e.preventDefault();
+    var hit = qbSlotAt(e.clientX, e.clientY);
+    if(!hit) return;
+    var changed = false;
+    if(QBS.mode === 'resize') changed = qbSetEnd(hit.slot + 1);
+    else {
+      var hallId = QB.reschedule ? QB.reschedule.hallId : hit.hallId;   // при переносе — только свой зал
+      var w = qbGridWindow(QB.date);
+      var lo = Math.floor(w.start*60/QB.slotMin), hi = Math.ceil(w.end*60/QB.slotMin);
+      var a = Math.max(lo, Math.min(hit.slot - QBS.grab, hi - QBS.len));
+      if(hallId !== QB.sel.hallId || a !== QB.sel.start) changed = qbSetSel(hallId, a, a + QBS.len);
+    }
+    if(changed) qbRenderGrid();
+  }, { passive:false });
+  function qbSelDragEnd(e){
+    if(QBS.id == null || (e && e.pointerId !== QBS.id)) return;
+    var moved = QBS.moved;
+    QBS.id = null; delete $('qbGrid').dataset.dragging;
+    if(moved){ QBS.justDragged = true; setTimeout(function(){ QBS.justDragged = false; }, 60); qbRenderGrid(); }
+  }
+  window.addEventListener('pointerup', qbSelDragEnd);
+  window.addEventListener('pointercancel', qbSelDragEnd);
   function qbDragUpdate(clientX, clientY){
     var hit = qbSlotAt(clientX, clientY);
     // Свой зал — сервер перенос в другой зал и не принимает (см. клик по
@@ -5605,6 +5706,8 @@ var PF = (function(){
       pkgSlots: booking.packageHours != null
         ? Math.max(1, Math.round(booking.packageHours * 60 / QB.slotMin)) : null,
       originalDate: booking.date, originalStart: booking.start, originalEnd: booking.end,
+      // длина нового блока по умолчанию — как у самой брони
+      lenSlots: Math.max(1, Math.round((booking.end - booking.start) / QB.slotMin)),
     };
     qbClearSel();
     qbSetRescheduleUi(true);
