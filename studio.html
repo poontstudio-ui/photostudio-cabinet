@@ -2972,7 +2972,8 @@ var PF = (function(){
       videoTourUrl:h.videoTourUrl||'', tour3dUrl:h.tour3dUrl||'',
       address:h.address||null, city:h.city||null,
       lat:Number.isFinite(h.lat)?h.lat:null, lon:Number.isFinite(h.lon)?h.lon:null,
-      hours:Array.isArray(h.hours)&&h.hours.length===7 ? h.hours.map(hgCopyDay) : null};
+      hours:Array.isArray(h.hours)&&h.hours.length===7 ? h.hours.map(hgCopyDay) : null,
+      slotStepMin:[15, 30, 60].indexOf(h.slotStepMin) >= 0 ? h.slotStepMin : null};
     HALL_BOOLS.forEach(function(f){ o[f] = !!h[f]; });
     // Описания — тоже через белый список: поле, забытое здесь, вернулось бы
     // с сервера, не попало в черновик и ушло обратно пустым, стерев текст.
@@ -3007,6 +3008,7 @@ var PF = (function(){
       address:(h.address||'').trim(), city:(h.city||'').trim(),
       lat:Number.isFinite(h.lat)?h.lat:null, lon:Number.isFinite(h.lon)?h.lon:null,
       hours:(Array.isArray(h.hours)&&h.hours.length===7) ? h.hours.map(hgCopyDay) : null,
+      slotStepMin:[15, 30, 60].indexOf(h.slotStepMin) >= 0 ? h.slotStepMin : null,
     };
     HALL_BOOLS.forEach(function(f){ out[f] = !!h[f]; });
     HALL_ABOUT_FIELDS.forEach(function(x){ out[x.f] = (h[x.f]||'').trim(); });
@@ -4820,7 +4822,8 @@ var PF = (function(){
     QB.hours = (Array.isArray(h) && h.length === 7)
       ? h.map(hgCopyDay)
       : Array.from({length:7}, function(){ return {start:cfg.hoursStart, end:cfg.hoursEnd}; });
-    QB.slotMin = [15, 30, 60].indexOf(cfg.slotStep) >= 0 ? cfg.slotStep : 60;
+    QB.studioStep = [15, 30, 60].indexOf(cfg.slotStep) >= 0 ? cfg.slotStep : 60;
+    qbRecalcStep();
     QB.minBookingMin = Number.isInteger(cfg.minBookingMin) ? cfg.minBookingMin : 60;
     var lm = cfg.lastminute || {};
     QB.lastMinute = {
@@ -4839,6 +4842,15 @@ var PF = (function(){
     var g = function(t){ return parts.find(function(p){ return p.type===t; }).value; };
     return { date: g('year')+'-'+g('month')+'-'+g('day'), minutes: Number(g('hour'))*60 + Number(g('minute')) };
   }
+  // Строка сетки — самый мелкий шаг среди пространств (свой шаг зала, 0061, или студийный);
+  // у зала с шагом крупнее выбор выравнивается по его шагу (qbStepK).
+  function qbHallStep(h){ return h && [15, 30, 60].indexOf(h.slotStepMin) >= 0 ? h.slotStepMin : (QB.studioStep || 60); }
+  function qbRecalcStep(){
+    var steps = (QB.halls || []).map(qbHallStep);
+    var next = steps.length ? Math.min.apply(null, steps) : (QB.studioStep || 60);
+    if(next !== QB.slotMin){ QB.slotMin = next; if(typeof qbClearSel === 'function') qbClearSel(); }
+  }
+  function qbStepK(hallId){ return Math.max(1, Math.round(qbHallStep(qbHallById(hallId)) / QB.slotMin)); }
   function qbWeekday(dateStr){ return new Date(dateStr+'T00:00:00').getDay(); }
   // Окно работы на дату: у пространства с «своим режимом» — его часы, иначе студии.
   function qbDayWindow(dateStr, hall){
@@ -4998,20 +5010,25 @@ var PF = (function(){
     var hall = qbHallById(hallId);
     if(!hall) return false;
     if(QB.reschedule && QB.reschedule.pkgSlots) return qbSetSel(hallId, slot, slot + QB.reschedule.pkgSlots);
+    var k = qbStepK(hallId);
+    slot = Math.floor(slot / k) * k;
     var len = qbHasSel() ? QB.sel.end - QB.sel.start
       : (QB.reschedule && QB.reschedule.lenSlots) || qbMinSlots(hall, slot);
+    len = Math.ceil(len / k) * k;
     var hi = Math.ceil(qbGridWindow(QB.date).end * 60 / QB.slotMin);
-    for(var n = Math.min(len, hi - slot); n >= 1; n--) if(qbSetSel(hallId, slot, slot + n)) return true;
+    for(var n = Math.min(len, Math.floor((hi - slot) / k) * k); n >= k; n -= k) if(qbSetSel(hallId, slot, slot + n)) return true;
     return false;
   }
   // Конец выбора (ручка): начало на месте, тянем до первой помехи.
   function qbSetEnd(end){
     if(!qbHasSel() || (QB.reschedule && QB.reschedule.pkgSlots)) return false;
     var hi = Math.ceil(qbGridWindow(QB.date).end * 60 / QB.slotMin);
-    var b = Math.max(QB.sel.start + 1, Math.min(end, QB.sel.start + qbMaxSlots(), hi));
+    var k = qbStepK(QB.sel.hallId);
+    var b = Math.max(QB.sel.start + k, Math.min(Math.ceil(end / k) * k, QB.sel.start + qbMaxSlots(), hi));
+    b = QB.sel.start + Math.floor((b - QB.sel.start) / k) * k;
     if(b === QB.sel.end) return false;
     if(b > QB.sel.end){
-      for(var t = b; t > QB.sel.end; t--) if(qbSetSel(QB.sel.hallId, QB.sel.start, t)) return true;
+      for(var t = b; t > QB.sel.end; t -= k) if(qbSetSel(QB.sel.hallId, QB.sel.start, t)) return true;
       return false;
     }
     return qbSetSel(QB.sel.hallId, QB.sel.start, b);
@@ -5520,7 +5537,9 @@ var PF = (function(){
       var hallId = QB.reschedule ? QB.reschedule.hallId : hit.hallId;   // при переносе — только свой зал
       var w = qbGridWindow(QB.date);
       var lo = Math.floor(w.start*60/QB.slotMin), hi = Math.ceil(w.end*60/QB.slotMin);
-      var a = Math.max(lo, Math.min(hit.slot - QBS.grab, hi - QBS.len));
+      var k = qbStepK(hallId);
+      var a = Math.floor((hit.slot - QBS.grab) / k) * k;
+      a = Math.max(Math.ceil(lo / k) * k, Math.min(a, hi - QBS.len));
       if(hallId !== QB.sel.hallId || a !== QB.sel.start) changed = qbSetSel(hallId, a, a + QBS.len);
     }
     if(changed) qbRenderGrid();
@@ -5539,8 +5558,9 @@ var PF = (function(){
     // клетке выше); чужой зал под пальцем просто игнорируем, а не срываем
     // перенос — выбор остаётся на последней валидной клетке.
     if(!hit || hit.hallId !== QBD.hallId) return;
-    if(qbHasSel() && QB.sel.start === hit.slot && QB.sel.end === hit.slot + QBD.durSlots) return;
-    if(qbSetSel(hit.hallId, hit.slot, hit.slot + QBD.durSlots)) qbRenderGrid();
+    var k = qbStepK(hit.hallId), slot = Math.floor(hit.slot / k) * k;   // начало — по шагу зала
+    if(qbHasSel() && QB.sel.start === slot && QB.sel.end === slot + QBD.durSlots) return;
+    if(qbSetSel(hit.hallId, slot, slot + QBD.durSlots)) qbRenderGrid();
   }
   function qbDragArm(){
     QBD.timer = null;
@@ -6289,6 +6309,7 @@ var PF = (function(){
       // Свежие «сырые» залы (rate/priceRules) для быстрой брони — отдельно от
       // hallsDraft: тот мутирует, пока владелец правит зал в другой папке.
       QB.halls = (ov.halls||[]).filter(function(h){return h.active!==false;});
+      qbRecalcStep();
       if(!SV.dirty.equipment){
         equipDraft = (ov.equipment||[]).filter(function(e){return e.active!==false;}).map(function(e){return {id:e.id,name:e.name,price:e.price,unit:e.unit};});
         svSnap('equipment');
@@ -7176,8 +7197,8 @@ var PF = (function(){
       done:function(h){ return !!((h.aboutAccess || '').trim() || (h.wifiSsid || '').trim() || hallAccessLabels(h).length); }},
     {key:'hallLocation', grp:'Адрес и часы', title:'Адрес', need:'inh',
       own:function(h){ return h.lat != null; }},
-    {key:'hours',   grp:'Адрес и часы', title:'Часы работы', need:'inh',
-      own:function(h){ return Array.isArray(h.hours); }},
+    {key:'hours',   grp:'Адрес и часы', title:'Часы работы и шаг времени', need:'inh',
+      own:function(h){ return Array.isArray(h.hours) || h.slotStepMin != null; }},
   ];
   var STUDIO_SECTIONS = [
     {key:'brand', title:'Название и подзаголовок', need:'req',
@@ -7270,7 +7291,8 @@ var PF = (function(){
           : esc([profileDraft.city, profileDraft.address].filter(Boolean).join(', ') || 'адрес студии ещё не указан') +
             ' <span class="muted">— адрес студии</span>';
       case 'hours':
-        return Array.isArray(h.hours) ? esc(fmtWeek(h.hours)) : esc(fmtWeek(hoursDraft)) + ' <span class="muted">— часы студии</span>';
+        return (Array.isArray(h.hours) ? esc(fmtWeek(h.hours)) : esc(fmtWeek(hoursDraft)) + ' <span class="muted">— часы студии</span>') +
+          '<br>Шаг времени: ' + (h.slotStepMin != null ? esc(durLabel(h.slotStepMin)) : esc(durLabel(settingsDraft.slotStep || 60)) + ' <span class="muted">— как у студии</span>');
     }
     return '';
   }
@@ -8426,6 +8448,9 @@ var PF = (function(){
     var h = wzHall();
     var own = Array.isArray(h.hours);
     $('wzBody').innerHTML =
+      frow('Шаг выбора времени', frSeg('wzStepSeg', [['studio', 'Как у студии · ' + durLabel(settingsDraft.slotStep || 60)], [15, '15 мин'], [30, '30 мин'], [60, '1 час']],
+          h.slotStepMin != null ? h.slotStepMin : 'studio'),
+        { note:'С каким шагом клиент двигает начало и конец брони в этом пространстве.' }) +
       frow('Режим работы', frSeg('wzHoursSeg', [['studio','Как у студии'],['own','Свои часы']], own ? 'own' : 'studio') +
         '<input type="checkbox" id="wzOwnHours" hidden' + (own ? ' checked' : '') + '>',
         { note:'Часы студии: ' + esc(fmtWeek(hoursDraft)) }) +
@@ -8443,9 +8468,13 @@ var PF = (function(){
       drawGrid();
     });
     drawGrid();
+    wireSeg('wzStepSeg', function(v){ h.slotStepMin = v === 'studio' ? null : Number(v); });
   };
   WZ_SAVERS.hours = function(){
     var h = wzHall();
+    if(h.slotStepMin != null && (settingsDraft.minBookingMin || 60) % h.slotStepMin){
+      return bad('Минимальная бронь студии (' + durLabel(settingsDraft.minBookingMin) + ') не делится на шаг ' + durLabel(h.slotStepMin), '#wzStepSeg');
+    }
     if(Array.isArray(h.hours) && !h.hours.some(function(d){ return d.end > d.start; })){
       return bad('Отметьте хотя бы один рабочий час', '#wzHoursWrap');
     }
