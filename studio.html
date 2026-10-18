@@ -264,6 +264,374 @@
 })();
 /* MP:END */
 </script>
+<script>
+/* TG:BEGIN — сетка выбора времени: выбор, блок, жест, подсказки (_dev/timegrid.js) */
+(function(){
+  // Общая часть трёх сеток: основная в мини-аппе, перенос брони в мини-аппе,
+  // быстрая бронь в кабинете. Здесь — модель выбора (тап, перенос, растягивание),
+  // блок выбора, попадание пальцем, жест и подсказки. Что рисовать в клетках,
+  // какие часы свободны, минимумы, шаги и пакеты — знает страница и передаёт
+  // сюда функциями (см. create).
+
+  // ---- «Сейчас» в таймзоне студии ----
+  // Сетка спрашивает «сейчас» для каждой клетки: создавать форматтер на каждый
+  // вызов — самое дорогое место отрисовки. Форматтер — один на таймзону, ответ
+  // живёт секунду (точность «сейчас» у сетки — минута).
+  var WALL_FMT = {}, WALL_MEMO = {};
+  function wallClock(tz){
+    var t = Date.now(), m = WALL_MEMO[tz];
+    if(m && t - m.at < 1000) return m.v;
+    var fmt = WALL_FMT[tz] || (WALL_FMT[tz] = new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz, hourCycle:'h23',
+      year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit',
+    }));
+    var parts = fmt.formatToParts(new Date(t));
+    var g = function(k){ return parts.find(function(p){ return p.type === k; }).value; };
+    var v = { date: g('year') + '-' + g('month') + '-' + g('day'), minutes: Number(g('hour')) * 60 + Number(g('minute')) };
+    WALL_MEMO[tz] = { at:t, v:v };
+    return v;
+  }
+  function pad(n){ return String(n).padStart(2, '0'); }
+  function hm(min){ return pad(Math.floor(min / 60)) + ':' + pad(min % 60); }
+  // Длительность без слов: «1:30», «4:00».
+  function dur(min){ return Math.floor(min / 60) + ':' + pad(min % 60); }
+
+  var REDUCED_MOTION = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  // ---- Подсказка под пальцем при перетаскивании ----
+  // Палец закрывает блок, поэтому время показываем рядом: при переносе — время
+  // начала на шкале часов слева, на уровне текста подписи часа; при растягивании —
+  // длительность сбоку от нижнего края, с той стороны, где есть место.
+  // Вид — класс .drag-tip в CSS страницы.
+  var tipEl = null;
+  function showTip(blockEl, scrollerEl, hourSel, mode, startMin, endMin){
+    if(!blockEl) return hideTip();
+    if(!tipEl){ tipEl = document.createElement('div'); tipEl.className = 'drag-tip'; document.body.appendChild(tipEl); }
+    // Положение блока без текущего сдвига анимации — там, где он встанет.
+    var r = blockEl.getBoundingClientRect();
+    var tf = getComputedStyle(blockEl).transform;
+    if(tf && tf !== 'none' && window.DOMMatrixReadOnly){
+      var mx = new DOMMatrixReadOnly(tf);
+      r = { left:r.left - mx.m41, right:r.right - mx.m41, top:r.top - mx.m42, bottom:r.bottom - mx.m42 };
+    }
+    tipEl.hidden = false;
+    tipEl.className = 'drag-tip ' + (mode === 'move' ? 'start' : 'dur');
+    var gridOf = blockEl.parentElement;
+    if(gridOf) gridOf.dataset.dragMode = mode;
+    var w, h;
+    if(mode === 'move'){
+      tipEl.textContent = hm(startMin);
+      var sr = scrollerEl.getBoundingClientRect();
+      var hourEl = gridOf && gridOf.querySelector(hourSel);
+      var hr = hourEl ? hourEl.getBoundingClientRect() : { top:0, right: sr.left + 40 };
+      // где по высоте стоит текст подписи внутри её строки
+      var textMid = 8;
+      if(hourEl){ var rg = document.createRange(); rg.selectNodeContents(hourEl); var tr = rg.getBoundingClientRect(); textMid = (tr.top + tr.bottom) / 2 - hr.top; }
+      w = tipEl.offsetWidth; h = tipEl.offsetHeight;
+      tipEl.style.left = (hr.right - w) + 'px';
+      tipEl.style.top = Math.max(sr.top, r.top + textMid - h / 2) + 'px';
+    } else {
+      tipEl.textContent = dur(endMin - startMin);
+      w = tipEl.offsetWidth; h = tipEl.offsetHeight;
+      var left = (r.left - w - 8 >= 4) ? r.left - w - 8 : Math.min(window.innerWidth - w - 4, r.right + 8);
+      tipEl.style.left = left + 'px';
+      tipEl.style.top = (r.bottom - h - 6) + 'px';
+    }
+  }
+  function hideTip(){
+    if(tipEl) tipEl.hidden = true;
+    document.querySelectorAll('[data-drag-mode]').forEach(function(g){ delete g.dataset.dragMode; });
+  }
+
+  // ---- Сетка ----
+  // o — описание сетки от страницы:
+  //   el           — элемент грида (столбец 1 — подписи часов, столбцы 2… — o.cols());
+  //   cls          — префикс классов: 'grid' → .grid-sel, .grid-sel-time, .grid-sel-handle, .grid-cell;
+  //   hourSel      — селектор подписи часа (для подсказки начала);
+  //   hourPx       — высота часа в пикселях;
+  //   slotMin()    — минут в строке; range() — {start, end} строки окна (в слотах);
+  //   cols()       — ключи столбцов по порядку; free(key, slot) — слот свободен;
+  //   oneCol       — столбец один: попадание только по высоте;
+  //   startK(key), durK(key) — шаги начала и длительности в строках;
+  //   minSlots(key, slot), maxSlots() — минимум и максимум брони в строках;
+  //   defaultLen(key, slot) — длина нового выбора, когда выбора ещё нет;
+  //   fixedLen()   — длина пакета (или null); fixedExact — пакет только целиком;
+  //   lockCol()    — столбец, за который выбор не уходит (или null);
+  //   label(sel, a, b, spr) — подпись в блоке; handle() — есть ли ручка;
+  //   afterSet()   — выбор поменялся (страница обновляет своё состояние);
+  //   onChange(kind) — после отрисовки: 'tap' | 'move' | 'resize' | 'clear';
+  //   beforeTap(e) — вернуть false, чтобы тап не трогал выбор (бронь в кабинете);
+  //   clearOnMiss  — тап мимо клеток снимает выбор;
+  //   onDragEnd()  — блок отпустили после перетаскивания;
+  //   tip          — показывать подсказки: { scroller() };
+  //   autoScroll   — прокрутка у краёв: { x(), y(), insets() → {top, bottom} };
+  //   haptic(style).
+  function create(o){
+    var el = o.el, cls = o.cls;
+    var sel = { key:null, start:null, end:null, want:null };   // end не включается
+    var haptic = o.haptic || function(){};
+    var fixedLen = o.fixedLen || function(){ return null; };
+    var lockCol = o.lockCol || function(){ return null; };
+
+    function spr(){ return Math.max(1, Math.round(60 / o.slotMin())); }
+    function has(){ return sel.key !== null && sel.start !== null; }
+    function clear(){ sel.key = null; sel.start = null; sel.end = null; sel.want = null; }
+    function spanFree(key, a, b){
+      if(b - a < 1 || b - a > o.maxSlots()) return false;
+      for(var i = a; i < b; i++) if(!o.free(key, i)) return false;
+      return true;
+    }
+    // Ставит выбор, если весь отрезок свободен. Возвращает успех.
+    function set(key, a, b){
+      if(!spanFree(key, a, b)) return false;
+      sel.key = key; sel.start = a; sel.end = b;
+      if(o.afterSet) o.afterSet();
+      return true;
+    }
+    // Длина по правилу «минимум + N шагов длительности» — ближайшая допустимая.
+    function fit(key, start, len){
+      if(fixedLen() != null) return len;                 // пакет — своя фиксированная длина
+      var m = o.minSlots(key, start), d = o.durK(key);
+      return len <= m ? m : m + Math.round((len - m) / d) * d;
+    }
+    function valid(){
+      if(!has() || !spanFree(sel.key, sel.start, sel.end)) return false;
+      var len = sel.end - sel.start, fixed = fixedLen();
+      if(fixed != null && o.fixedExact) return len === fixed;
+      var m = o.minSlots(sel.key, sel.start);
+      if(len < m) return false;
+      return fixed != null || (len - m) % o.durK(sel.key) === 0;
+    }
+    // Свободно, но короче минимума — отмеченное начало, ждущее растягивания.
+    function pending(){
+      return has() && spanFree(sel.key, sel.start, sel.end) && (sel.end - sel.start) < o.minSlots(sel.key, sel.start);
+    }
+
+    // Тап — начало брони. Блок встаёт с этого места длиной, до которой человек
+    // сам растягивал выбор (want), иначе — длиной текущего выбора, а без выбора —
+    // o.defaultLen. Не помещается (дальше занято или день кончается) — блок
+    // короче, до помехи; короче минимума — сетка подсветит. Пакет при
+    // fixedExact ставится только целиком.
+    function tap(key, slot){
+      var k = o.startK(key);
+      slot = Math.floor(slot / k) * k;                   // начало — по шагу начала столбца
+      var fixed = fixedLen();
+      if(fixed != null && o.fixedExact) return set(key, slot, slot + fixed);
+      var keep = !has() ? o.defaultLen(key, slot)
+        : (sel.want != null && fixed == null) ? Math.round(sel.want / o.slotMin()) : sel.end - sel.start;
+      var len = fit(key, slot, Math.max(keep, fixed != null ? 1 : o.minSlots(key, slot)));
+      var hi = o.range().end, m = o.minSlots(key, slot), d = fixed != null ? len : o.durK(key), n;
+      // допустимые длины: len, len - шаг, … до минимума
+      for(n = len; n >= m; n -= d){ if(slot + n <= hi && set(key, slot, slot + n)) return true; if(d <= 0) break; }
+      // не помещается даже минимум — ставим сколько влезает (подсветится «коротко»)
+      for(n = Math.min(m - 1, hi - slot); n >= 1; n--) if(set(key, slot, slot + n)) return true;
+      return false;
+    }
+    // Конец выбора (ручка): начало на месте, длина — минимум + N шагов, до первой помехи.
+    function resizeTo(end){
+      if(!has() || (fixedLen() != null && o.fixedExact)) return false;
+      var hi = o.range().end, key = sel.key, start = sel.start;
+      var m = o.minSlots(key, start), d = o.durK(key);
+      var len = fit(key, start, end - start);
+      while(len > m && (len > o.maxSlots() || start + len > hi)) len -= d;
+      var b = start + len, ok = false;
+      if(b === sel.end) return false;
+      if(b > sel.end){ for(var t = b; t > sel.end; t -= d) if(set(key, start, t)){ ok = true; break; } }
+      else ok = set(key, start, b);
+      if(ok) sel.want = (sel.end - sel.start) * o.slotMin();
+      return ok;
+    }
+    // Перенос целиком: та же длина, начало — по шагу столбца, в пределах окна.
+    function moveTo(key, slot, grab, len){
+      var lock = lockCol(); if(lock != null) key = lock;
+      var r = o.range(), k = o.startK(key);
+      var a = Math.floor((slot - grab) / k) * k;
+      a = Math.max(Math.ceil(r.start / k) * k, Math.min(a, r.end - len));
+      if(key === sel.key && a === sel.start) return false;
+      return set(key, a, a + len);
+    }
+
+    // ---- Блок выбора ----
+    // Выбор меняется часто (тап, каждый шаг перетаскивания), а клетки и занятость —
+    // только с данными. Поэтому блок переставляется на месте, сетка не пересобирается.
+    function spec(){
+      if(!has()) return null;
+      var r = o.range(), ci = o.cols().indexOf(sel.key);
+      var a = Math.max(sel.start, r.start), b = Math.min(sel.end, r.end);
+      if(ci < 0 || b <= a) return null;
+      var s = spr();
+      return { col:ci + 2, rowA:a - r.start + 1, rowB:b - r.start + 1,
+        flush: b % s !== 0,                  // кончается не на границе часа — без нижнего «зазора»
+        short: !valid(), time: o.label(sel, a, b, s), handle: o.handle ? o.handle() : true };
+    }
+    function handleHtml(){ return '<span class="' + cls + '-sel-handle" role="slider" aria-label="Длительность"></span>'; }
+    function blockHtml(){
+      var sp = spec();
+      if(!sp) return '';
+      return '<div class="' + cls + '-sel' + (sp.flush ? ' flush' : '') + '" data-short="' + sp.short + '" style="grid-column:' + sp.col + ';grid-row:' + sp.rowA + ' / ' + sp.rowB + '">'
+        + '<span class="' + cls + '-sel-time">' + sp.time + '</span>' + (sp.handle ? handleHtml() : '') + '</div>';
+    }
+    function blockEl(){ return el.querySelector('.' + cls + '-sel'); }
+    // animate — плавный сдвиг из старого положения (FLIP: запомнили, где был,
+    // переставили, сдвинули обратно и отпустили — CSS-переход по transform).
+    function renderBlock(animate){
+      var b = blockEl(), sp = spec();
+      if(!sp){ if(b) b.remove(); return; }
+      if(!b){ el.insertAdjacentHTML('beforeend', blockHtml()); return; }
+      var before = animate && !REDUCED_MOTION ? b.getBoundingClientRect() : null;
+      b.style.gridColumn = String(sp.col);
+      b.style.gridRow = sp.rowA + ' / ' + sp.rowB;
+      b.classList.toggle('flush', sp.flush);
+      b.dataset.short = String(sp.short);
+      var t = b.querySelector('.' + cls + '-sel-time');
+      if(t && t.innerHTML !== sp.time) t.innerHTML = sp.time;
+      var hd = b.querySelector('.' + cls + '-sel-handle');
+      if(sp.handle && !hd) b.insertAdjacentHTML('beforeend', handleHtml());
+      if(!sp.handle && hd) hd.remove();
+      if(!before) return;
+      var after = b.getBoundingClientRect(), dx = before.left - after.left, dy = before.top - after.top;
+      if(!dx && !dy) return;
+      b.style.transition = 'none';
+      b.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+      void b.offsetWidth;
+      b.style.transition = '';
+      b.style.transform = '';
+    }
+
+    // ---- Попадание пальцем ----
+    // Слот под точкой — по геометрии сетки, а не по элементу под пальцем: так и
+    // зазоры между часами и столбцами относятся к ближайшему времени, и поверх
+    // клеток может лежать что угодно (занятость, брони, выбор). Границы столбцов
+    // (относительно сетки) считаем один раз; сбрасываются при перерисовке и смене размеров.
+    var geom = null;
+    if(window.MutationObserver) new MutationObserver(function(){ geom = null; }).observe(el, { childList:true });
+    if(window.ResizeObserver) new ResizeObserver(function(){ geom = null; }).observe(el);
+    function slotAt(x, y){
+      var r = o.range();
+      if(r.end <= r.start) return null;
+      var gr = el.getBoundingClientRect();
+      var k = Math.floor((y - gr.top + el.scrollTop) / (o.hourPx / spr()));
+      if(k < 0 || k >= r.end - r.start) return null;
+      if(o.oneCol) return { key:o.cols()[0], slot:r.start + k };   // один столбец — по горизонтали не важно
+      if(!geom){
+        geom = [];
+        el.querySelectorAll('.' + cls + '-cell[data-slot="' + r.start + '"]').forEach(function(c){
+          var cr = c.getBoundingClientRect();
+          geom.push({ key:c.dataset.col, l:cr.left - gr.left + el.scrollLeft, r:cr.right - gr.left + el.scrollLeft + 4 });   // +4 — зазор справа
+        });
+      }
+      var xr = x - gr.left + el.scrollLeft;
+      for(var i = 0; i < geom.length; i++) if(xr >= geom[i].l && xr < geom[i].r) return { key:geom[i].key, slot:r.start + k };
+      return null;
+    }
+
+    // ---- Жест: тап, перенос и растягивание — один обработчик ----
+    // Опустили палец или мышь — смотрим куда. На блоке выбора его можно тащить,
+    // а за ручку снизу — тянуть. В остальных местах это тап, если отпустили почти
+    // там же, где нажали; сдвиг — это прокрутка, тап отменяется (на сенсоре браузер
+    // к тому же присылает pointercancel). Всё на событиях указателя, без click:
+    // конец перетаскивания не может сработать как тап — флаги не нужны.
+    var TAP_SLOP = 10;
+    var g = null;   // { id, mode:'tap'|'move'|'resize', x0, y0, x, y, grab, len, moved }
+    function tip(){
+      if(!o.tip || !g || !g.moved || !has()) return hideTip();
+      var m = o.slotMin();
+      showTip(blockEl(), o.tip.scroller(), o.hourSel, g.mode, sel.start * m, sel.end * m);
+    }
+    function dragStep(){
+      var hit = slotAt(g.x, g.y);
+      if(hit){
+        if(g.mode === 'resize'){
+          if(resizeTo(hit.slot + 1)){ haptic('light'); renderBlock(); if(o.onChange) o.onChange('resize'); }
+        } else if(moveTo(hit.key, hit.slot, g.grab, g.len)){
+          haptic('light'); renderBlock(true); if(o.onChange) o.onChange('move');
+        }
+      }
+      tip();
+    }
+    // У края сетки и экрана сетка прокручивается сама, пока палец там.
+    function autoScroll(){
+      if(!g || !g.moved || !o.autoScroll) return;
+      var EDGE = 32, STEP = 10, moved = false, sx = o.autoScroll.x && o.autoScroll.x(), sy = o.autoScroll.y && o.autoScroll.y();
+      if(sx){
+        var r = sx.getBoundingClientRect(), before = sx.scrollLeft;
+        if(g.x < r.left + EDGE) sx.scrollLeft -= STEP; else if(g.x > r.right - EDGE) sx.scrollLeft += STEP;
+        moved = sx.scrollLeft !== before;
+      }
+      if(sy){
+        var ins = o.autoScroll.insets ? o.autoScroll.insets() : { top:0, bottom:0 };
+        var win = sy === window, top = (win ? 0 : sy.getBoundingClientRect().top) + ins.top;
+        var bottom = (win ? window.innerHeight : sy.getBoundingClientRect().bottom) - ins.bottom;
+        var y0 = win ? window.scrollY : sy.scrollTop, dy = g.y < top + EDGE ? -STEP : g.y > bottom - EDGE ? STEP : 0;
+        if(dy){ if(win) window.scrollBy(0, dy); else sy.scrollTop += dy; }
+        moved = moved || (win ? window.scrollY : sy.scrollTop) !== y0;
+      }
+      if(moved) dragStep();
+      requestAnimationFrame(autoScroll);
+    }
+    function tapAt(e){
+      if(o.beforeTap && o.beforeTap(e) === false) return;
+      var hit = slotAt(e.clientX, e.clientY);
+      if(!hit){
+        if(o.clearOnMiss && has()){ clear(); haptic('light'); renderBlock(); if(o.onChange) o.onChange('clear'); }
+        return;
+      }
+      // Тап по недоступному времени (занято, прошло, закрыто) — выбор остаётся.
+      if(!o.free(hit.key, hit.slot)) return;
+      var lock = lockCol(); if(lock != null && hit.key !== lock) return;
+      if(tap(hit.key, hit.slot)){ haptic('light'); renderBlock(true); if(o.onChange) o.onChange('tap'); }
+    }
+    el.addEventListener('pointerdown', function(e){
+      if(e.button > 0 || g) return;
+      var onBlock = has() && e.target.closest && e.target.closest('.' + cls + '-sel');
+      g = { id:e.pointerId, mode:'tap', x0:e.clientX, y0:e.clientY, x:e.clientX, y:e.clientY, grab:0, len:0, moved:false };
+      if(onBlock){
+        g.mode = e.target.closest('.' + cls + '-sel-handle') ? 'resize' : 'move';
+        var hit = slotAt(e.clientX, e.clientY);
+        g.len = sel.end - sel.start;
+        g.grab = hit ? Math.max(0, Math.min(hit.slot - sel.start, g.len - 1)) : 0;
+      }
+    });
+    window.addEventListener('pointermove', function(e){
+      if(!g || e.pointerId !== g.id) return;
+      g.x = e.clientX; g.y = e.clientY;
+      var d = Math.hypot(g.x - g.x0, g.y - g.y0);
+      if(g.mode === 'tap'){ if(d > TAP_SLOP) g = null; return; }
+      if(!g.moved){
+        if(d < (g.mode === 'resize' ? 4 : 8)) return;
+        g.moved = true;
+        el.dataset.dragging = 'true';
+        haptic('medium');
+        tip();
+        requestAnimationFrame(autoScroll);
+      }
+      e.preventDefault();
+      dragStep();
+    }, { passive:false });
+    function end(e){
+      if(!g || e.pointerId !== g.id) return;
+      var done = g; g = null;
+      if(done.mode === 'tap'){ if(e.type === 'pointerup') tapAt(e); return; }
+      delete el.dataset.dragging;
+      if(o.tip) hideTip();
+      if(done.moved && o.onDragEnd) o.onDragEnd();
+    }
+    window.addEventListener('pointerup', end);
+    window.addEventListener('pointercancel', end);
+
+    return {
+      sel: sel, has: has, clear: clear, set: set, spanFree: spanFree, fit: fit,
+      valid: valid, pending: pending, tap: tap, resizeTo: resizeTo, moveTo: moveTo,
+      blockHtml: blockHtml, renderBlock: renderBlock, slotAt: slotAt,
+      // Жест на блоке отменяется (например, долгий тап по брони стал её переносом).
+      cancelGesture: function(){ g = null; },
+    };
+  }
+
+  window.PGrid = { create: create, wallClock: wallClock, hm: hm, dur: dur };
+})();
+/* TG:END */
+</script>
 <style>
   /* ============================================================
      ЕДИНАЯ СИСТЕМА POONT. Тот же блок — в photostudio-frontend/index.html.
@@ -2857,7 +3225,7 @@ var PF = (function(){
     dates: [],              // Date[] — все дни текущего окна (см. qbBuildDatesForMonthWindow), для ленты дат
     busy: {},              // {hallId: [{start,end}]}, минуты от полуночи
     dayBookings: null,     // брони QB.date с деталями (/admin/bookings?date); null — не загрузились
-    sel: { hallId:null, start:null, end:null },   // индексы слотов; end не включается
+    sel: null,             // выбор — объект модели сетки (QBG.sel, см. ниже)
     // Перенос существующей брони — режим той же сетки, не отдельная форма.
     // { id, hallId, hallName, pkgSlots, originalDate, originalStart, originalEnd } | null.
     // pkgSlots — фикс. длительность для пакетной брони (двигается целиком,
@@ -4840,22 +5208,8 @@ var PF = (function(){
   }
 
   // «Сейчас» в таймзоне студии — как studioWallClock() в мини-аппе.
-  // Сетка спрашивает «сейчас» для каждой клетки: форматтер — один на таймзону,
-  // ответ живёт секунду (создавать его на каждый вызов — самое дорогое в отрисовке).
-  var QB_WALL = { fmt:{}, memo:{} };
-  function qbWallClock(){
-    var tz = QB.tz, t = Date.now(), m = QB_WALL.memo[tz];
-    if(m && t - m.at < 1000) return m.v;
-    var fmt = QB_WALL.fmt[tz] || (QB_WALL.fmt[tz] = new Intl.DateTimeFormat('en-CA', {
-      timeZone: tz, hourCycle:'h23',
-      year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit',
-    }));
-    var parts = fmt.formatToParts(new Date(t));
-    var g = function(k){ return parts.find(function(p){ return p.type===k; }).value; };
-    var v = { date: g('year')+'-'+g('month')+'-'+g('day'), minutes: Number(g('hour'))*60 + Number(g('minute')) };
-    QB_WALL.memo[tz] = { at:t, v:v };
-    return v;
-  }
+  // Форматтер и кэш на секунду — в общем модуле сетки (PGrid.wallClock).
+  function qbWallClock(){ return PGrid.wallClock(QB.tz); }
   // Строка сетки — самый мелкий шаг среди пространств (свой шаг зала, 0061, или студийный);
   // у зала с шагом крупнее выбор выравнивается по его шагу (qbStepK).
   function qbHallStep(h){ return h && [15, 30, 60].indexOf(h.slotStepMin) >= 0 ? h.slotStepMin : (QB.studioStep || 60); }
@@ -4865,12 +5219,6 @@ var PF = (function(){
     return QB.studioDStep || qbHallStep(h);
   }
   function qbDurK(hallId){ return Math.max(1, Math.round(qbHallDurStep(qbHallById(hallId)) / QB.slotMin)); }
-  // Длина «минимум + N шагов длительности» — ближайшая допустимая (пакет при переносе — как есть).
-  function qbFitLen(hall, start, len){
-    if(QB.reschedule && QB.reschedule.pkgSlots) return len;
-    var m = qbMinSlots(hall, start), d = qbDurK(hall.id);
-    return len <= m ? m : m + Math.round((len - m) / d) * d;
-  }
   function qbRecalcStep(){
     var steps = [];
     (QB.halls || []).forEach(function(h){ steps.push(qbHallStep(h), qbHallDurStep(h)); });
@@ -5017,73 +5365,48 @@ var PF = (function(){
     if(QB.date < now.date || (QB.date === now.date && s0 < now.minutes)) return 'past';
     return 'free';
   }
-  function qbSpanFree(hallId, a, b){
-    if(b-a < 1 || b-a > qbMaxSlots()) return false;
-    for(var i=a;i<b;i++) if(qbCellState(hallId, i) !== 'free') return false;
-    return true;
-  }
-  function qbHasSel(){ return QB.sel.hallId !== null; }
-  // QB.selWant — длительность (мин), до которой выбор растянули сами: если на новом
-  // месте она не влезла и блок укоротился, следующий тап туда, где места хватает,
-  // вернёт именно её (как sel.want в мини-аппе).
-  function qbClearSel(){ QB.sel = {hallId:null,start:null,end:null}; QB.selWant = null; }
-  function qbSetSel(hallId, a, b){
-    if(!qbSpanFree(hallId, a, b)) return false;
-    QB.sel = {hallId:hallId, start:a, end:b};
-    return true;
-  }
-  // Тап — начало (как в мини-аппе, index.html tapCell): блок встаёт с этого
-  // места длиной текущего выбора; без выбора — минимум брони (при переносе —
-  // длительность самой брони, пакет — только целиком). Не помещается до
-  // помехи — короче (короче минимума — подсветка и «только блокировка»).
-  function qbTapCell(hallId, slot){
-    var hall = qbHallById(hallId);
-    if(!hall) return false;
-    if(QB.reschedule && QB.reschedule.pkgSlots) return qbSetSel(hallId, slot, slot + QB.reschedule.pkgSlots);
-    var k = qbStepK(hallId);
-    slot = Math.floor(slot / k) * k;
-    var len = qbFitLen(hall, slot, qbHasSel()
-      ? (QB.selWant != null ? Math.round(QB.selWant / QB.slotMin) : QB.sel.end - QB.sel.start)
-      : (QB.reschedule && QB.reschedule.lenSlots) || qbMinSlots(hall, slot));
-    var hi = Math.ceil(qbGridWindow(QB.date).end * 60 / QB.slotMin);
-    var m = qbMinSlots(hall, slot), d = qbDurK(hallId), n;
-    for(n = len; n >= m; n -= d) if(slot + n <= hi && qbSetSel(hallId, slot, slot + n)) return true;
-    // минимум не влезает — ставим сколько есть (годится для блокировки, подсветится «коротко»)
-    for(n = Math.min(m - 1, hi - slot); n >= 1; n--) if(qbSetSel(hallId, slot, slot + n)) return true;
-    return false;
-  }
-  // Конец выбора (ручка): начало на месте, тянем до первой помехи.
-  function qbSetEnd(end){
-    if(!qbHasSel() || (QB.reschedule && QB.reschedule.pkgSlots)) return false;
-    var hi = Math.ceil(qbGridWindow(QB.date).end * 60 / QB.slotMin);
-    var hall = qbHallById(QB.sel.hallId);
-    var m = qbMinSlots(hall, QB.sel.start), d = qbDurK(QB.sel.hallId);
-    var len = qbFitLen(hall, QB.sel.start, end - QB.sel.start);
-    while(len > m && (len > qbMaxSlots() || QB.sel.start + len > hi)) len -= d;
-    var b = QB.sel.start + len;
-    if(b === QB.sel.end) return false;
-    if(b > QB.sel.end){
-      for(var t = b; t > QB.sel.end; t -= d) if(qbSetSel(QB.sel.hallId, QB.sel.start, t)) return true;
+  // Модель выбора (тап, перенос, растягивание, «запомненная» длительность), блок,
+  // попадание пальцем и жест — общий модуль сетки PGrid (_dev/timegrid.js, тот же,
+  // что в мини-аппе). Здесь — что знает только кабинет: залы, занятость, минимумы,
+  // шаги, перенос брони (зал зафиксирован, пакет — только целиком) и тап по брони.
+  var QBG = PGrid.create({
+    el: $('qbGrid'), cls: 'qb', hourSel: '.qb-time', hourPx: 38,
+    slotMin: function(){ return QB.slotMin; },
+    range: function(){
+      var w = qbGridWindow(QB.date);
+      return { start: Math.floor(w.start*60/QB.slotMin), end: Math.ceil(w.end*60/QB.slotMin) };
+    },
+    cols: function(){ return QB.halls.map(function(h){ return h.id; }); },
+    free: function(hallId, slot){ return qbCellState(hallId, slot) === 'free'; },
+    startK: qbStepK, durK: qbDurK,
+    minSlots: function(hallId, slot){ return qbMinSlots(qbHallById(hallId) || {}, slot); },
+    maxSlots: qbMaxSlots,
+    // без выбора — минимум брони; при переносе — длительность самой брони
+    defaultLen: function(hallId, slot){ return (QB.reschedule && QB.reschedule.lenSlots) || qbMinSlots(qbHallById(hallId) || {}, slot); },
+    fixedLen: function(){ return (QB.reschedule && QB.reschedule.pkgSlots) || null; }, fixedExact: true,
+    // Перенос не меняет зал — сервер его и не принимает (только date/start/end).
+    lockCol: function(){ return QB.reschedule ? QB.reschedule.hallId : null; },
+    label: function(s){ return minLabel(s.start*QB.slotMin) + '–' + minLabel(s.end*QB.slotMin); },
+    handle: function(){ return !(QB.reschedule && QB.reschedule.pkgSlots); },
+    onChange: function(){ qbRenderHint(); },
+    // Тап по брони — её детали (долгий тап — перенос, QBD ниже).
+    beforeTap: function(e){
+      var blk = e.target && e.target.closest ? e.target.closest('.qb-booked') : null;
+      if(!blk) return true;
+      qbShowDetail(blk.dataset.hall, Number(blk.dataset.start), Number(blk.dataset.end));
       return false;
-    }
-    return qbSetSel(QB.sel.hallId, QB.sel.start, b);
-  }
-  function qbHall(){ return QB.halls.find(function(h){ return h.id === QB.sel.hallId; }) || null; }
-  function qbSelectionValid(){
-    if(!qbHasSel()) return false;
-    var hall = qbHall();
-    if(!hall || !qbSpanFree(hall.id, QB.sel.start, QB.sel.end)) return false;
-    var len = QB.sel.end - QB.sel.start;
-    if(QB.reschedule && QB.reschedule.pkgSlots) return len === QB.reschedule.pkgSlots;
-    var m = qbMinSlots(hall, QB.sel.start);
-    return len >= m && (len - m) % qbDurK(hall.id) === 0;
-  }
-  function qbSelectionPending(){
-    if(!qbHasSel()) return false;
-    var hall = qbHall();
-    return !!hall && qbSpanFree(hall.id, QB.sel.start, QB.sel.end)
-      && (QB.sel.end - QB.sel.start) < qbMinSlots(hall, QB.sel.start);
-  }
+    },
+  });
+  QB.sel = QBG.sel;   // { key: id зала, start, end, want } — индексы слотов; end не включается
+  function qbSpanFree(hallId, a, b){ return QBG.spanFree(hallId, a, b); }
+  function qbHasSel(){ return QBG.has(); }
+  function qbClearSel(){ QBG.clear(); }
+  function qbSetSel(hallId, a, b){ return QBG.set(hallId, a, b); }
+  function qbHall(){ return QB.halls.find(function(h){ return h.id === QB.sel.key; }) || null; }
+  // Не короче минимума и ровно «минимум + N шагов длительности»; пакет при переносе — целиком.
+  function qbSelectionValid(){ return QBG.valid(); }
+  // Свободно, но короче минимума брони (годится только для блокировки).
+  function qbSelectionPending(){ return QBG.pending(); }
   // Годится для блокировки: свободный, непустой промежуток в одном зале — без
   // минимальной длительности брони (у технического простоя её попросту нет,
   // уборка может быть и на 30 минут). Ровно поэтому это отдельная проверка,
@@ -5186,7 +5509,7 @@ var PF = (function(){
       QB.halls.forEach(function(h, idx){
         var part = states[h.id].slice(i - start, i - start + span);
         var agg = part.every(function(x){ return x === part[0]; }) ? part[0] : 'mixed';
-        html += '<div class="qb-cell" style="grid-column:'+(idx+2)+';grid-row:'+row+' / span '+span+'" data-hall="'+esc(h.id)+'" data-slot="'+i+'" data-agg="'+agg+'"></div>';
+        html += '<div class="qb-cell" style="grid-column:'+(idx+2)+';grid-row:'+row+' / span '+span+'" data-hall="'+esc(h.id)+'" data-col="'+esc(h.id)+'" data-slot="'+i+'" data-agg="'+agg+'"></div>';
       });
     }
     // Прошедшее и нерабочее время — штриховкой, одним блоком на отрезок.
@@ -5199,8 +5522,7 @@ var PF = (function(){
       }
     });
     // Выбор — один блок с временем и ручкой снизу (у пакета при переносе ручки нет).
-    var ss = qbSelSpec();
-    if(ss) html += qbSelHtml(ss);
+    html += QBG.blockHtml();
     // Занятость сливается в один прямоугольник на бронь/блокировку (а не
     // заливка отдельных ячеек) — цвет по статусу: подтверждена/завершена —
     // зелёный, ожидает подтверждения — жёлтый, блокировка/внешний календарь —
@@ -5228,58 +5550,10 @@ var PF = (function(){
     // реальный контент в ячейках, у шапки в minmax(88px,1fr)-колонках может
     // разойтись на пиксель) — тот же приём, что в клиентском renderGrid().
     headEl.style.width = wrap.getBoundingClientRect().width + 'px';
-    QB.colGeom = null;
     qbRenderHint();
   }
-  // ---- Блок выбора ----
-  // Выбор меняется часто (тап, каждый шаг перетаскивания), клетки и брони —
-  // только с данными. Поэтому блок выбора переставляется на месте, без
-  // пересборки сетки (тот же приём, что в клиентской сетке).
-  function qbSelSpec(){
-    if(!qbHasSel()) return null;
-    var w = qbGridWindow(QB.date);
-    var start = Math.floor(w.start*60/QB.slotMin), end = Math.ceil(w.end*60/QB.slotMin);
-    var si = QB.halls.findIndex(function(h){ return h.id === QB.sel.hallId; });
-    var a = Math.max(QB.sel.start, start), b = Math.min(QB.sel.end, end);
-    if(si < 0 || b <= a) return null;
-    var SPR = Math.max(1, Math.round(60 / QB.slotMin));
-    return { col:si + 2, rowA:a - start + 1, rowB:b - start + 1, flush: b % SPR !== 0, short: !qbSelectionValid(),
-      time: minLabel(QB.sel.start*QB.slotMin) + '–' + minLabel(QB.sel.end*QB.slotMin),
-      handle: !(QB.reschedule && QB.reschedule.pkgSlots) };
-  }
-  function qbSelHtml(sp){
-    return '<div class="qb-sel'+(sp.flush ? ' flush' : '')+'" data-short="'+sp.short+'" style="grid-column:'+sp.col+';grid-row:'+sp.rowA+' / '+sp.rowB+'">'
-      + '<span class="qb-sel-time">'+sp.time+'</span>'
-      + (sp.handle ? '<span class="qb-sel-handle" role="slider" aria-label="Длительность"></span>' : '') + '</div>';
-  }
-  var QB_REDUCED_MOTION = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
-  // animate — плавный сдвиг из старого положения (FLIP).
-  function qbRenderSel(animate){
-    var grid = $('qbGrid'), el = grid.querySelector('.qb-sel'), sp = qbSelSpec();
-    if(!sp){ if(el) el.remove(); qbRenderHint(); return; }
-    if(!el){ grid.insertAdjacentHTML('beforeend', qbSelHtml(sp)); qbRenderHint(); return; }
-    var before = animate && !QB_REDUCED_MOTION ? el.getBoundingClientRect() : null;
-    el.style.gridColumn = String(sp.col);
-    el.style.gridRow = sp.rowA + ' / ' + sp.rowB;
-    el.classList.toggle('flush', sp.flush);
-    el.dataset.short = String(sp.short);
-    var t = el.querySelector('.qb-sel-time');
-    if(t && t.textContent !== sp.time) t.textContent = sp.time;
-    var h = el.querySelector('.qb-sel-handle');
-    if(sp.handle && !h) el.insertAdjacentHTML('beforeend', '<span class="qb-sel-handle" role="slider" aria-label="Длительность"></span>');
-    if(!sp.handle && h) h.remove();
-    if(before){
-      var after = el.getBoundingClientRect(), dx = before.left - after.left, dy = before.top - after.top;
-      if(dx || dy){
-        el.style.transition = 'none';
-        el.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
-        void el.offsetWidth;
-        el.style.transition = '';
-        el.style.transform = '';
-      }
-    }
-    qbRenderHint();
-  }
+  // Блок выбора переставляется на месте, без пересборки сетки (PGrid.renderBlock).
+  function qbRenderSel(animate){ QBG.renderBlock(animate); qbRenderHint(); }
   // Сопоставляем занятый интервал (из QB.busy — /availability, минуты от
   // полуночи) с данными кабинета: сперва брони выбранного дня (QB.dayBookings
   // — /admin/bookings?date, полный список дня), потом блокировки владельца
@@ -5526,21 +5800,6 @@ var PF = (function(){
     bar.hidden = false;
     if(!wasOn) bar.classList.add('qb-bar-in');
   }
-  // Тап по сетке: по брони — её детали, по свободной клетке — начало выбора.
-  // Тап по самому выбору сюда не приходит — это начало перетаскивания (QG ниже),
-  // а долгий тап по брони — её перенос (QBD): он отменяет тап сам (qbDragArm).
-  function qbTapAt(e){
-    var blk = e.target && e.target.closest ? e.target.closest('.qb-booked') : null;
-    if(blk){ qbShowDetail(blk.dataset.hall, Number(blk.dataset.start), Number(blk.dataset.end)); return; }
-    var hit = qbSlotAt(e.clientX, e.clientY);
-    // Недоступное время (прошло, нерабочее) — тап ничего не меняет, выбор остаётся.
-    if(!hit || qbCellState(hit.hallId, hit.slot) !== 'free') return;
-    // Перенос не меняет зал — сервер его и не принимает (только date/start/
-    // end): клетки другого зала во время переноса игнорируем.
-    if(QB.reschedule && hit.hallId !== QB.reschedule.hallId) return;
-    if(qbTapCell(hit.hallId, hit.slot)) qbRenderSel(true);
-  }
-
   // ---------- Перенос перетаскиванием: долгий тап (телефон) / зажатая мышь ----------
   // Тот же режим переноса, что и по кнопке «Перенести» в деталях брони —
   // просто другой способ в него войти и выбрать новое время: не тапом по
@@ -5567,96 +5826,20 @@ var PF = (function(){
   // у нас нет отдельного «слоя предпросмотра», подсветка выбора рисуется
   // прямо в сетке через QB.sel, поэтому и цель ищем по факту того, что
   // сейчас лежит в этой точке документа.
-  // По геометрии сетки: строка = шаг студии, столбец — по клеткам первого часа.
-  // Так и брони, и выбор, и зазоры между часами относятся к нужному времени.
-  function qbSlotAt(clientX, clientY){
-    var grid = $('qbGrid');
-    var w = qbGridWindow(QB.date);
-    var start = Math.floor(w.start*60/QB.slotMin), end = Math.ceil(w.end*60/QB.slotMin);
-    if(end <= start) return null;
-    var gr = grid.getBoundingClientRect();
-    var k = Math.floor((clientY - gr.top) / (38 / Math.max(1, Math.round(60 / QB.slotMin))));
-    if(k < 0 || k >= end - start) return null;
-    // Границы столбцов относительно сетки — один раз после отрисовки (QB.colGeom).
-    if(!QB.colGeom){
-      QB.colGeom = [];
-      grid.querySelectorAll('.qb-cell[data-slot="' + start + '"]').forEach(function(c){
-        var r = c.getBoundingClientRect();
-        QB.colGeom.push({ hallId:c.dataset.hall, l:r.left - gr.left, r:r.right - gr.left + 4 });
-      });
-    }
-    var xr = clientX - gr.left;
-    for(var i=0;i<QB.colGeom.length;i++){
-      if(xr >= QB.colGeom[i].l && xr < QB.colGeom[i].r) return { hallId: QB.colGeom[i].hallId, slot: start + k };
-    }
-    return null;
-  }
-  // ---- Жест на сетке: тап, перетаскивание и растягивание выбора — один обработчик ----
-  // Опустили палец или мышь — смотрим куда. На блоке выбора его можно тащить,
-  // а за ручку снизу — тянуть. В остальных местах это тап, если отпустили почти
-  // там же, где нажали; сдвиг — это прокрутка, тап отменяется (на сенсоре
-  // браузер к тому же присылает pointercancel). Всё на событиях указателя, без
-  // click: конец перетаскивания не может сработать как тап — флаги не нужны.
-  // Перенос самой брони долгим тапом — отдельный жест (QBD ниже).
-  var QG = null;   // { id, mode:'tap'|'move'|'resize', grab, len, x0, y0, moved }
-  var QG_TAP_SLOP = 10;
-  $('qbGrid').addEventListener('pointerdown', function(e){
-    if((e.pointerType === 'mouse' && e.button !== 0) || QG) return;
-    var blk = qbHasSel() && e.target.closest && e.target.closest('.qb-sel');
-    QG = { id:e.pointerId, mode:'tap', grab:0, len:0, x0:e.clientX, y0:e.clientY, moved:false };
-    if(blk){
-      var hit = qbSlotAt(e.clientX, e.clientY);
-      QG.mode = e.target.closest('.qb-sel-handle') ? 'resize' : 'move';
-      QG.len = QB.sel.end - QB.sel.start;
-      QG.grab = hit ? Math.max(0, Math.min(hit.slot - QB.sel.start, QG.len - 1)) : 0;
-    }
-  });
-  window.addEventListener('pointermove', function(e){
-    if(!QG || e.pointerId !== QG.id) return;
-    var d = Math.hypot(e.clientX - QG.x0, e.clientY - QG.y0);
-    if(QG.mode === 'tap'){ if(d > QG_TAP_SLOP) QG = null; return; }
-    if(!QG.moved){
-      if(d < 4) return;
-      QG.moved = true; $('qbGrid').dataset.dragging = 'true';
-    }
-    e.preventDefault();
-    var hit = qbSlotAt(e.clientX, e.clientY);
-    if(!hit) return;
-    var changed = false;
-    if(QG.mode === 'resize'){ changed = qbSetEnd(hit.slot + 1); if(changed) QB.selWant = (QB.sel.end - QB.sel.start) * QB.slotMin; }
-    else {
-      var hallId = QB.reschedule ? QB.reschedule.hallId : hit.hallId;   // при переносе — только свой зал
-      var w = qbGridWindow(QB.date);
-      var lo = Math.floor(w.start*60/QB.slotMin), hi = Math.ceil(w.end*60/QB.slotMin);
-      var k = qbStepK(hallId);
-      var a = Math.floor((hit.slot - QG.grab) / k) * k;
-      a = Math.max(Math.ceil(lo / k) * k, Math.min(a, hi - QG.len));
-      if(hallId !== QB.sel.hallId || a !== QB.sel.start) changed = qbSetSel(hallId, a, a + QG.len);
-    }
-    if(changed) qbRenderSel(QG.mode === 'move');
-  }, { passive:false });
-  function qbGestureEnd(e){
-    if(!QG || e.pointerId !== QG.id) return;
-    var g = QG; QG = null;
-    if(g.mode === 'tap'){ if(e.type === 'pointerup') qbTapAt(e); return; }
-    delete $('qbGrid').dataset.dragging;
-  }
-  window.addEventListener('pointerup', qbGestureEnd);
-  window.addEventListener('pointercancel', qbGestureEnd);
   function qbDragUpdate(clientX, clientY){
-    var hit = qbSlotAt(clientX, clientY);
-    // Свой зал — сервер перенос в другой зал и не принимает (см. клик по
-    // клетке выше); чужой зал под пальцем просто игнорируем, а не срываем
-    // перенос — выбор остаётся на последней валидной клетке.
-    if(!hit || hit.hallId !== QBD.hallId) return;
-    var k = qbStepK(hit.hallId), slot = Math.floor(hit.slot / k) * k;   // начало — по шагу зала
+    var hit = QBG.slotAt(clientX, clientY);
+    // Свой зал — сервер перенос в другой зал и не принимает; чужой зал под
+    // пальцем просто игнорируем, а не срываем перенос — выбор остаётся на
+    // последней валидной клетке.
+    if(!hit || hit.key !== QBD.hallId) return;
+    var k = qbStepK(hit.key), slot = Math.floor(hit.slot / k) * k;   // начало — по шагу зала
     if(qbHasSel() && QB.sel.start === slot && QB.sel.end === slot + QBD.durSlots) return;
-    if(qbSetSel(hit.hallId, slot, slot + QBD.durSlots)) qbRenderSel(true);
+    if(qbSetSel(hit.key, slot, slot + QBD.durSlots)) qbRenderSel(true);
   }
   function qbDragArm(){
     QBD.timer = null;
     QBD.armed = true;
-    QG = null;   // долгий тап стал переносом — это уже не тап по брони
+    QBG.cancelGesture();   // долгий тап стал переносом — это уже не тап по брони
     document.body.classList.add('qb-dragging-active');
     if(QBD.el){
       var el = QBD.el;
@@ -5742,7 +5925,6 @@ var PF = (function(){
   // колонок (проверено: окно 1280→1100 — шапка 900px при теле 724px).
   if(window.ResizeObserver){
     new ResizeObserver(function(){
-      QB.colGeom = null;
       var w = $('qbGrid').getBoundingClientRect().width;
       if(w) $('qbGridHead').style.width = w + 'px';
     }).observe($('qbGrid'));
