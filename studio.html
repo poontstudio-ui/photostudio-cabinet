@@ -2916,7 +2916,7 @@ var PF = (function(){
   });
 
   var hallsDraft = [], equipDraft = [], hoursDraft = [];
-  var settingsDraft = { autoConfirm:false, bufferMin:10, minBookingMin:60,
+  var settingsDraft = { autoConfirm:false, bufferMin:10, minBookingMin:60, slotStep:60,
     lastminuteEnabled:false, lastminuteHours:24, lastminutePct:20,
     reminderEnabled:true, reminderMinutesBefore:60,
     noShowFeePct:100, rescheduleFeePct:25, debtBlocksAutoconfirm:true };
@@ -4799,7 +4799,7 @@ var PF = (function(){
     QB.hours = (Array.isArray(h) && h.length === 7)
       ? h.map(hgCopyDay)
       : Array.from({length:7}, function(){ return {start:cfg.hoursStart, end:cfg.hoursEnd}; });
-    QB.slotMin = cfg.slotStep === 30 ? 30 : 60;
+    QB.slotMin = [15, 30, 60].indexOf(cfg.slotStep) >= 0 ? cfg.slotStep : 60;
     QB.minBookingMin = Number.isInteger(cfg.minBookingMin) ? cfg.minBookingMin : 60;
     var lm = cfg.lastminute || {};
     QB.lastMinute = {
@@ -7689,7 +7689,7 @@ var PF = (function(){
       case 'bkConfirm': return confirmFlowHtml(s.autoConfirm, s.debtBlocksAutoconfirm);
       case 'bkTiming':
         return '<div class="bk-line">Бронь от <b>' + esc(durLabel(s.minBookingMin)) + '</b>, клиент выбирает время с шагом ' +
-          esc(durLabel(s.minBookingMin === 30 ? 30 : 60)) + ' (' + (s.minBookingMin === 30 ? '10:00, 10:30, 11:00…' : '10:00, 11:00, 12:00…') + ').</div>' +
+          esc(durLabel(s.slotStep)) + ' (' + ({15:'10:00, 10:15, 10:30…', 30:'10:00, 10:30, 11:00…'}[s.slotStep] || '10:00, 11:00, 12:00…') + ').</div>' +
           timingBarHtml(s.minBookingMin, s.bufferMin);
       case 'bkCancel': return cancelTimelineHtml(policyDraft, s.noShowFeePct, s.rescheduleFeePct) +
         '<div class="bk-note">Платформа деньги не принимает: суммы по этим правилам записываются клиенту как <b>предложенные</b>. В карточке клиента вы подтверждаете их, отмечаете оплаченными или списываете. Клиент видит эти условия до брони и перед отменой.</div>';
@@ -7741,6 +7741,8 @@ var PF = (function(){
         autoConfirm: typeof u.autoConfirm === 'boolean' ? u.autoConfirm : prev.autoConfirm,
         bufferMin: Number.isInteger(u.bufferMin) ? u.bufferMin : prev.bufferMin,
         minBookingMin: Number.isInteger(u.minBookingMin) ? u.minBookingMin : prev.minBookingMin,
+        slotStep: [15, 30, 60].indexOf(u.slotStepMin) >= 0 ? u.slotStepMin
+          : (Number.isInteger(u.minBookingMin) ? (u.minBookingMin === 30 ? 30 : 60) : prev.slotStep),
         lastminuteEnabled: !!lm.enabled,
         lastminuteHours: Number.isInteger(lm.hours) ? lm.hours : 24,
         lastminutePct: Number.isInteger(lm.pct) ? lm.pct : 20,
@@ -7822,14 +7824,17 @@ var PF = (function(){
   WZ_RENDERERS.bkTiming = function(){
     var s = BKE.s;
     $('wzBody').innerHTML =
+      frow('Шаг выбора времени', frSeg('bkStep', [[15, '15 мин'], [30, '30 мин'], [60, '1 час']], s.slotStep),
+        { note:'С каким шагом клиент двигает начало и конец брони: 10:00, 10:15, 10:30… при 15 минутах.' }) +
       frow('Минимальная бронь', frSeg('bkMinDur', [[30, '30 минут'], [60, '1 час']], s.minBookingMin),
-        { note:'Клиент не сможет забронировать меньше, а время выбирает с этим же шагом. У отдельной цели пространства минимум может быть больше — это в ценах пространства.' }) +
+        { note:'Клиент не сможет забронировать меньше. У отдельной цели пространства минимум может быть больше — это в ценах пространства.' }) +
       frow('Уборка после брони', frSeg('bkBufSeg', [[0, 'Не нужна'], [10, '10 мин'], [15, '15 мин'], [30, '30 мин']], s.bufferMin) +
         ' ' + frNum('bkBuffer', s.bufferMin, 'мин', ' type="number" min="0" max="120" step="5"'),
         { note:'Время уборки входит в бронь клиента: следующий клиент может занять время сразу после окончания предыдущей брони.' }) +
       '<div id="bkTimePrev" class="bk-prev"></div>';
     function sync(){ $('bkTimePrev').innerHTML = timingBarHtml(Number(s.minBookingMin), Number(s.bufferMin) || 0); }
     wireSeg('bkMinDur', function(v){ s.minBookingMin = Number(v); sync(); });
+    wireSeg('bkStep', function(v){ s.slotStep = Number(v); sync(); });
     wireSeg('bkBufSeg', function(v){ s.bufferMin = Number(v); $('bkBuffer').value = v; sync(); });
     $('bkBuffer').addEventListener('input', function(){
       s.bufferMin = parseInt(this.value, 10) || 0;
@@ -7841,9 +7846,12 @@ var PF = (function(){
   WZ_SAVERS.bkTiming = function(){
     var buf = parseInt($('bkBuffer').value, 10), min = Number(BKE.s.minBookingMin);
     if(!Number.isInteger(buf) || buf < 0 || buf > 120) return bad('Уборка — от 0 до 120 минут', '#bkBuffer');
+    var step = Number(BKE.s.slotStep);
     if([30, 60].indexOf(min) < 0) return bad('Минимальная бронь — 30 минут или 1 час', '#bkMinDur');
+    if([15, 30, 60].indexOf(step) < 0) return bad('Шаг — 15, 30 или 60 минут', '#bkStep');
+    if(min % step) return bad('Минимальная бронь должна быть кратна шагу: при шаге 1 час — от 1 часа', '#bkMinDur');
     if(buf >= min) return bad('Уборка должна быть короче минимальной брони', '#bkBuffer');
-    return saveSettingsPatch({ bufferMin: buf, minBookingMin: min });
+    return saveSettingsPatch({ bufferMin: buf, minBookingMin: min, slotStepMin: step });
   };
 
   WZ_RENDERERS.bkCancel = function(){
@@ -8383,6 +8391,7 @@ var PF = (function(){
           autoConfirm: !!cfg.autoConfirm,
           bufferMin: Number.isInteger(cfg.bufferMin) ? cfg.bufferMin : 10,
           minBookingMin: Number.isInteger(cfg.minBookingMin) ? cfg.minBookingMin : 60,
+          slotStep: [15, 30, 60].indexOf(cfg.slotStep) >= 0 ? cfg.slotStep : 60,
           lastminuteEnabled: !!lm.enabled,
           lastminuteHours: Number.isInteger(lm.hours) ? lm.hours : 24,
           lastminutePct: Number.isInteger(lm.pct) ? lm.pct : 20,
