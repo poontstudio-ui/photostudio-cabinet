@@ -1276,8 +1276,8 @@
      броней уезжают ПОД липкую колонку часов, а не поверх неё (иначе они
      закрывают собой подписи времени — проверено, было именно так). */
   .qb-time{
-    position:sticky;left:0;z-index:3;padding:0 8px 0 2px;display:flex;align-items:center;justify-content:flex-end;
-    font-family:var(--f-mono);font-size:var(--fs-xs);color:var(--text-3);
+    position:sticky;left:0;z-index:3;padding:0 8px 0 2px;display:flex;align-items:flex-start;justify-content:flex-end;
+    font-family:var(--f-mono);font-size:var(--fs-xs);line-height:1;color:var(--text-3);
     /* фон растянут в зазоры сетки (gap:4px): вправо на всю ширину зазора и на
        половину — вверх/вниз (вторую половину закроет соседняя строка). Иначе
        уехавший под колонку прямоугольник брони просвечивает в этих щелях. */
@@ -5023,7 +5023,10 @@ var PF = (function(){
     return true;
   }
   function qbHasSel(){ return QB.sel.hallId !== null; }
-  function qbClearSel(){ QB.sel = {hallId:null,start:null,end:null}; }
+  // QB.selWant — длительность (мин), до которой выбор растянули сами: если на новом
+  // месте она не влезла и блок укоротился, следующий тап туда, где места хватает,
+  // вернёт именно её (как sel.want в мини-аппе).
+  function qbClearSel(){ QB.sel = {hallId:null,start:null,end:null}; QB.selWant = null; }
   function qbSetSel(hallId, a, b){
     if(!qbSpanFree(hallId, a, b)) return false;
     QB.sel = {hallId:hallId, start:a, end:b};
@@ -5039,7 +5042,8 @@ var PF = (function(){
     if(QB.reschedule && QB.reschedule.pkgSlots) return qbSetSel(hallId, slot, slot + QB.reschedule.pkgSlots);
     var k = qbStepK(hallId);
     slot = Math.floor(slot / k) * k;
-    var len = qbFitLen(hall, slot, qbHasSel() ? QB.sel.end - QB.sel.start
+    var len = qbFitLen(hall, slot, qbHasSel()
+      ? (QB.selWant != null ? Math.round(QB.selWant / QB.slotMin) : QB.sel.end - QB.sel.start)
       : (QB.reschedule && QB.reschedule.lenSlots) || qbMinSlots(hall, slot));
     var hi = Math.ceil(qbGridWindow(QB.date).end * 60 / QB.slotMin);
     var m = qbMinSlots(hall, slot), d = qbDurK(hallId), n;
@@ -5619,7 +5623,7 @@ var PF = (function(){
     var hit = qbSlotAt(e.clientX, e.clientY);
     if(!hit) return;
     var changed = false;
-    if(QG.mode === 'resize') changed = qbSetEnd(hit.slot + 1);
+    if(QG.mode === 'resize'){ changed = qbSetEnd(hit.slot + 1); if(changed) QB.selWant = (QB.sel.end - QB.sel.start) * QB.slotMin; }
     else {
       var hallId = QB.reschedule ? QB.reschedule.hallId : hit.hallId;   // при переносе — только свой зал
       var w = qbGridWindow(QB.date);
