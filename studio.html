@@ -441,14 +441,24 @@
       if(ok) sel.want = (sel.end - sel.start) * o.slotMin();
       return ok;
     }
-    // Перенос целиком: та же длина, начало — по шагу столбца, в пределах окна.
+    // Перенос целиком: начало — по шагу столбца, в пределах окна. Длина — та,
+    // до которой человек растягивал выбор (want), если на новом месте она
+    // помещается; нет — ступенями короче, но не короче длины, с которой блок
+    // взяли (len): укороченный тапом блок при переносе в свободное место вырастает.
     function moveTo(key, slot, grab, len){
       var lock = lockCol(); if(lock != null) key = lock;
-      var r = o.range(), k = o.startK(key);
-      var a = Math.floor((slot - grab) / k) * k;
-      a = Math.max(Math.ceil(r.start / k) * k, Math.min(a, r.end - len));
-      if(key === sel.key && a === sel.start) return false;
-      return set(key, a, a + len);
+      var r = o.range(), k = o.startK(key), d = o.durK(key);
+      var top = (fixedLen() == null && sel.want != null) ? Math.max(len, Math.round(sel.want / o.slotMin())) : len;
+      var lens = [];
+      for(var n = top; n > len; n -= d) lens.push(n);
+      lens.push(len);
+      for(var i = 0; i < lens.length; i++){
+        var a = Math.floor((slot - grab) / k) * k;
+        a = Math.max(Math.ceil(r.start / k) * k, Math.min(a, r.end - lens[i]));
+        if(key === sel.key && a === sel.start && lens[i] === sel.end - sel.start) return false;   // уже так стоит
+        if(set(key, a, a + lens[i])) return true;
+      }
+      return false;
     }
 
     // ---- Блок выбора ----
@@ -1620,7 +1630,18 @@
      .qb-grid — без единого авто-расставленного элемента конфликт, что ломал
      сетку раньше (авто-элемент съезжал, если его ячейка уже занята explicit-
      элементом), структурно невозможен. */
-  .qb-grid-outer{margin-top:6px;}
+  .qb-grid-outer{margin-top:6px;timeline-scope:--qbx;}
+  /* Сдвиг шапки ведёт сам браузер — анимацией, привязанной к прокрутке сетки
+     (scroll-driven animation), ровно в такт, без отставания на кадр. Где браузер
+     так не умеет — шапку прокручивает скрипт. --qbx-max — на сколько пикселей
+     прокручивается сетка. Угол над часами при этом сдвигаем обратно. */
+  #qbGridScroll{scroll-timeline:--qbx inline;}
+  @supports (animation-timeline: scroll()) and (timeline-scope: none){
+    #qbGridHead{animation:qbHeadX linear both;animation-timeline:--qbx;}
+    #qbGridHead .qb-corner{animation:qbCornerX linear both;animation-timeline:--qbx;}
+  }
+  @keyframes qbHeadX{from{transform:translateX(0);}to{transform:translateX(calc(-1px * var(--qbx-max, 0)));}}
+  @keyframes qbCornerX{from{transform:translateX(0);}to{transform:translateX(calc(1px * var(--qbx-max, 0)));}}
   .qb-grid-head-wrap{
     position:sticky;top:0;z-index:5;overflow:hidden;
     background:var(--surface);padding-bottom:4px;
@@ -5550,6 +5571,7 @@ var PF = (function(){
     // реальный контент в ячейках, у шапки в minmax(88px,1fr)-колонках может
     // разойтись на пиксель) — тот же приём, что в клиентском renderGrid().
     headEl.style.width = wrap.getBoundingClientRect().width + 'px';
+    qbSyncHeadMax();
     qbRenderHint();
   }
   // Блок выбора переставляется на месте, без пересборки сетки (PGrid.renderBlock).
@@ -5916,7 +5938,17 @@ var PF = (function(){
   // Шапка (залы) живёт вне горизонтального скроллера — синхронизируем её
   // положение вручную при скролле тела (тот же приём, что в клиентском
   // index.html: gridScrollEl.addEventListener('scroll', ...)).
+  var QB_HEAD_BY_CSS = !!(window.CSS && CSS.supports && CSS.supports('animation-timeline: scroll()') && CSS.supports('timeline-scope: none'));
+  var qbHeadMax = -1;
+  function qbSyncHeadMax(){
+    var sc = $('qbGridScroll'), max = Math.max(0, sc.scrollWidth - sc.clientWidth);
+    if(max !== qbHeadMax){ qbHeadMax = max; sc.parentElement.style.setProperty('--qbx-max', String(max)); }
+  }
+  // Ширина окна сетки поменялась (окно, меню) — длина прокрутки тоже.
+  if(window.ResizeObserver) new ResizeObserver(qbSyncHeadMax).observe($('qbGridScroll'));
   $('qbGridScroll').addEventListener('scroll', function(){
+    qbSyncHeadMax();
+    if(QB_HEAD_BY_CSS) return;
     $('qbGridHeadWrap').scrollLeft = $('qbGridScroll').scrollLeft;
   }, { passive:true });
   // Ширина шапки подгоняется под тело не только при перерисовке, но и при
@@ -5927,6 +5959,7 @@ var PF = (function(){
     new ResizeObserver(function(){
       var w = $('qbGrid').getBoundingClientRect().width;
       if(w) $('qbGridHead').style.width = w + 'px';
+      qbSyncHeadMax();
     }).observe($('qbGrid'));
   }
 
