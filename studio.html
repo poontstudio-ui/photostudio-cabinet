@@ -2973,7 +2973,8 @@ var PF = (function(){
       address:h.address||null, city:h.city||null,
       lat:Number.isFinite(h.lat)?h.lat:null, lon:Number.isFinite(h.lon)?h.lon:null,
       hours:Array.isArray(h.hours)&&h.hours.length===7 ? h.hours.map(hgCopyDay) : null,
-      slotStepMin:[15, 30, 60].indexOf(h.slotStepMin) >= 0 ? h.slotStepMin : null};
+      slotStepMin:[15, 30, 60].indexOf(h.slotStepMin) >= 0 ? h.slotStepMin : null,
+      durationStepMin:[15, 30, 60].indexOf(h.durationStepMin) >= 0 ? h.durationStepMin : null};
     HALL_BOOLS.forEach(function(f){ o[f] = !!h[f]; });
     // Описания — тоже через белый список: поле, забытое здесь, вернулось бы
     // с сервера, не попало в черновик и ушло обратно пустым, стерев текст.
@@ -3009,6 +3010,7 @@ var PF = (function(){
       lat:Number.isFinite(h.lat)?h.lat:null, lon:Number.isFinite(h.lon)?h.lon:null,
       hours:(Array.isArray(h.hours)&&h.hours.length===7) ? h.hours.map(hgCopyDay) : null,
       slotStepMin:[15, 30, 60].indexOf(h.slotStepMin) >= 0 ? h.slotStepMin : null,
+      durationStepMin:[15, 30, 60].indexOf(h.durationStepMin) >= 0 ? h.durationStepMin : null,
     };
     HALL_BOOLS.forEach(function(f){ out[f] = !!h[f]; });
     HALL_ABOUT_FIELDS.forEach(function(x){ out[x.f] = (h[x.f]||'').trim(); });
@@ -4823,6 +4825,7 @@ var PF = (function(){
       ? h.map(hgCopyDay)
       : Array.from({length:7}, function(){ return {start:cfg.hoursStart, end:cfg.hoursEnd}; });
     QB.studioStep = [15, 30, 60].indexOf(cfg.slotStep) >= 0 ? cfg.slotStep : 60;
+    QB.studioDStep = [15, 30, 60].indexOf(cfg.durationStepMin) >= 0 ? cfg.durationStepMin : null;
     qbRecalcStep();
     QB.minBookingMin = Number.isInteger(cfg.minBookingMin) ? cfg.minBookingMin : 60;
     var lm = cfg.lastminute || {};
@@ -4845,8 +4848,21 @@ var PF = (function(){
   // Строка сетки — самый мелкий шаг среди пространств (свой шаг зала, 0061, или студийный);
   // у зала с шагом крупнее выбор выравнивается по его шагу (qbStepK).
   function qbHallStep(h){ return h && [15, 30, 60].indexOf(h.slotStepMin) >= 0 ? h.slotStepMin : (QB.studioStep || 60); }
+  // Шаг длительности (0062): свой у зала -> студийный -> шаг начала зала (как на сервере).
+  function qbHallDurStep(h){
+    if(h && [15, 30, 60].indexOf(h.durationStepMin) >= 0) return h.durationStepMin;
+    return QB.studioDStep || qbHallStep(h);
+  }
+  function qbDurK(hallId){ return Math.max(1, Math.round(qbHallDurStep(qbHallById(hallId)) / QB.slotMin)); }
+  // Длина «минимум + N шагов длительности» — ближайшая допустимая (пакет при переносе — как есть).
+  function qbFitLen(hall, start, len){
+    if(QB.reschedule && QB.reschedule.pkgSlots) return len;
+    var m = qbMinSlots(hall, start), d = qbDurK(hall.id);
+    return len <= m ? m : m + Math.round((len - m) / d) * d;
+  }
   function qbRecalcStep(){
-    var steps = (QB.halls || []).map(qbHallStep);
+    var steps = [];
+    (QB.halls || []).forEach(function(h){ steps.push(qbHallStep(h), qbHallDurStep(h)); });
     var next = steps.length ? Math.min.apply(null, steps) : (QB.studioStep || 60);
     if(next !== QB.slotMin){ QB.slotMin = next; if(typeof qbClearSel === 'function') qbClearSel(); }
   }
@@ -5012,23 +5028,27 @@ var PF = (function(){
     if(QB.reschedule && QB.reschedule.pkgSlots) return qbSetSel(hallId, slot, slot + QB.reschedule.pkgSlots);
     var k = qbStepK(hallId);
     slot = Math.floor(slot / k) * k;
-    var len = qbHasSel() ? QB.sel.end - QB.sel.start
-      : (QB.reschedule && QB.reschedule.lenSlots) || qbMinSlots(hall, slot);
-    len = Math.ceil(len / k) * k;
+    var len = qbFitLen(hall, slot, qbHasSel() ? QB.sel.end - QB.sel.start
+      : (QB.reschedule && QB.reschedule.lenSlots) || qbMinSlots(hall, slot));
     var hi = Math.ceil(qbGridWindow(QB.date).end * 60 / QB.slotMin);
-    for(var n = Math.min(len, Math.floor((hi - slot) / k) * k); n >= k; n -= k) if(qbSetSel(hallId, slot, slot + n)) return true;
+    var m = qbMinSlots(hall, slot), d = qbDurK(hallId), n;
+    for(n = len; n >= m; n -= d) if(slot + n <= hi && qbSetSel(hallId, slot, slot + n)) return true;
+    // минимум не влезает — ставим сколько есть (годится для блокировки, подсветится «коротко»)
+    for(n = Math.min(m - 1, hi - slot); n >= 1; n--) if(qbSetSel(hallId, slot, slot + n)) return true;
     return false;
   }
   // Конец выбора (ручка): начало на месте, тянем до первой помехи.
   function qbSetEnd(end){
     if(!qbHasSel() || (QB.reschedule && QB.reschedule.pkgSlots)) return false;
     var hi = Math.ceil(qbGridWindow(QB.date).end * 60 / QB.slotMin);
-    var k = qbStepK(QB.sel.hallId);
-    var b = Math.max(QB.sel.start + k, Math.min(Math.ceil(end / k) * k, QB.sel.start + qbMaxSlots(), hi));
-    b = QB.sel.start + Math.floor((b - QB.sel.start) / k) * k;
+    var hall = qbHallById(QB.sel.hallId);
+    var m = qbMinSlots(hall, QB.sel.start), d = qbDurK(QB.sel.hallId);
+    var len = qbFitLen(hall, QB.sel.start, end - QB.sel.start);
+    while(len > m && (len > qbMaxSlots() || QB.sel.start + len > hi)) len -= d;
+    var b = QB.sel.start + len;
     if(b === QB.sel.end) return false;
     if(b > QB.sel.end){
-      for(var t = b; t > QB.sel.end; t -= k) if(qbSetSel(QB.sel.hallId, QB.sel.start, t)) return true;
+      for(var t = b; t > QB.sel.end; t -= d) if(qbSetSel(QB.sel.hallId, QB.sel.start, t)) return true;
       return false;
     }
     return qbSetSel(QB.sel.hallId, QB.sel.start, b);
@@ -5040,7 +5060,8 @@ var PF = (function(){
     if(!hall || !qbSpanFree(hall.id, QB.sel.start, QB.sel.end)) return false;
     var len = QB.sel.end - QB.sel.start;
     if(QB.reschedule && QB.reschedule.pkgSlots) return len === QB.reschedule.pkgSlots;
-    return len >= qbMinSlots(hall, QB.sel.start);
+    var m = qbMinSlots(hall, QB.sel.start);
+    return len >= m && (len - m) % qbDurK(hall.id) === 0;
   }
   function qbSelectionPending(){
     if(!qbHasSel()) return false;
@@ -7197,8 +7218,8 @@ var PF = (function(){
       done:function(h){ return !!((h.aboutAccess || '').trim() || (h.wifiSsid || '').trim() || hallAccessLabels(h).length); }},
     {key:'hallLocation', grp:'Адрес и часы', title:'Адрес', need:'inh',
       own:function(h){ return h.lat != null; }},
-    {key:'hours',   grp:'Адрес и часы', title:'Часы работы и шаг времени', need:'inh',
-      own:function(h){ return Array.isArray(h.hours) || h.slotStepMin != null; }},
+    {key:'hours',   grp:'Адрес и часы', title:'Часы работы и шаги времени', need:'inh',
+      own:function(h){ return Array.isArray(h.hours) || h.slotStepMin != null || h.durationStepMin != null; }},
   ];
   var STUDIO_SECTIONS = [
     {key:'brand', title:'Название и подзаголовок', need:'req',
@@ -7292,7 +7313,8 @@ var PF = (function(){
             ' <span class="muted">— адрес студии</span>';
       case 'hours':
         return (Array.isArray(h.hours) ? esc(fmtWeek(h.hours)) : esc(fmtWeek(hoursDraft)) + ' <span class="muted">— часы студии</span>') +
-          '<br>Шаг времени: ' + (h.slotStepMin != null ? esc(durLabel(h.slotStepMin)) : esc(durLabel(settingsDraft.slotStep || 60)) + ' <span class="muted">— как у студии</span>');
+          '<br>Длительность шагом ' + (h.durationStepMin != null ? esc(durLabel(h.durationStepMin)) : esc(durLabel(settingsDraft.durationStep || settingsDraft.slotStep || 60)) + ' <span class="muted">(как у студии)</span>') +
+          ', начало шагом ' + (h.slotStepMin != null ? esc(durLabel(h.slotStepMin)) : esc(durLabel(settingsDraft.slotStep || 60)) + ' <span class="muted">(как у студии)</span>');
     }
     return '';
   }
@@ -7813,8 +7835,8 @@ var PF = (function(){
     switch(key){
       case 'bkConfirm': return confirmFlowHtml(s.autoConfirm, s.debtBlocksAutoconfirm);
       case 'bkTiming':
-        return '<div class="bk-line">Бронь от <b>' + esc(durLabel(s.minBookingMin)) + '</b>, клиент выбирает время с шагом ' +
-          esc(durLabel(s.slotStep)) + ' (' + ({15:'10:00, 10:15, 10:30…', 30:'10:00, 10:30, 11:00…'}[s.slotStep] || '10:00, 11:00, 12:00…') + ').</div>' +
+        return '<div class="bk-line">Бронь от <b>' + esc(durLabel(s.minBookingMin)) + '</b> и дальше шагом <b>' + esc(durLabel(s.durationStep || s.slotStep)) +
+          '</b>; начать можно с шагом ' + esc(durLabel(s.slotStep)) + ' (' + ({15:'10:00, 10:15, 10:30…', 30:'10:00, 10:30, 11:00…'}[s.slotStep] || '10:00, 11:00, 12:00…') + ').</div>' +
           timingBarHtml(s.minBookingMin, s.bufferMin);
       case 'bkCancel': return cancelTimelineHtml(policyDraft, s.noShowFeePct, s.rescheduleFeePct) +
         '<div class="bk-note">Платформа деньги не принимает: суммы по этим правилам записываются клиенту как <b>предложенные</b>. В карточке клиента вы подтверждаете их, отмечаете оплаченными или списываете. Клиент видит эти условия до брони и перед отменой.</div>';
@@ -7868,6 +7890,7 @@ var PF = (function(){
         minBookingMin: Number.isInteger(u.minBookingMin) ? u.minBookingMin : prev.minBookingMin,
         slotStep: [15, 30, 60].indexOf(u.slotStepMin) >= 0 ? u.slotStepMin
           : (Number.isInteger(u.minBookingMin) ? (u.minBookingMin === 30 ? 30 : 60) : prev.slotStep),
+        durationStep: [15, 30, 60].indexOf(u.durationStepMin) >= 0 ? u.durationStepMin : prev.durationStep,
         lastminuteEnabled: !!lm.enabled,
         lastminuteHours: Number.isInteger(lm.hours) ? lm.hours : 24,
         lastminutePct: Number.isInteger(lm.pct) ? lm.pct : 20,
@@ -7949,10 +7972,12 @@ var PF = (function(){
   WZ_RENDERERS.bkTiming = function(){
     var s = BKE.s;
     $('wzBody').innerHTML =
-      frow('Шаг выбора времени', frSeg('bkStep', [[15, '15 мин'], [30, '30 мин'], [60, '1 час']], s.slotStep),
-        { note:'С каким шагом клиент двигает начало и конец брони: 10:00, 10:15, 10:30… при 15 минутах.' }) +
       frow('Минимальная бронь', frSeg('bkMinDur', [[30, '30 минут'], [60, '1 час']], s.minBookingMin),
         { note:'Клиент не сможет забронировать меньше. У отдельной цели пространства минимум может быть больше — это в ценах пространства.' }) +
+      frow('Шаг длительности', frSeg('bkDurStep', [[15, '15 мин'], [30, '30 мин'], [60, '1 час']], s.durationStep || s.slotStep),
+        { note:'На сколько можно удлинить бронь сверх минимума: при минимуме 1 ч и шаге 30 мин — 1 ч, 1,5 ч, 2 ч…' }) +
+      frow('Шаг начала', frSeg('bkStep', [[15, '15 мин'], [30, '30 мин'], [60, '1 час']], s.slotStep),
+        { note:'С какого времени можно начать бронь: 10:00, 10:15, 10:30… при 15 минутах.' }) +
       frow('Уборка после брони', frSeg('bkBufSeg', [[0, 'Не нужна'], [10, '10 мин'], [15, '15 мин'], [30, '30 мин']], s.bufferMin) +
         ' ' + frNum('bkBuffer', s.bufferMin, 'мин', ' type="number" min="0" max="120" step="5"'),
         { note:'Время уборки входит в бронь клиента: следующий клиент может занять время сразу после окончания предыдущей брони.' }) +
@@ -7960,6 +7985,7 @@ var PF = (function(){
     function sync(){ $('bkTimePrev').innerHTML = timingBarHtml(Number(s.minBookingMin), Number(s.bufferMin) || 0); }
     wireSeg('bkMinDur', function(v){ s.minBookingMin = Number(v); sync(); });
     wireSeg('bkStep', function(v){ s.slotStep = Number(v); sync(); });
+    wireSeg('bkDurStep', function(v){ s.durationStep = Number(v); sync(); });
     wireSeg('bkBufSeg', function(v){ s.bufferMin = Number(v); $('bkBuffer').value = v; sync(); });
     $('bkBuffer').addEventListener('input', function(){
       s.bufferMin = parseInt(this.value, 10) || 0;
@@ -7976,7 +8002,9 @@ var PF = (function(){
     if([15, 30, 60].indexOf(step) < 0) return bad('Шаг — 15, 30 или 60 минут', '#bkStep');
     if(min % step) return bad('Минимальная бронь должна быть кратна шагу: при шаге 1 час — от 1 часа', '#bkMinDur');
     if(buf >= min) return bad('Уборка должна быть короче минимальной брони', '#bkBuffer');
-    return saveSettingsPatch({ bufferMin: buf, minBookingMin: min, slotStepMin: step });
+    var dstep = Number(BKE.s.durationStep || step);
+    if([15, 30, 60].indexOf(dstep) < 0) return bad('Шаг длительности — 15, 30 или 60 минут', '#bkDurStep');
+    return saveSettingsPatch({ bufferMin: buf, minBookingMin: min, slotStepMin: step, durationStepMin: dstep });
   };
 
   WZ_RENDERERS.bkCancel = function(){
@@ -8448,9 +8476,12 @@ var PF = (function(){
     var h = wzHall();
     var own = Array.isArray(h.hours);
     $('wzBody').innerHTML =
-      frow('Шаг выбора времени', frSeg('wzStepSeg', [['studio', 'Как у студии · ' + durLabel(settingsDraft.slotStep || 60)], [15, '15 мин'], [30, '30 мин'], [60, '1 час']],
+      frow('Шаг длительности', frSeg('wzDurStepSeg', [['studio', 'Как у студии · ' + durLabel(settingsDraft.durationStep || settingsDraft.slotStep || 60)], [15, '15 мин'], [30, '30 мин'], [60, '1 час']],
+          h.durationStepMin != null ? h.durationStepMin : 'studio'),
+        { note:'На сколько можно удлинить бронь сверх минимума в этом пространстве.' }) +
+      frow('Шаг начала', frSeg('wzStepSeg', [['studio', 'Как у студии · ' + durLabel(settingsDraft.slotStep || 60)], [15, '15 мин'], [30, '30 мин'], [60, '1 час']],
           h.slotStepMin != null ? h.slotStepMin : 'studio'),
-        { note:'С каким шагом клиент двигает начало и конец брони в этом пространстве.' }) +
+        { note:'С какого времени можно начать бронь в этом пространстве: 13:00, 13:15… при 15 минутах.' }) +
       frow('Режим работы', frSeg('wzHoursSeg', [['studio','Как у студии'],['own','Свои часы']], own ? 'own' : 'studio') +
         '<input type="checkbox" id="wzOwnHours" hidden' + (own ? ' checked' : '') + '>',
         { note:'Часы студии: ' + esc(fmtWeek(hoursDraft)) }) +
@@ -8469,12 +8500,11 @@ var PF = (function(){
     });
     drawGrid();
     wireSeg('wzStepSeg', function(v){ h.slotStepMin = v === 'studio' ? null : Number(v); });
+    wireSeg('wzDurStepSeg', function(v){ h.durationStepMin = v === 'studio' ? null : Number(v); });
   };
   WZ_SAVERS.hours = function(){
     var h = wzHall();
-    if(h.slotStepMin != null && (settingsDraft.minBookingMin || 60) % h.slotStepMin){
-      return bad('Минимальная бронь студии (' + durLabel(settingsDraft.minBookingMin) + ') не делится на шаг ' + durLabel(h.slotStepMin), '#wzStepSeg');
-    }
+
     if(Array.isArray(h.hours) && !h.hours.some(function(d){ return d.end > d.start; })){
       return bad('Отметьте хотя бы один рабочий час', '#wzHoursWrap');
     }
@@ -8524,6 +8554,7 @@ var PF = (function(){
           bufferMin: Number.isInteger(cfg.bufferMin) ? cfg.bufferMin : 10,
           minBookingMin: Number.isInteger(cfg.minBookingMin) ? cfg.minBookingMin : 60,
           slotStep: [15, 30, 60].indexOf(cfg.slotStep) >= 0 ? cfg.slotStep : 60,
+          durationStep: [15, 30, 60].indexOf(cfg.durationStepMin) >= 0 ? cfg.durationStepMin : null,
           lastminuteEnabled: !!lm.enabled,
           lastminuteHours: Number.isInteger(lm.hours) ? lm.hours : 24,
           lastminutePct: Number.isInteger(lm.pct) ? lm.pct : 20,
