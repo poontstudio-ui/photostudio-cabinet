@@ -7181,7 +7181,7 @@ var PF = (function(){
   }
   function activeHallPurposes(h){ return hallPurposes(h).filter(function(p){ return p.active !== false; }); }
   // Цена зала — цены его включённых целей (0052); у зала без целей — старое h.rate.
-  // Подпись цены пространства: «от 30 BYN/ч» или, если сдаётся только за людей, «от 5 BYN за гостя».
+  // Подпись цены пространства: «от 30 BYN/ч» или, если сдаётся только за людей, «от 5 BYN/чел».
   function hallPriceText(h){
     var r = hallMinRate(h);
     if(r != null) return 'от ' + r + ' ' + CUR + '/ч';
@@ -7190,7 +7190,7 @@ var PF = (function(){
       if(p.guestPricing && p.guestPricing.mode === 'perPerson' && p.guestPricing.withRent === false)
         p.guestPricing.tiers.forEach(function(t){ per.push(t.price); });
     });
-    return per.length ? 'от ' + gpMoney(Math.min.apply(null, per)) + ' ' + CUR + ' за гостя' : '';
+    return per.length ? 'от ' + gpMoney(Math.min.apply(null, per)) + ' ' + CUR + '/чел' : '';
   }
   function hallMinRate(h){
     var ps = activeHallPurposes(h);
