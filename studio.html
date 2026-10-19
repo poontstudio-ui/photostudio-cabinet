@@ -462,6 +462,9 @@
     }
 
     // ---- Блок выбора ----
+    // Снизу у блока всегда 4px «зазора» между часами (класс .flush ему не ставим),
+    // даже когда он кончается не на часе: иначе при переносе по 15 минут высота
+    // прыгала на 4px — то с зазором (конец на часе), то без.
     // Выбор меняется часто (тап, каждый шаг перетаскивания), а клетки и занятость —
     // только с данными. Поэтому блок переставляется на месте, сетка не пересобирается.
     function spec(){
@@ -471,14 +474,13 @@
       if(ci < 0 || b <= a) return null;
       var s = spr();
       return { col:ci + 2, rowA:a - r.start + 1, rowB:b - r.start + 1,
-        flush: b % s !== 0,                  // кончается не на границе часа — без нижнего «зазора»
         short: !valid(), time: o.label(sel, a, b, s), handle: o.handle ? o.handle() : true };
     }
     function handleHtml(){ return '<span class="' + cls + '-sel-handle" role="slider" aria-label="Длительность"></span>'; }
     function blockHtml(){
       var sp = spec();
       if(!sp) return '';
-      return '<div class="' + cls + '-sel' + (sp.flush ? ' flush' : '') + '" data-short="' + sp.short + '" style="grid-column:' + sp.col + ';grid-row:' + sp.rowA + ' / ' + sp.rowB + '">'
+      return '<div class="' + cls + '-sel" data-short="' + sp.short + '" style="grid-column:' + sp.col + ';grid-row:' + sp.rowA + ' / ' + sp.rowB + '">'
         + '<span class="' + cls + '-sel-time">' + sp.time + '</span>' + (sp.handle ? handleHtml() : '') + '</div>';
     }
     function blockEl(){ return el.querySelector('.' + cls + '-sel'); }
@@ -491,7 +493,6 @@
       var before = animate && !REDUCED_MOTION ? b.getBoundingClientRect() : null;
       b.style.gridColumn = String(sp.col);
       b.style.gridRow = sp.rowA + ' / ' + sp.rowB;
-      b.classList.toggle('flush', sp.flush);
       b.dataset.short = String(sp.short);
       var t = b.querySelector('.' + cls + '-sel-time');
       if(t && t.innerHTML !== sp.time) t.innerHTML = sp.time;
@@ -1699,7 +1700,7 @@
   #qbGrid{row-gap:0;grid-auto-rows:auto;}
   #qbGrid .qb-time,#qbGrid .qb-cell{align-self:start;height:34px;}
   #qbGrid .qb-booked,#qbGrid .qb-off,#qbGrid .qb-sel{margin-bottom:4px;}
-  #qbGrid .qb-booked.flush,#qbGrid .qb-off.flush,#qbGrid .qb-sel.flush{margin-bottom:0;}
+  #qbGrid .qb-booked.flush,#qbGrid .qb-off.flush{margin-bottom:0;}
   #qbGrid .qb-cell[data-agg="busy"]{background:none;cursor:default;}
   #qbGrid .qb-cell[data-agg="free"]:hover{background:var(--hover);}
   .qb-off{position:relative;z-index:1;border-radius:var(--r-sm);pointer-events:none;
