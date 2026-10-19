@@ -894,6 +894,9 @@
 
   /* ---------- «Бронирование»: схемы правил ---------- */
   .bk-line{color:var(--text-2);}
+  .bk-diff{margin-top:10px;font-size:var(--fs-sm);color:var(--text-2);background:var(--surface-2);border-radius:var(--r-sm);padding:7px 10px;}
+  .bk-diff b{color:var(--text);font-weight:600;}
+  .bk-rem-prev{margin-top:10px;}
   .bk-line b{color:var(--text);}
   .bk-note{margin-top:8px;font-size:var(--fs-sm);color:var(--text-3);}
   .bk-flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;}
@@ -2113,6 +2116,26 @@
       </div>
     </div>
 
+    <div class="card" id="sec-block" data-folder="dashboard">
+      <h2>Закрыть время</h2>
+      <div class="muted" style="margin:-6px 0 16px">Ремонт, своя съёмка, бронь мимо платформы — клиенты не смогут занять это время.</div>
+      <div class="blk-form fld">
+        <div class="blk-grid">
+          <div><label class="nh-f" for="blkHall">Пространство</label><select id="blkHall" class="name"></select></div>
+          <div><label class="nh-f" for="blkDate">Дата</label><input type="date" id="blkDate" class="name"></div>
+          <div class="blk-wide"><label class="nh-f" for="blkFrom">Время</label>
+            <div class="blk-time"><input type="time" id="blkFrom" step="1800" class="name" aria-label="С"><span>–</span><input type="time" id="blkTo" step="1800" class="name" aria-label="До">
+              <button class="btn ghost small" id="blkAllDay" type="button">Весь день</button></div></div>
+          <div class="blk-wide"><label class="nh-f" for="blkNote">Причина <span class="muted">· видна только команде</span></label>
+            <input type="text" id="blkNote" class="name" maxlength="200" placeholder="Например, покраска циклорамы"></div>
+        </div>
+        <div class="actions" style="margin-top:14px"><button class="btn" id="blkAdd" type="button">Закрыть время</button></div>
+      </div>
+      <div class="note" id="blkNoteMsg"></div>
+      <div class="sc-group" style="margin-top:22px">Закрытое время</div>
+      <div id="blkList"></div>
+    </div>
+
     <div class="card" id="sec-dashboard" data-folder="dashboard">
       <h2>Брони</h2>
       <div class="row">
@@ -2233,26 +2256,6 @@
       <div class="note" id="bkNote"></div>
     </div>
 
-
-    <div class="card" id="sec-block" data-folder="booking">
-      <h2>Закрыть время</h2>
-      <div class="muted" style="margin:-6px 0 16px">Ремонт, своя съёмка, бронь мимо платформы — клиенты не смогут занять это время.</div>
-      <div class="blk-form fld">
-        <div class="blk-grid">
-          <div><label class="nh-f" for="blkHall">Пространство</label><select id="blkHall" class="name"></select></div>
-          <div><label class="nh-f" for="blkDate">Дата</label><input type="date" id="blkDate" class="name"></div>
-          <div class="blk-wide"><label class="nh-f" for="blkFrom">Время</label>
-            <div class="blk-time"><input type="time" id="blkFrom" step="1800" class="name" aria-label="С"><span>–</span><input type="time" id="blkTo" step="1800" class="name" aria-label="До">
-              <button class="btn ghost small" id="blkAllDay" type="button">Весь день</button></div></div>
-          <div class="blk-wide"><label class="nh-f" for="blkNote">Причина <span class="muted">· видна только команде</span></label>
-            <input type="text" id="blkNote" class="name" maxlength="200" placeholder="Например, покраска циклорамы"></div>
-        </div>
-        <div class="actions" style="margin-top:14px"><button class="btn" id="blkAdd" type="button">Закрыть время</button></div>
-      </div>
-      <div class="note" id="blkNoteMsg"></div>
-      <div class="sc-group" style="margin-top:22px">Закрытое время</div>
-      <div id="blkList"></div>
-    </div>
 
     <!-- Список и карточка — два вида одной карточки-секции (clListView/
          clDetailView). Модалкой карточка быть не может: полей много, снизу
@@ -3159,6 +3162,7 @@ var PF = (function(){
     {f:'parkingLotNearby',label:'Парковка рядом'},
   ];
   var amenitiesDraft = {};
+  var wifiDraft = { wifiSsid:'', wifiPassword:'' };   // Wi-Fi студии (0063), только владельцу
   var STUDIO_ID = new URLSearchParams(location.search).get('id') || '';
 
   // Yandex Maps JS API — ленивая загрузка, ключ из /config.
@@ -4063,12 +4067,12 @@ var PF = (function(){
     html += '</div>';
 
     // ---- Бронирование ----
-    var minOpts = [['inherit','Как у студии'],[30,'30 мин'],[60,'1 ч'],[120,'2 ч'],[180,'3 ч'],[240,'4 ч']];
+    var minOpts = [['inherit','Как у студии · ' + pmMinTxt(pmStudioMin())],[30,'30 мин'],[60,'1 ч'],[120,'2 ч'],[180,'3 ч'],[240,'4 ч']];
     if(Number.isInteger(p.minBookingMin) && [30,60,120,180,240].indexOf(p.minBookingMin) === -1) minOpts.push([p.minBookingMin, pmMinTxt(p.minBookingMin)]);
     html += '<div class="pm-blk"><div class="pm-blk-h"><h4>Бронирование</h4><span>Правила для этой цели</span></div>' +
-      pmRow('Минимальная бронь', pmSeg('minH', minOpts, Number.isInteger(p.minBookingMin) ? p.minBookingMin : 'inherit'), { hint:p.minBookingMin == null ? 'У студии — ' + pmMinTxt(pmStudioMin()) + '.' : '' }) +
-      pmRow('Подтверждение', pmSeg('confirm', [['inherit','Как у студии'],['yes','Сразу'],['no','Вручную']], p.autoConfirm == null ? 'inherit' : p.autoConfirm ? 'yes' : 'no'),
-        { hint:p.autoConfirm == null ? 'Сейчас у студии — ' + (settingsDraft.autoConfirm ? 'сразу.' : 'вручную.') : p.autoConfirm ? 'Бронь сразу встаёт в расписание.' : 'Каждая заявка ждёт вашего ответа.' }) +
+      pmRow('Минимальная бронь', pmSeg('minH', minOpts, Number.isInteger(p.minBookingMin) ? p.minBookingMin : 'inherit')) +
+      pmRow('Подтверждение', pmSeg('confirm', [['inherit','Как у студии · ' + (settingsDraft.autoConfirm ? 'сразу' : 'вручную')],['yes','Сразу'],['no','Вручную']], p.autoConfirm == null ? 'inherit' : p.autoConfirm ? 'yes' : 'no'),
+        { hint:p.autoConfirm == null ? '' : p.autoConfirm ? 'Бронь сразу встаёт в расписание.' : 'Каждая заявка ждёт вашего ответа.' }) +
       (pmRent(p) ? pmRow('Целый день', pmIn('dayPct', p.fullDayDiscountPct, { int:true, sm:true, ph:'0', bad:e.dayPct }) + '<span class="pm-u">% скидки на бронь в 8 часов</span>',
         { err:e.dayPct, hint:'Скидка на аренду и гостей, когда бронь — 8 часов. Оборудование и пакеты не участвуют.' }) : '') +
       '</div>';
@@ -6397,6 +6401,11 @@ var PF = (function(){
          '<div class="muted">Текст можно изменить. <b>**Двойные звёздочки**</b> — жирный. Значения подставляются вместо слов в фигурных скобках.</div>';
     c.clientEvents.forEach(function(e){
       var isRem = e.key === 'booking.reminder';
+      if(isRem){
+        h += '<div class="nt-tpl"><div><b>' + esc(e.label) + '</b></div><div class="muted">Включение, время и текст — в ' +
+          '<button class="linkish" type="button" data-go-reminder>«Правила брони → Напоминание клиенту»</button>.</div></div>';
+        return;
+      }
       h += '<div class="nt-tpl">';
       h += isRem
         ? '<div><b>' + esc(e.label) + '</b></div><div class="muted">Включить и выбрать время — в «Правила брони → Напоминание клиенту».</div>'
@@ -6438,6 +6447,9 @@ var PF = (function(){
   $('ntBody').addEventListener('click', function(e){
     var b = e.target.closest ? e.target.closest('button') : null;
     if(!b) return;
+    if(b.dataset.goReminder != null){
+      goFolder('booking'); BKE = { s:clone(settingsDraft), pol:clone(policyDraft), remTpl:null }; edOpen('booking', 'bkReminder'); return;
+    }
     if(b.dataset.var){
       var parts = b.dataset.var.split('|'), ta = $('ntBody').querySelector('[data-tpl="' + parts[0] + '"]');
       var ins = '{' + parts[1] + '}', a = ta.selectionStart == null ? ta.value.length : ta.selectionStart, z = ta.selectionEnd == null ? a : ta.selectionEnd;
@@ -6453,7 +6465,7 @@ var PF = (function(){
   });
   function loadNotify(){
     return api('GET', '/admin/notifications')
-      .then(function(cat){ ntSetDraft(cat); renderNotify(); svSnap('notify'); })
+      .then(function(cat){ ntSetDraft(cat); renderNotify(); svSnap('notify'); renderSettings(); })   // карточка напоминания показывает текст
       .catch(function(e){
         // Настройки уведомлений — только владельцу; остальным раздел не показываем.
         var btn = document.querySelector('.nav-folder[data-folder="notify"]');
@@ -6467,7 +6479,8 @@ var PF = (function(){
   // Администратору прячем разделы владельца; сервер их всё равно не отдаст.
   var ROLE = 'owner';
   // «Интеграции» в меню не показываем, пока нет Google Calendar (кнопка с hidden в разметке).
-  var OWNER_ONLY_FOLDERS = ['main', 'halls', 'equipment', 'team', 'notify'];
+  // «Правила брони» — тоже только владельцу: «Закрыть время» переехало на Дашборд.
+  var OWNER_ONLY_FOLDERS = ['main', 'halls', 'booking', 'equipment', 'team', 'notify'];
   function applyRole(role){
     ROLE = role === 'admin' ? 'admin' : 'owner';
     window.PS_ROLE = ROLE;
@@ -6476,10 +6489,16 @@ var PF = (function(){
       if(b) b.hidden = ROLE !== 'owner';
     });
     if(window.PS_RESELECT_FOLDER) window.PS_RESELECT_FOLDER();
-    if(ROLE === 'owner'){ loadNotify(); loadTeam(); }
+    if(ROLE === 'owner'){ loadNotify(); loadTeam(); loadWifi(); }
     syncLaunchNav();
   }
 
+  function loadWifi(){
+    return api('GET', '/admin/wifi').then(function(w){
+      wifiDraft = { wifiSsid: w.wifiSsid || '', wifiPassword: w.wifiPassword || '' };
+      if(!(ED.scope === 'studio' && ED.key === 'amenities')) renderStudioPage();
+    }).catch(function(){ /* старый сервер — поле просто пустое */ });
+  }
   var TEAM_ROLE_RU = { owner:'владелец', admin:'администратор' };
   function teamDate(v){
     var d = new Date(v);
@@ -7493,7 +7512,7 @@ var PF = (function(){
       done:function(h){ return hallAmenityLabels(h).length >= 3; }},
     {key:'rules',   grp:'Описание', title:'Правила и уборка', need:'rec',
       done:function(h){ return !!((h.aboutRules || '').trim() || (h.aboutCleaning || '').trim()); }},
-    {key:'access',  grp:'Для гостя', title:'Доступ и Wi-Fi', need:'rec',
+    {key:'access',  grp:'Для гостя', title:'Доступ', need:'rec',
       done:function(h){ return !!((h.aboutAccess || '').trim() || (h.wifiSsid || '').trim() || hallAccessLabels(h).length); }},
     {key:'hallLocation', grp:'Адрес и часы', title:'Адрес', need:'inh',
       own:function(h){ return h.lat != null; }},
@@ -7505,10 +7524,14 @@ var PF = (function(){
       done:function(){ return (profileDraft.name || '').trim().length >= 2; }},
     {key:'studioLocation', title:'Адрес и телефон', need:'req',
       done:function(){ return !!((profileDraft.city || '').trim() && (profileDraft.address || '').trim() && profileDraft.lat != null); }},
-    {key:'parking', title:'Удобства, парковка и правила студии', need:'rec',
-      done:function(){ return amenitiesDraft.parkingAvailable === true || amenitiesDraft.parkingAvailable === false; }},
     {key:'studioHours', title:'Часы работы', need:'req',
       done:function(){ return hoursDraft.some(function(d){ return d.end > d.start; }); }},
+    {key:'amenities', title:'Удобства и Wi-Fi', need:'rec',
+      done:function(){ return STUDIO_AMENITY_GROUPS[0].items.some(function(x){ return amenitiesDraft[x.f]; }); }},
+    {key:'parking', title:'Парковка', need:'rec',
+      done:function(){ return amenitiesDraft.parkingAvailable === true || amenitiesDraft.parkingAvailable === false; }},
+    {key:'visitRules', title:'Правила посещения', need:'rec',
+      done:function(){ return STUDIO_AMENITY_GROUPS[1].items.some(function(x){ return amenitiesDraft[x.f]; }) || amenitiesDraft.hasVideoSurveillance === true; }},
   ];
   function secState(sec, obj){
     if(sec.need === 'inh') return sec.own(obj) ? 'own' : 'inh';
@@ -7601,7 +7624,8 @@ var PF = (function(){
         var acc = hallAccessLabels(h);
         return (acc.length ? esc(acc.join(' · ')) + '<br>' : '') +
           ((h.aboutAccess || '').trim() ? esc(clip(h.aboutAccess, 180)) : emptyLine('Как найти пространство и попасть внутрь — не указано')) + '<br>' +
-          ((h.wifiSsid || '').trim() ? 'Wi-Fi: «' + esc(h.wifiSsid) + '» · виден клиенту после подтверждения брони' : emptyLine('Wi-Fi не указан'));
+          ((h.wifiSsid || '').trim() ? 'Свой Wi-Fi: «' + esc(h.wifiSsid) + '» · виден клиенту после подтверждения брони'
+            : wifiDraft.wifiSsid ? 'Wi-Fi — как у студии («' + esc(wifiDraft.wifiSsid) + '»)' : emptyLine('Wi-Fi не указан ни у студии, ни здесь'));
       case 'hallLocation':
         return h.lat != null ? esc([h.city, h.address].filter(Boolean).join(', ') || 'своя метка на карте')
           : esc([profileDraft.city, profileDraft.address].filter(Boolean).join(', ') || 'адрес студии ещё не указан') +
@@ -7620,13 +7644,21 @@ var PF = (function(){
         ['Адрес', [profileDraft.city, profileDraft.address].filter(Boolean).join(', ')],
         ['На карте', profileDraft.lat != null ? 'метка стоит' : '', 'метки нет — клиенты не найдут вход'],
         ['Телефон', profileDraft.phone ? phonePretty(profileDraft.phone) : ''] ]);
+      case 'amenities':
+        var am = STUDIO_AMENITY_GROUPS[0].items.filter(function(x){ return amenitiesDraft[x.f]; }).map(function(x){ return x.label; });
+        var ownWifi = (hallsDraft || []).filter(function(h){ return (h.wifiSsid || '').trim(); }).map(hallNm);
+        return kvHtml([['Удобства', clip(am.join(', '), 160), 'не отмечены'],
+          ['Wi-Fi', wifiDraft.wifiSsid ? '«' + wifiDraft.wifiSsid + '» · клиент видит после подтверждения брони' : '', 'сеть не указана'],
+          ['Свой Wi-Fi', ownWifi.length ? clip(ownWifi.join(', '), 120) : '', 'у всех пространств — сеть студии']]);
       case 'parking':
         var a = amenitiesDraft, park = a.parkingAvailable === true ? 'есть' : a.parkingAvailable === false ? 'нет' : '';
-        var am = [];
-        STUDIO_AMENITY_GROUPS[0].items.forEach(function(x){ if(a[x.f]) am.push(x.label); });
+        var opts = PARKING_OPTS.filter(function(o){ return a[o.f]; }).map(function(o){ return o.label; });
         return kvHtml([['Парковка', park, 'не указано — клиенты часто спрашивают'],
-          ['Видеозапись', a.hasVideoSurveillance ? 'ведётся' : 'нет'],
-          ['Удобства', clip(am.join(', '), 160), 'не отмечены']]);
+          ['Варианты', a.parkingAvailable === true ? clip(opts.join(', '), 160) : '', a.parkingAvailable === true ? 'не отмечены' : '—']]);
+      case 'visitRules':
+        var pol = STUDIO_AMENITY_GROUPS[1].items.filter(function(x){ return amenitiesDraft[x.f]; }).map(function(x){ return x.label.toLowerCase(); });
+        return kvHtml([['Можно', clip(pol.join(', '), 160), 'ничего не отмечено'],
+          ['Видеозапись', amenitiesDraft.hasVideoSurveillance ? 'ведётся' : 'нет']]);
       case 'studioHours':
         var own = hallsDraft.filter(function(h){ return Array.isArray(h.hours); }).map(function(h){ return h.title || h.name; });
         return kvHtml([['Часы', fmtWeek(hoursDraft), 'не заданы'],
@@ -7648,7 +7680,7 @@ var PF = (function(){
     if(ED.key) edCancel();
     ED = { key:key, scope:scope, snap:{
       hall: scope === 'hall' ? clone(wzHall()) : null,
-      amen: clone(amenitiesDraft), prof: clone(profileDraft), hours: clone(hoursDraft) } };
+      amen: clone(amenitiesDraft), prof: clone(profileDraft), hours: clone(hoursDraft), wifi: clone(wifiDraft) } };
     WZ.section = key;
     scAnimate(key, function(){
       renderScope(scope);
@@ -7717,6 +7749,7 @@ var PF = (function(){
       }
       amenitiesDraft = s.amen; profileDraft = s.prof;
       if(s.hours) hoursDraft = s.hours;
+      if(s.wifi) wifiDraft = s.wifi;
     }
     edClose();
   }
@@ -8068,7 +8101,7 @@ var PF = (function(){
   var BKE = null;                  // рабочая копия открытого правила
   var BK_SECTIONS = [
     { key:'bkConfirm',    grp:'Как принимаются брони', title:'Подтверждение заявок' },
-    { key:'bkTiming',     grp:'Как принимаются брони', title:'Длительность и уборка между бронями' },
+    { key:'bkTiming',     grp:'Как принимаются брони', title:'Время брони' },
     { key:'bkCancel',     grp:'Отмена, перенос и прогул', title:'Отмена, перенос и неявка' },
     { key:'bkLastminute', grp:'Продажи и напоминания', title:'Скидка на горящие окна' },
     { key:'bkReminder',   grp:'Продажи и напоминания', title:'Напоминание клиенту' },
@@ -8079,6 +8112,40 @@ var PF = (function(){
     return (h ? h + ' ч' : '') + (h && m ? ' ' : '') + (m || !h ? m + ' мин' : '');
   }
   function chip(cls, t){ return '<span class="sc-chip ' + cls + '">' + esc(t) + '</span>'; }
+  // «Отличается у: …» — у каких пространств и целей своё значение вместо студийного.
+  function diffHtml(items){
+    return items.length ? '<div class="bk-diff">Отличается у: ' + items.map(function(x){
+      return '<b>' + esc(x.who) + '</b> — ' + esc(x.what);
+    }).join('; ') + '</div>' : '';
+  }
+  function hallNm(h){ return h.title || h.name || 'Пространство'; }
+  function timingDiffs(){
+    var out = [];
+    (hallsDraft || []).forEach(function(h){
+      var parts = [];
+      if([15, 30, 60].indexOf(h.slotStepMin) >= 0) parts.push('начало шагом ' + durLabel(h.slotStepMin));
+      if([15, 30, 60].indexOf(h.durationStepMin) >= 0) parts.push('длительность шагом ' + durLabel(h.durationStepMin));
+      if(parts.length) out.push({ who:hallNm(h), what:parts.join(', ') });
+      (h.purposes || []).forEach(function(pp){
+        if(pp.active !== false && Number.isInteger(pp.minBookingMin) && pp.minBookingMin !== settingsDraft.minBookingMin)
+          out.push({ who:hallNm(h) + ' · ' + purposeLabel(pp.code), what:'минимум ' + durLabel(pp.minBookingMin) });
+      });
+    });
+    return out;
+  }
+  function confirmDiffs(){
+    var out = [];
+    (hallsDraft || []).forEach(function(h){
+      (h.purposes || []).forEach(function(pp){
+        if(pp.active !== false && typeof pp.autoConfirm === 'boolean' && pp.autoConfirm !== !!settingsDraft.autoConfirm)
+          out.push({ who:hallNm(h) + ' · ' + purposeLabel(pp.code), what:pp.autoConfirm ? 'сразу' : 'вручную' });
+      });
+    });
+    return out;
+  }
+  // Текст напоминания живёт рядом с его включением; каталог событий — из «Уведомлений» (ntCat).
+  var REM_KEY = 'booking.reminder';
+  function remEvent(){ return ntCat ? ntCat.clientEvents.filter(function(e){ return e.key === REM_KEY; })[0] || null : null; }
 
   // ---------- схемы ----------
   function confirmFlowHtml(auto, debt){
@@ -8141,11 +8208,11 @@ var PF = (function(){
   function bkSummary(key){
     var s = settingsDraft;
     switch(key){
-      case 'bkConfirm': return confirmFlowHtml(s.autoConfirm, s.debtBlocksAutoconfirm);
+      case 'bkConfirm': return confirmFlowHtml(s.autoConfirm, s.debtBlocksAutoconfirm) + diffHtml(confirmDiffs());
       case 'bkTiming':
         return '<div class="bk-line">Бронь от <b>' + esc(durLabel(s.minBookingMin)) + '</b> и дальше шагом <b>' + esc(durLabel(s.durationStep || s.slotStep)) +
           '</b>; начать можно с шагом ' + esc(durLabel(s.slotStep)) + ' (' + ({15:'10:00, 10:15, 10:30…', 30:'10:00, 10:30, 11:00…'}[s.slotStep] || '10:00, 11:00, 12:00…') + ').</div>' +
-          timingBarHtml(s.minBookingMin, s.bufferMin);
+          timingBarHtml(s.minBookingMin, s.bufferMin) + diffHtml(timingDiffs());
       case 'bkCancel': return cancelTimelineHtml(policyDraft, s.noShowFeePct, s.rescheduleFeePct) +
         '<div class="bk-note">Платформа деньги не принимает: суммы по этим правилам записываются клиенту как <b>предложенные</b>. В карточке клиента вы подтверждаете их, отмечаете оплаченными или списываете. Клиент видит эти условия до брони и перед отменой.</div>';
       case 'bkLastminute':
@@ -8155,7 +8222,8 @@ var PF = (function(){
           (r ? ' Например, ' + r + ' → <b>' + Math.round(r * (100 - s.lastminutePct)) / 100 + ' ' + CUR + '/ч</b>.' : '') + ' Пакеты часов не дешевеют.</div>';
       case 'bkReminder':
         return s.reminderEnabled
-          ? '<div class="bk-line">За <b>' + esc(durLabel(s.reminderMinutesBefore)) + '</b> до начала клиент получит сообщение в Telegram с кнопками «Как добраться» и «Вызвать такси». Текст меняется в разделе <button class="linkish" type="button" data-go-notify>«Уведомления»</button>.</div>'
+          ? '<div class="bk-line">За <b>' + esc(durLabel(s.reminderMinutesBefore)) + '</b> до начала клиент получит сообщение в Telegram с кнопками «Как добраться» и «Вызвать такси».</div>' +
+            (remEvent() ? '<div class="nt-prev bk-rem-prev">' + ntPreview(ntDraft.tpl[REM_KEY] || remEvent().defaultTemplate) + '</div>' : '')
           : '<div class="bk-line">Клиенты не получают напоминание перед бронью. Включите — меньше опозданий и прогулов.</div>';
     }
     return '';
@@ -8177,7 +8245,7 @@ var PF = (function(){
   function renderSettings(){ if(!ED.key || ED.scope !== 'booking') renderBookingPage(); }
   $('bkSecs').addEventListener('click', function(e){
     var b = e.target.closest && e.target.closest('[data-sc-edit]');
-    if(b){ BKE = { s:clone(settingsDraft), pol:clone(policyDraft) }; edOpen('booking', b.dataset.scEdit); return; }
+    if(b){ BKE = { s:clone(settingsDraft), pol:clone(policyDraft), remTpl:null }; edOpen('booking', b.dataset.scEdit); return; }
     if(e.target.closest && e.target.closest('[data-go-notify]')) goFolder('notify');
   });
 
@@ -8417,16 +8485,36 @@ var PF = (function(){
   };
 
   WZ_RENDERERS.bkReminder = function(){
-    var s = BKE.s;
+    var s = BKE.s, ev = remEvent();
+    if(ev && BKE.remTpl == null) BKE.remTpl = ntDraft.tpl[REM_KEY] || ev.defaultTemplate;
     $('wzBody').innerHTML =
       frow('Напоминание клиенту', frSeg('bkRemOnSeg', [[0, 'Выключено'], [1, 'Включено']], s.reminderEnabled ? 1 : 0) +
         '<input type="checkbox" id="bkRemOn" hidden' + (s.reminderEnabled ? ' checked' : '') + '>',
         { note:'Сообщение в Telegram с адресом и кнопками «Как добраться» и «Вызвать такси». Приходит только клиентам, вошедшим через Telegram.' }) +
       '<div id="bkRemWrap">' + frow('Когда', frSeg('bkRemSeg', [[30, 'за 30 мин'], [60, 'за 1 ч'], [120, 'за 2 ч'], [180, 'за 3 ч']], s.reminderMinutesBefore) +
-        ' ' + frNum('bkRemMin', s.reminderMinutesBefore, 'мин', ' type="number" min="10" max="180" step="5"')) + '</div>';
+        ' ' + frNum('bkRemMin', s.reminderMinutesBefore, 'мин', ' type="number" min="10" max="180" step="5"')) +
+        (ev ? frow('Текст', '<textarea id="bkRemTpl" class="name" rows="4" maxlength="' + ntCat.templateMax + '">' + esc(BKE.remTpl) + '</textarea>' +
+          '<div class="nt-vars" id="bkRemVars">' + ev.placeholders.map(function(ph){ return '<button type="button" data-var="' + esc(ph) + '">{' + esc(ph) + '}</button>'; }).join('') +
+          '<button type="button" data-reset="1">Стандартный текст</button></div>' +
+          '<div class="nt-prev" id="bkRemPrev">' + ntPreview(BKE.remTpl) + '</div>',
+          { forId:'bkRemTpl', note:'**Двойные звёздочки** — жирный. Значения подставляются вместо слов в фигурных скобках.' }) : '') + '</div>';
     function sync(){ $('bkRemWrap').hidden = !$('bkRemOn').checked; }
     wireSeg('bkRemOnSeg', function(v){ $('bkRemOn').checked = v === '1'; sync(); });
     wireSeg('bkRemSeg', function(v){ $('bkRemMin').value = v; });
+    if(ev){
+      var ta = $('bkRemTpl');
+      ta.addEventListener('input', function(){ BKE.remTpl = ta.value; $('bkRemPrev').innerHTML = ntPreview(ta.value); });
+      $('bkRemVars').addEventListener('click', function(e){
+        var b = e.target.closest('button'); if(!b) return;
+        if(b.dataset.reset){ ta.value = ev.defaultTemplate; }
+        else {
+          var ins = '{' + b.dataset.var + '}', a = ta.selectionStart == null ? ta.value.length : ta.selectionStart, z = ta.selectionEnd == null ? a : ta.selectionEnd;
+          ta.value = ta.value.slice(0, a) + ins + ta.value.slice(z);
+          ta.focus(); ta.setSelectionRange(a + ins.length, a + ins.length);
+        }
+        ta.dispatchEvent(new Event('input', { bubbles:true }));
+      });
+    }
     $('bkRemMin').addEventListener('input', function(){
       var v = parseInt(this.value, 10);
       $('bkRemSeg').querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', Number(x.dataset.v) === v); });
@@ -8438,8 +8526,29 @@ var PF = (function(){
     if(on && !(m >= 10 && m <= 180)) return bad('Напоминание — от 10 до 180 минут до брони', '#bkRemMin');
     var patch = { reminderEnabled: on };
     if(m >= 10 && m <= 180) patch.reminderMinutesBefore = m;
-    return saveSettingsPatch(patch);
+    var ev = remEvent(), tpl = ev && BKE.remTpl != null ? BKE.remTpl : null;
+    if(tpl != null && !tpl.trim()) return bad('Напишите текст напоминания или верните стандартный', '#bkRemTpl');
+    return saveSettingsPatch(patch).then(function(){
+      if(tpl == null || tpl === (ntDraft.tpl[REM_KEY] || ev.defaultTemplate)) return;
+      return saveReminderTemplate(tpl);
+    });
   };
+  // Сохраняем только текст напоминания: остальные (возможно, недосохранённые)
+  // правки раздела «Уведомления» берём из его последнего сохранённого снимка.
+  function saveReminderTemplate(tpl){
+    var base = SV.snaps.notify ? JSON.parse(SV.snaps.notify) : ntNorm();
+    var ev = remEvent(), v = tpl.trim();
+    base.templates = Object.assign({}, base.templates);
+    if(v && v !== ev.defaultTemplate.trim()) base.templates[REM_KEY] = v; else delete base.templates[REM_KEY];
+    return api('PUT', '/admin/notifications', base).then(function(cat){
+      ntCat = cat;
+      var e2 = remEvent();
+      ntDraft.tpl[REM_KEY] = (e2 && (e2.template || e2.defaultTemplate)) || tpl;
+      SV.snaps.notify = JSON.stringify(Object.assign({}, base));
+      svCheck('notify');
+      renderNotify();
+    });
+  }
 
   // ---------- закрыть время ----------
   // «Весь день» — от открытия до закрытия студии в выбранный день.
@@ -8701,9 +8810,10 @@ var PF = (function(){
     $('wzBody').innerHTML =
       (accItems.length ? frow('Доступ', frChips(accItems, h)) : '') +
       frow('Как пройти', frArea('wzAboutAccess', h.aboutAccess, 3, ' maxlength="1000" placeholder="Этаж, куда поворачивать, домофон, кому звонить"'), { forId:'wzAboutAccess' }) +
-      frow('Wi-Fi', '<div class="fr-pair">' + frInput('wzWifiSsid', h.wifiSsid || '', ' maxlength="100" placeholder="Название сети" aria-label="Название сети"') +
+      frow('Свой Wi-Fi', '<div class="fr-pair">' + frInput('wzWifiSsid', h.wifiSsid || '', ' maxlength="100" placeholder="Название сети" aria-label="Название сети"') +
         frInput('wzWifiPassword', h.wifiPassword || '', ' maxlength="100" placeholder="Пароль" aria-label="Пароль Wi-Fi"') + '</div>',
-        { note:'Не публичный: клиент увидит его в «Моих бронях» после подтверждения брони' });
+        { note:'Только если у пространства своя сеть. Пусто — клиент увидит Wi-Fi студии' +
+          (wifiDraft.wifiSsid ? ' («' + esc(wifiDraft.wifiSsid) + '»)' : ' (у студии сеть пока не указана — раздел «Студия»)') + '.' });
     frWireBools(h);
   };
   WZ_SAVERS.access = function(){
@@ -8714,7 +8824,7 @@ var PF = (function(){
     return saveHallsNow();
   };
 
-  // ---------- Парковка и видеонаблюдение (+ общие удобства студии) ----------
+  // ---------- Студия: парковка, правила посещения, удобства и Wi-Fi ----------
   WZ_RENDERERS.parking = function(){
     $('wzBody').innerHTML =
       frow('Парковка', '<span class="seg fr-seg" id="wzParkingYesNo"></span>' +
@@ -8722,13 +8832,7 @@ var PF = (function(){
           '<div class="check-grid" id="wzParking"></div>' +
           '<div class="fr-more">' + frArea('wzParkingText', amenitiesDraft.aboutParking, 2, ' maxlength="1000" placeholder="Как проехать, сколько мест, как открыть шлагбаум" aria-label="Описание парковки"') + '</div>' +
         '</div>', { hint:'Есть ли парковка у студии или рядом' }) +
-      frow('Видеонаблюдение', '<span class="seg fr-seg" id="wzVideoYesNo"></span>' +
-        '<div id="wzVideoWrap" class="fr-more" hidden>' +
-          frArea('wzVideoText', amenitiesDraft.aboutVideoSurveillance, 2, ' maxlength="1000" placeholder="Где камеры, как долго хранится запись" aria-label="Пояснение"') +
-        '</div>', { hint:'Ведётся ли видеозапись в студии' }) +
-      STUDIO_AMENITY_GROUPS.map(function(g){
-        return frow(g.title, '<div class="check-grid">' + g.items.map(function(a){ return checkHtml('data-am', a.f, a.label, amenitiesDraft[a.f]); }).join('') + '</div>');
-      }).join('');
+      '';
 
     var yn = $('wzParkingYesNo');
     function syncParkingWrap(){ $('wzParkingWrap').hidden = amenitiesDraft.parkingAvailable !== true; }
@@ -8750,7 +8854,15 @@ var PF = (function(){
       inp.addEventListener('change', function(){ amenitiesDraft[inp.dataset.park] = inp.checked; });
     });
     $('wzParkingText').addEventListener('input', function(){ amenitiesDraft.aboutParking = this.value; });
-
+  };
+  WZ_RENDERERS.visitRules = function(){
+    $('wzBody').innerHTML =
+      frow('Что можно', '<div class="check-grid">' + STUDIO_AMENITY_GROUPS[1].items.map(function(a){ return checkHtml('data-am', a.f, a.label, amenitiesDraft[a.f]); }).join('') + '</div>',
+        { hint:'Клиент видит это до брони — в разделе «Правила» пространства' }) +
+      frow('Видеонаблюдение', '<span class="seg fr-seg" id="wzVideoYesNo"></span>' +
+        '<div id="wzVideoWrap" class="fr-more" hidden>' +
+          frArea('wzVideoText', amenitiesDraft.aboutVideoSurveillance, 2, ' maxlength="1000" placeholder="Где камеры, как долго хранится запись" aria-label="Пояснение"') +
+        '</div>', { hint:'Ведётся ли видеозапись в студии' });
     var vyn = $('wzVideoYesNo');
     function syncVideoWrap(){ $('wzVideoWrap').hidden = amenitiesDraft.hasVideoSurveillance !== true; }
     function renderVideoYn(){
@@ -8766,13 +8878,33 @@ var PF = (function(){
     }
     renderVideoYn(); syncVideoWrap();
     $('wzVideoText').addEventListener('input', function(){ amenitiesDraft.aboutVideoSurveillance = this.value; });
-
     $('wzBody').querySelectorAll('input[data-am]').forEach(function(inp){
       inp.addEventListener('change', function(){ amenitiesDraft[inp.dataset.am] = inp.checked; });
     });
   };
-  WZ_SAVERS.parking = function(){
+  WZ_RENDERERS.amenities = function(){
+    $('wzBody').innerHTML =
+      frow('Удобства', '<div class="check-grid">' + STUDIO_AMENITY_GROUPS[0].items.map(function(a){ return checkHtml('data-am', a.f, a.label, amenitiesDraft[a.f]); }).join('') + '</div>') +
+      frow('Wi-Fi', '<div class="fr-pair">' + frInput('wzStWifiSsid', wifiDraft.wifiSsid || '', ' maxlength="100" placeholder="Название сети" aria-label="Название сети"') +
+        frInput('wzStWifiPassword', wifiDraft.wifiPassword || '', ' maxlength="100" placeholder="Пароль" aria-label="Пароль Wi-Fi"') + '</div>',
+        { note:'Не публичный: клиент увидит его в «Моих бронях» после подтверждения брони. Если у пространства своя сеть — укажите её в карточке пространства.' });
+    $('wzBody').querySelectorAll('input[data-am]').forEach(function(inp){
+      inp.addEventListener('change', function(){ amenitiesDraft[inp.dataset.am] = inp.checked; });
+    });
+  };
+  function saveAmenities(){
     return api('PUT', '/admin/amenities', amenitiesDraft).then(function(a){ amenitiesDraft = Object.assign({}, a); });
+  }
+  WZ_SAVERS.parking = saveAmenities;
+  WZ_SAVERS.visitRules = saveAmenities;
+  WZ_SAVERS.amenities = function(){
+    var ssid = $('wzStWifiSsid').value.trim(), pass = $('wzStWifiPassword').value.trim();
+    if(pass && !ssid) return bad('Укажите название сети Wi-Fi', '#wzStWifiSsid');
+    // Сеть указана — значит Wi-Fi в студии есть (флажок удобств ставим сами).
+    if(ssid) amenitiesDraft.wifi = true;
+    return saveAmenities().then(function(){
+      return api('PUT', '/admin/wifi', { wifiSsid: ssid || null, wifiPassword: pass || null });
+    }).then(function(w){ wifiDraft = { wifiSsid: w.wifiSsid || '', wifiPassword: w.wifiPassword || '' }; });
   };
 
   // ---------- Фото и видео ----------
