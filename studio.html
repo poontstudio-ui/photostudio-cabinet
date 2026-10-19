@@ -1068,6 +1068,11 @@
   .pm-head b{font-size:var(--fs-md);}
   .pm-head span{font-size:var(--fs-sm);color:var(--text-3);}
   .pm-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}
+  .pm-add{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-top:8px;font-size:var(--fs-sm);color:var(--text-2);}
+  .pm-add-btn{border:1px dashed var(--line-strong);background:none;color:var(--accent);border-radius:var(--r-pill);padding:5px 11px;
+    font:inherit;font-size:var(--fs-sm);cursor:pointer;}
+  .pm-add-btn:hover{background:var(--hover);}
+  .pm-add-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
   .pm-tile{position:relative;text-align:left;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);padding:12px 12px 10px;cursor:pointer;
     display:flex;flex-direction:column;gap:5px;min-width:0;font:inherit;color:inherit;transition:border-color .15s,box-shadow .15s;touch-action:manipulation;}
   .pm-tile:hover{border-color:var(--line-strong);}
@@ -2052,12 +2057,12 @@
     <nav class="nav" id="nav">
       <button class="nav-folder" data-folder="main" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Студия</button>
       <button class="nav-folder" data-folder="halls" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>Пространства</button>
-      <button class="nav-folder" data-folder="booking" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Бронирование</button>
+      <button class="nav-folder" data-folder="booking" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Правила брони</button>
       <button class="nav-folder" data-folder="clients" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>Клиенты</button>
-      <button class="nav-folder" data-folder="equipment" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>Оборудование</button>
+      <button class="nav-folder" data-folder="equipment" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>Допы за плату</button>
       <button class="nav-folder" data-folder="team" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Команда</button>
       <button class="nav-folder" data-folder="notify" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>Уведомления</button>
-      <button class="nav-folder" data-folder="integrations" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Интеграции</button>
+      <button class="nav-folder" data-folder="integrations" type="button" hidden><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Интеграции</button>
     </nav>
     <div class="nav-foot">
       <a class="nav-back" href="./cabinet.html">← Все студии</a>
@@ -2149,7 +2154,7 @@
     </div>
 
     <!-- «Студия» — всё общее для всех залов: название, адрес, парковка и
-         удобства, часы работы (карточка sec-hours ниже, та же папка).
+         удобства, часы работы (карточка studioHours).
          Раньше это правилось изнутри КАЖДОГО пространства и меняло все сразу. -->
     <div class="card" id="sec-studio" data-folder="main" data-owner-only="1">
       <h2>Студия</h2>
@@ -2228,12 +2233,6 @@
       <div class="note" id="bkNote"></div>
     </div>
 
-    <div class="card" id="sec-hours" data-folder="main" data-owner-only="1">
-      <h2>Часы работы</h2>
-      <div class="muted" style="margin-bottom:12px">Закрашенная клетка — рабочий час, тап включает или выключает её. Перерыв — это снятые часы внутри дня; выходной — день без закрашенных клеток. Флажки у строк и столбцов переключают сразу день или час. Свой режим можно задать отдельному пространству — в его карточке.</div>
-      <div id="hoursEd"></div>
-      <div class="note" id="hoursNote"></div>
-    </div>
 
     <div class="card" id="sec-block" data-folder="booking">
       <h2>Закрыть время</h2>
@@ -2340,7 +2339,8 @@
     </div>
 
     <div class="card" id="sec-equip" data-folder="equipment">
-      <h2>Оборудование</h2>
+      <h2>Допы за плату</h2>
+      <div class="muted" style="margin-bottom:12px">Что клиент может взять сверху за отдельную плату. Что входит в аренду бесплатно — в цели пространства.</div>
       <div id="equipEd"></div>
       <div class="actions">
         <button class="btn ghost small" id="equipAdd" type="button">+ Позиция</button>
@@ -3114,7 +3114,7 @@ var PF = (function(){
     if(hasCap) parts.push('до ' + p.capacity + ' чел.');
     if(hasStand) parts.push('стоя ' + p.standingCapacity);
     if(hasSeat) parts.push('сидя ' + p.seatedCapacity);
-    if(eqN) parts.push('оснащение: ' + eqN);
+    if(eqN) parts.push('в аренде: ' + eqN);
     return parts.join(' · ');
   }
 
@@ -3127,6 +3127,7 @@ var PF = (function(){
     {f:'aboutElectrical',label:'Электрика',ph:'Сколько розеток и где они, допустимая мощность, удлинители'},
     {f:'aboutRules',label:'Правила',ph:'Сменная обувь, еда, уборка, что нельзя — своими словами'},
   ];
+  var SHOW_HALL_STYLES = false;   // стиль интерьера пока не показываем ни клиенту, ни в кабинете
   var HALL_STYLES = [
     {v:'loft',label:'Лофт'},{v:'scandi',label:'Скандинавский'},{v:'classic',label:'Классический'},
     {v:'minimal',label:'Минимализм'},{v:'dark',label:'Тёмный'},{v:'industrial',label:'Индустриальный'},
@@ -3622,7 +3623,7 @@ var PF = (function(){
 
     box.innerHTML =
       '<div class="muted" style="font-size:12px;margin-bottom:8px">' +
-        (PG.code ? 'Тарифы назначения «' + esc(purposeLabel(PG.code)) + '».' : 'Базовые тарифы пространства.') +
+        (PG.code ? 'Тарифы цели «' + esc(purposeLabel(PG.code)) + '».' : 'Базовые тарифы пространства.') +
         ' Выделите часы и назначьте им цену. ' +
         'Невыделенные часы считаются по ставке ' + esc(base) + ' ' + CUR + '/ч.</div>' +
       (PG.half ? '<div style="font-size:12px;color:var(--amber);margin-bottom:8px">Прежние тарифы были заданы с получасовыми границами — в сетке они округлены до целых часов. Проверьте цены перед сохранением.</div>' : '') +
@@ -3828,7 +3829,7 @@ var PF = (function(){
   function pmErrors(h, p){
     var e = {}, g = p.guestPricing, model = pmModel(p), cap = pmCap(h, p);
     if(pmRent(p) && !(p.rate > 0 && p.rate <= 100000)){
-      e.rate = model === 'hour' ? 'Укажите цену за час — без неё назначение не показать клиенту' : 'Укажите аренду за час или выберите «Только за гостей»';
+      e.rate = model === 'hour' ? 'Укажите цену за час — без неё цель не показать клиенту' : 'Укажите аренду за час или выберите «Только за гостей»';
     }
     if(p.capacity != null && !(Number.isInteger(p.capacity) && p.capacity >= 1 && p.capacity <= 1000)) e.capacity = 'Гостей максимум — целое от 1 до 1000';
     if(g && g.mode === 'extra'){
@@ -3904,7 +3905,20 @@ var PF = (function(){
     return '<button type="button" class="pm-tile' + (sel ? ' sel' : '') + (p.active === false ? ' off' : '') + '" data-pm-tile="' + x.v + '" aria-expanded="' + sel + '">' + dot +
       '<span class="pm-tile-top"><span class="pm-ic">' + purposeIconSvg(x.v) + '</span><span class="pm-tile-n">' + esc(x.label) + '</span>' + st + '</span>' +
       '<span class="pm-tile-p">' + esc(pmShortPrice(p) || 'цена не указана') + '</span>' +
-      '<span class="pm-tile-m">до ' + gpGuests(pmCap(h, p) || 0) + ' · ' + (n ? 'оснащение: ' + n : 'оснащение не указано') + '</span></button>';
+      '<span class="pm-tile-m">до ' + gpGuests(pmCap(h, p) || 0) + ' · ' + (n ? 'в аренде: ' + n : 'что входит — не указано') + '</span></button>';
+  }
+
+  // Плитки — только у целей, под которые пространство уже сдаётся (и у открытой
+  // сейчас); остальные — одной строкой «Сдавать ещё для: …», а не пустыми плитками.
+  function pmTilesHtml(i){
+    var tiles = [], add = [];
+    HALL_PURPOSE_LIST.forEach(function(x){
+      if(pmCur(i, x.v) || (PM.i === i && PM.code === x.v)) tiles.push(pmTile(i, x)); else add.push(x);
+    });
+    return (tiles.length ? '<div class="pm-tiles" data-pm-tiles>' + tiles.join('') + '</div>' : '') +
+      (add.length ? '<div class="pm-add">' + (tiles.length ? 'Сдавать ещё для:' : 'Сдавать для:') + add.map(function(x){
+        return '<button type="button" class="pm-add-btn" data-pm-tile="' + x.v + '">+ ' + esc(purposeGen(x.v)) + '</button>';
+      }).join('') + '</div>' : '');
   }
 
   // ---------- форма ----------
@@ -4133,7 +4147,7 @@ var PF = (function(){
     [root, sheet].forEach(function(el){
       if(!el) return;
       var p = pmCur(i, PM.code);
-      el.innerHTML = p ? pmClient(i, PM.code) : '<div class="pm-cl-body"><p class="muted" style="margin:40px 0;text-align:center">Назначение не сдаётся — клиент его не видит.</p></div>';
+      el.innerHTML = p ? pmClient(i, PM.code) : '<div class="pm-cl-body"><p class="muted" style="margin:40px 0;text-align:center">Цель не сдаётся — клиент её не видит.</p></div>';
     });
     var cap = document.querySelector('.hall-purposes[data-i="' + i + '"] .pm-pv-h span');
     if(cap) cap.textContent = pmChangedCodes(hallsDraft[i]).indexOf(PM.code) !== -1 ? 'с несохранёнными правками' : 'как сейчас';
@@ -4144,11 +4158,11 @@ var PF = (function(){
     var h = hallsDraft[i];
     var box = document.querySelector('.hall-purposes[data-i="' + i + '"]');
     if(!box) return;
-    if(!h.id){ box.innerHTML = '<div class="pm-head"><b>Для чего сдаёте</b></div><span class="muted">Сохраните пространство, чтобы задать назначения.</span>'; return; }
+    if(!h.id){ box.innerHTML = '<div class="pm-head"><b>Цели и цены</b></div><span class="muted">Сохраните пространство, чтобы задать цели.</span>'; return; }
     if(PMSNAP[h.id] == null) pmSnap(i);
     var open = PM.i === i && PM.code;
-    box.innerHTML = '<div class="pm-head"><b>Для чего сдаёте</b><span>У каждого назначения своя цена и своё оснащение</span></div>' +
-      '<div class="pm-tiles" data-pm-tiles>' + HALL_PURPOSE_LIST.map(function(x){ return pmTile(i, x); }).join('') + '</div>' +
+    box.innerHTML = '<div class="pm-head"><b>Цели и цены</b><span>У каждой цели своя цена и своё «что входит в аренду»</span></div>' +
+      pmTilesHtml(i) +
       (open ? '<div class="pm-work"><div class="pm-ed-wrap">' + pmEditor(i) + '</div>' +
         '<aside class="pm-pv" aria-label="Предпросмотр"><div class="pm-pv-h"><b>Так увидит клиент</b><span></span></div><div class="pm-phone"><div class="pm-phone-in"></div></div></aside></div>' : '');
     if(open){
@@ -4328,7 +4342,7 @@ var PF = (function(){
     if(act === 'unoffer'){
       hallPurposes(h).splice(hallPurposes(h).indexOf(p), 1);
       if(PG.i === i && PG.code === p.code){ PG.i = -1; PG.code = null; }
-      pmRerender(i); pmToast('Назначение уберётся после сохранения'); return;
+      pmRerender(i); pmToast('Цель уберётся после сохранения'); return;
     }
     if(act === 'model'){
       var to = a.dataset.v; if(to === pmModel(p)) return;
@@ -4429,7 +4443,7 @@ var PF = (function(){
       var err = pmApplyGrid(i);
       if(err){ if(n) flash(n, err); return; }
       renderHallPurposes(i);
-      pmToast('Цены по часам применены — сохраните назначение кнопкой внизу');
+      pmToast('Цены по часам применены — сохраните цель кнопкой внизу');
       return;
     }
     api('PUT', '/admin/halls/' + encodeURIComponent(h.id) + '/price-rules', clean)
@@ -4584,7 +4598,7 @@ var PF = (function(){
               '<div class="listing-meta">'+esc(meta)+'</div>' +
               '<div class="listing-rate">'+(hallPriceText(h) ? esc(hallPriceText(h)) : '<span class="muted">цена не указана</span>')+'</div>' +
               '<div class="listing-ready">' + (r.missing.length
-                ? '<span class="sc-chip req">не хватает: '+esc(r.missing.join(', ').toLowerCase())+'</span>'
+                ? '<span class="sc-chip req">не хватает: '+esc(r.missing.join(', '))+'</span>'
                 : '<span class="sc-chip ok">готово на '+r.pct+'%</span>') + '</div>' +
             '</div>' +
           '</button>' +
@@ -4801,15 +4815,8 @@ var PF = (function(){
     sync();
   }
 
-  function renderHours(){
-    var c = $('hoursEd');
-    hgRender(c, hoursDraft, function(){
-      c.querySelectorAll('.fr-err').forEach(function(x){ x.remove(); });
-      $('hoursNote').textContent = '';
-      svCheck('hours');
-    });
-    svSnap('hours');
-  }
+  // Часы студии — карточка раздела «Студия» (studioHours): итог + «Изменить».
+  function renderHours(){ if(typeof renderStudioPage === 'function' && !(ED.scope === 'studio' && ED.key === 'studioHours')) renderStudioPage(); }
   var ST_LABEL = { pending:'ожидает', confirmed:'подтверждена', completed:'завершена',
                    declined:'отклонена', cancelled:'отменена', no_show:'не пришёл' };
   // Действия по текущему состоянию брони: [{p:путь, t:подпись, c:класс}].
@@ -5619,7 +5626,7 @@ var PF = (function(){
       if(b.customerTgLink) rows.push(['Telegram', tgBtnHtml(b.customerTgLink)]);
       else if(!b.customerTelegramId && b.source !== 'cabinet') rows.push(['Telegram', 'нет — сообщения о брони ему не приходят, сообщите по телефону']);
       rows.push(['Гостей', esc(b.people != null ? b.people : '—')]);
-      if(b.purpose) rows.push(['Назначение', esc(purposeLabel(b.purpose))]);
+      if(b.purpose) rows.push(['Цель', esc(purposeLabel(b.purpose))]);
       rows.push(['Комментарий', b.comment ? esc(b.comment) : '—']);
       rows.push(['Сумма', esc(b.price) + ' ' + CUR]);
       // У разобранной брони показываем итог: он мог отличаться от договорной
@@ -6309,7 +6316,7 @@ var PF = (function(){
       if(!(it.price>=0)){ flash($('equipNote'),'Цена — число от 0'); return Promise.reject(new Error('validation')); }
       if(it.unit!=='flat'&&it.unit!=='hour'){ flash($('equipNote'),'Единица — за бронь или за час'); return Promise.reject(new Error('validation')); } }
     return api('PUT','/admin/equipment', equipDraft.map(function(it){ return {id:it.id,name:it.name.trim(),price:it.price,unit:it.unit}; }))
-      .then(function(u){ equipDraft = u.filter(function(e){return e.active!==false;}).map(function(e){return {id:e.id,name:e.name,price:e.price,unit:e.unit};}); renderEquip(); flash($('equipNote'),'Оборудование обновлено',true); })
+      .then(function(u){ equipDraft = u.filter(function(e){return e.active!==false;}).map(function(e){return {id:e.id,name:e.name,price:e.price,unit:e.unit};}); renderEquip(); flash($('equipNote'),'Допы обновлены',true); })
       .catch(function(e){ flash($('equipNote'), e.message); throw e; });
   }
   svRegister('equipment', function(){ return equipDraft; }, saveEquip);
@@ -6340,19 +6347,6 @@ var PF = (function(){
       .then(function(){ $('blkAdd').disabled = false; });
   });
 
-  function saveHours(){
-    if(!hoursDraft.some(function(d){ return d.end > d.start; })){
-      var box = $('hoursEd'), er = document.createElement('div');
-      er.className = 'fr-err'; er.setAttribute('role', 'alert'); er.textContent = 'Отметьте хотя бы один рабочий час';
-      if(!box.querySelector('.fr-err')) box.appendChild(er);
-      flash($('hoursNote'), 'Проверьте отмеченное поле');
-      return Promise.reject(new Error('validation'));
-    }
-    return api('PUT','/admin/hours', hoursDraft.map(hgCopyDay))
-      .then(function(u){ hoursDraft = u.map(hgCopyDay); renderHours(); flash($('hoursNote'),'Часы обновлены',true); })
-      .catch(function(e){ flash($('hoursNote'), e.message); throw e; });
-  }
-  svRegister('hours', function(){ return hoursDraft; }, saveHours);
 
 
   // ---------- Уведомления ----------
@@ -6405,7 +6399,7 @@ var PF = (function(){
       var isRem = e.key === 'booking.reminder';
       h += '<div class="nt-tpl">';
       h += isRem
-        ? '<div><b>' + esc(e.label) + '</b></div><div class="muted">Включить и выбрать время — в «Бронирование → Напоминания».</div>'
+        ? '<div><b>' + esc(e.label) + '</b></div><div class="muted">Включить и выбрать время — в «Правила брони → Напоминание клиенту».</div>'
         : '<label class="nt-ev" style="padding:0"><input type="checkbox" data-off="client.' + esc(e.key) + '"' + (on('client.' + e.key) ? ' checked' : '') + '><b>' + esc(e.label) + '</b></label>';
       h += '<textarea data-tpl="' + esc(e.key) + '" maxlength="' + c.templateMax + '" rows="4">' + esc(ntDraft.tpl[e.key]) + '</textarea>';
       h += '<div class="nt-vars">';
@@ -6472,7 +6466,8 @@ var PF = (function(){
   // ROLE приходит из /api/session/me (membership этой студии) в boot().
   // Администратору прячем разделы владельца; сервер их всё равно не отдаст.
   var ROLE = 'owner';
-  var OWNER_ONLY_FOLDERS = ['main', 'halls', 'equipment', 'team', 'integrations', 'notify'];
+  // «Интеграции» в меню не показываем, пока нет Google Calendar (кнопка с hidden в разметке).
+  var OWNER_ONLY_FOLDERS = ['main', 'halls', 'equipment', 'team', 'notify'];
   function applyRole(role){
     ROLE = role === 'admin' ? 'admin' : 'owner';
     window.PS_ROLE = ROLE;
@@ -7485,14 +7480,16 @@ var PF = (function(){
   // от студии (свой вариант — по желанию).
   var HALL_SECTIONS = [
     {key:'basics',  grp:'Главное', title:'Основное', need:'req',
-      done:function(h){ return !!((h.title || h.name || '').trim() && h.capacity >= 1 && h.hallType); }},
+      done:function(h){ return !!((h.title || h.name || '').trim() && h.capacity >= 1 && h.hallType); },
+      miss:function(h){ return [!(h.title || h.name || '').trim() && 'название', !(h.capacity >= 1) && 'вместимость', !h.hallType && 'тип пространства'].filter(Boolean); }},
     {key:'media',   grp:'Главное', title:'Фото и видео', need:'req',
-      done:function(h){ return (h.photos || []).length >= PHOTOS_MIN; }},
+      done:function(h){ return (h.photos || []).length >= PHOTOS_MIN; },
+      miss:function(h){ var n = (h.photos || []).length; return [n ? 'ещё ' + (PHOTOS_MIN - n) + ' фото (нужно ' + PHOTOS_MIN + ')' : PHOTOS_MIN + ' фото']; }},
     // Не карточка страницы зала: цели и цены — на странице «Пространства»,
     // под карточкой зала (renderHallPurposes). В готовность входят.
-    {key:'pricing', grp:'Главное', title:'Назначения с ценой', need:'req', card:false,
+    {key:'pricing', grp:'Главное', title:'Цель с ценой', need:'req', card:false,
       done:function(h){ return activeHallPurposes(h).some(function(p){ return p.rate > 0 || !gpRentApplies(p.guestPricing); }); }},
-    {key:'describe', grp:'Описание', title:'Удобства, стиль и техника', need:'rec',
+    {key:'describe', grp:'Описание', title:'Удобства и техника', need:'rec',
       done:function(h){ return hallAmenityLabels(h).length >= 3; }},
     {key:'rules',   grp:'Описание', title:'Правила и уборка', need:'rec',
       done:function(h){ return !!((h.aboutRules || '').trim() || (h.aboutCleaning || '').trim()); }},
@@ -7510,6 +7507,8 @@ var PF = (function(){
       done:function(){ return !!((profileDraft.city || '').trim() && (profileDraft.address || '').trim() && profileDraft.lat != null); }},
     {key:'parking', title:'Удобства, парковка и правила студии', need:'rec',
       done:function(){ return amenitiesDraft.parkingAvailable === true || amenitiesDraft.parkingAvailable === false; }},
+    {key:'studioHours', title:'Часы работы', need:'req',
+      done:function(){ return hoursDraft.some(function(d){ return d.end > d.start; }); }},
   ];
   function secState(sec, obj){
     if(sec.need === 'inh') return sec.own(obj) ? 'own' : 'inh';
@@ -7519,15 +7518,29 @@ var PF = (function(){
     ok:'<span class="sc-chip ok">заполнено</span>', req:'<span class="sc-chip req">нужно для публикации</span>',
     rec:'<span class="sc-chip rec">рекомендуем</span>', inh:'<span class="sc-chip inh">как у студии</span>',
     own:'<span class="sc-chip own">своё для пространства</span>' };
+  // missing — что именно не хватает для публикации («тип пространства», «3 фото»);
+  // gaps — то же по разделам [{key, items}], чтобы подсказка вела в нужную карточку.
   function hallReadiness(h){
-    var got = 0, total = 0, missing = [];
+    var got = 0, total = 0, missing = [], gaps = [];
     HALL_SECTIONS.forEach(function(s){
       if(s.need === 'inh') return;
       var w = s.need === 'req' ? 3 : 1;
       total += w;
-      if(s.done(h)) got += w; else if(s.need === 'req') missing.push(s.title);
+      if(s.done(h)) got += w;
+      else if(s.need === 'req'){
+        var items = s.miss ? s.miss(h) : [s.title.toLowerCase()];
+        if(!items.length) items = [s.title.toLowerCase()];
+        missing.push.apply(missing, items);
+        gaps.push({ key:s.key, items:items });
+      }
     });
-    return { pct: Math.round(got * 100 / total), missing: missing };
+    return { pct: Math.round(got * 100 / total), missing: missing, gaps: gaps };
+  }
+  // Подсказка «не хватает: …» кнопками — каждая открывает свою карточку.
+  function readyGapsHtml(r){
+    return r.gaps.map(function(g){
+      return '<button class="linkish" type="button" data-ready-go="' + g.key + '">' + esc(g.items.join(', ')) + '</button>';
+    }).join(', ');
   }
 
   // ---------- сводки ----------
@@ -7579,7 +7592,7 @@ var PF = (function(){
         var am = hallAmenityLabels(h), st = (h.styles || []).map(function(v){ var x = HALL_STYLES.filter(function(s){ return s.v === v; })[0]; return x ? x.label : v; });
         var tech = ['aboutLighting','aboutSound','aboutElectrical'].filter(function(f){ return (h[f] || '').trim(); }).length;
         return (am.length ? esc(am.join(', ')) : emptyLine('Удобства не отмечены')) +
-          (st.length ? '<br>Стиль: ' + esc(st.join(', ')) : '') +
+          (st.length && SHOW_HALL_STYLES ? '<br>Стиль: ' + esc(st.join(', ')) : '') +
           (tech ? '<br>Технические детали: ' + tech + ' из 3' : '');
       case 'rules':
         return ((h.aboutRules || '').trim() ? esc(clip(h.aboutRules, 160)) : emptyLine('Правил нет')) + '<br>' +
@@ -7614,6 +7627,10 @@ var PF = (function(){
         return kvHtml([['Парковка', park, 'не указано — клиенты часто спрашивают'],
           ['Видеозапись', a.hasVideoSurveillance ? 'ведётся' : 'нет'],
           ['Удобства', clip(am.join(', '), 160), 'не отмечены']]);
+      case 'studioHours':
+        var own = hallsDraft.filter(function(h){ return Array.isArray(h.hours); }).map(function(h){ return h.title || h.name; });
+        return kvHtml([['Часы', fmtWeek(hoursDraft), 'не заданы'],
+          ['Свои часы', own.length ? clip(own.join(', '), 160) : '', 'у всех пространств — как у студии']]);
     }
     return '';
   }
@@ -7631,7 +7648,7 @@ var PF = (function(){
     if(ED.key) edCancel();
     ED = { key:key, scope:scope, snap:{
       hall: scope === 'hall' ? clone(wzHall()) : null,
-      amen: clone(amenitiesDraft), prof: clone(profileDraft) } };
+      amen: clone(amenitiesDraft), prof: clone(profileDraft), hours: clone(hoursDraft) } };
     WZ.section = key;
     scAnimate(key, function(){
       renderScope(scope);
@@ -7699,6 +7716,7 @@ var PF = (function(){
         hallsDraft[WZ.hallIndex] = s.hall;
       }
       amenitiesDraft = s.amen; profileDraft = s.prof;
+      if(s.hours) hoursDraft = s.hours;
     }
     edClose();
   }
@@ -7744,8 +7762,13 @@ var PF = (function(){
       '<div class="pv-meta">' + esc(addr.filter(Boolean).join(', ')) + '</div>' +
       '<div class="pv-price">' + (hallPriceText(h) ? esc(hallPriceText(h)) : '<span class="muted">цена не указана</span>') + '</div>' +
       (am.length ? '<div class="pv-tags">' + am.map(function(a){ return '<span>' + esc(a) + '</span>'; }).join('') + '</div>' : '') +
-      (r.missing.length ? '<div class="pv-miss">Пока не хватает: ' + esc(r.missing.join(', ').toLowerCase()) + '</div>' : '') +
+      (r.missing.length ? '<div class="pv-miss">Пока не хватает: ' + esc(r.missing.join(', ')) + '</div>' : '') +
       '</div>';
+  }
+  function hpGoPurposes(){
+    var i = WZ.hallIndex; wzClose();
+    var box = document.querySelector('.hall-purposes[data-i="' + i + '"]');
+    if(box && box.scrollIntoView) box.scrollIntoView({ block:'start' });
   }
   function renderHallPage(){
     var h = wzHall();
@@ -7756,15 +7779,18 @@ var PF = (function(){
       '<div class="sc-bar"><i style="width:' + r.pct + '%"></i></div>' +
       (r.missing.length ? '<span class="sc-chip req">не хватает обязательного</span>' : '<span class="sc-chip ok">всё обязательное есть</span>') + '</div>' +
       '<div class="muted">' + (r.missing.length
-        ? 'Для публикации нужно: ' + esc(r.missing.join(', ').toLowerCase()) + '. Рекомендуемые разделы помогают клиентам выбрать именно это пространство.'
+        ? 'Для публикации нужно: ' + readyGapsHtml(r) + '. Рекомендуемые разделы помогают клиентам выбрать именно это пространство.'
         : 'Рекомендуемые разделы помогают клиентам выбрать именно это пространство.') + '</div>' +
-      '<div class="hp-purp-hint">Цены задаются назначениями пространства — на странице «Пространства». ' +
-        '<button class="linkish" type="button" id="hpToPurposes">Перейти к назначениям</button></div>';
-    $('hpToPurposes').onclick = function(){
-      var i = WZ.hallIndex; wzClose();
-      var box = document.querySelector('.hall-purposes[data-i="' + i + '"]');
-      if(box && box.scrollIntoView) box.scrollIntoView({ block:'start' });
-    };
+      '<div class="hp-purp-hint">Цены задаются целями пространства — на странице «Пространства». ' +
+        '<button class="linkish" type="button" id="hpToPurposes">Перейти к целям</button></div>';
+    $('hpToPurposes').onclick = hpGoPurposes;
+    $('hpReady').querySelectorAll('[data-ready-go]').forEach(function(b){
+      b.onclick = function(){
+        var key = b.dataset.readyGo;
+        if(key === 'pricing'){ hpGoPurposes(); return; }
+        edOpen('hall', key);
+      };
+    });
     if(ED.scope === 'hall') parkEditor();          // карточки перерисуются — редактор вынесем и вернём
     var groups = [];
     HALL_SECTIONS.forEach(function(s){ if(groups.indexOf(s.grp) < 0) groups.push(s.grp); });
@@ -7820,7 +7846,7 @@ var PF = (function(){
         done:ri >= 0, v:hallV, cta:!hallsDraft.length ? 'Добавить' : ri >= 0 ? 'Открыть' : 'Дозаполнить',
         go:function(){ goFolder('halls'); if(!hallsDraft.length) nhOpen(); else wzOpen(ri >= 0 ? ri : 0); } },
       { t:'Часы работы', d:'Когда студия принимает брони. Отдельное пространство может работать по своему расписанию.',
-        done:true, v:fmtWeek(hoursDraft), cta:'Изменить', go:function(){ goFolder('main'); setTimeout(function(){ $('sec-hours').scrollIntoView({ block:'start' }); }, 50); } },
+        done:true, v:fmtWeek(hoursDraft), cta:'Изменить', go:function(){ goFolder('main'); edOpen('studio', 'studioHours'); } },
       { t:'Правила бронирования', d:'Подтверждать ли заявки вручную и какие условия отмены. Стоят разумные значения — проверьте их.',
         done:!!ONB.rulesConfirmedAt, v:rulesSummaryLine(), cta:ONB.rulesConfirmedAt ? 'Изменить' : 'Всё верно',
         go:ONB.rulesConfirmedAt ? function(){ goFolder('booking'); } : confirmRules, alt:ONB.rulesConfirmedAt ? null : 'Изменить' },
@@ -8043,7 +8069,7 @@ var PF = (function(){
   var BK_SECTIONS = [
     { key:'bkConfirm',    grp:'Как принимаются брони', title:'Подтверждение заявок' },
     { key:'bkTiming',     grp:'Как принимаются брони', title:'Длительность и уборка между бронями' },
-    { key:'bkCancel',     grp:'Отмена, перенос и прогул', title:'Условия отмены и переноса' },
+    { key:'bkCancel',     grp:'Отмена, перенос и прогул', title:'Отмена, перенос и неявка' },
     { key:'bkLastminute', grp:'Продажи и напоминания', title:'Скидка на горящие окна' },
     { key:'bkReminder',   grp:'Продажи и напоминания', title:'Напоминание клиенту' },
   ];
@@ -8427,6 +8453,18 @@ var PF = (function(){
   });
 
   // ---------- Название и бренд ----------
+  // Часы работы студии (карточка раздела «Студия»).
+  WZ_RENDERERS.studioHours = function(){
+    $('wzBody').innerHTML = '<div class="muted" style="margin-bottom:12px">Закрашенная клетка — рабочий час, тап включает или выключает её. ' +
+      'Перерыв — это снятые часы внутри дня; выходной — день без закрашенных клеток. Флажки у строк и столбцов переключают сразу день или час. ' +
+      'Свой режим можно задать отдельному пространству — в его карточке.</div><div id="wzStudioHours"></div>';
+    var c = $('wzStudioHours');
+    hgRender(c, hoursDraft, function(){ c.querySelectorAll('.fr-err').forEach(function(x){ x.remove(); }); });
+  };
+  WZ_SAVERS.studioHours = function(){
+    if(!hoursDraft.some(function(d){ return d.end > d.start; })) return bad('Отметьте хотя бы один рабочий час', '#wzStudioHours');
+    return api('PUT','/admin/hours', hoursDraft.map(hgCopyDay)).then(function(u){ hoursDraft = u.map(hgCopyDay); });
+  };
   WZ_RENDERERS.brand = function(){
     $('wzBody').innerHTML =
       frow('Название', frInput('wzBrandName', profileDraft.name, ' maxlength="120" placeholder="Название студии"'), { forId:'wzBrandName', req:true }) +
@@ -8597,7 +8635,7 @@ var PF = (function(){
     return wzComboResolve('wzHallType', 'space_type', h, 'hallType').then(function(){ return saveHallsNow(); });
   };
 
-  // ---------- Удобства, стиль и техника ----------
+  // ---------- Удобства и техника ----------
   WZ_RENDERERS.describe = function(){
     var h = wzHall();
     // Текст «подробнее» стоит в той же строке, что и чипсы темы (Свет — к свету),
@@ -8612,7 +8650,9 @@ var PF = (function(){
       var x = aboutOf(g.title); if(x) used[x.f] = true;
       return frow(g.title, frChips(items, h) + (x ? '<div class="fr-more">' + aboutArea(x) + '</div>' : ''));
     }).join('');
-    if(HALL_PROPS.styles){
+    // «Стиль интерьера» клиентам сейчас не показывается — и владельцу не предлагаем
+    // (сохранённые стили не трогаем: h.styles остаётся как был).
+    if(HALL_PROPS.styles && SHOW_HALL_STYLES){
       html += frow('Стиль интерьера', '<div class="chip-row fr-chips">' + HALL_STYLES.map(function(st){
         var on = (h.styles||[]).indexOf(st.v) !== -1;
         return '<button type="button" class="chip-tog' + (on ? ' on' : '') + '" data-style="' + st.v + '" aria-pressed="' + on + '">' + esc(st.label) + '</button>';
