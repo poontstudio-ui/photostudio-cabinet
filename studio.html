@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ru">
 <head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
@@ -828,6 +829,86 @@
   #wzView{max-width:none;}
   .hp-title{font-size:var(--fs-2xl);font-weight:700;letter-spacing:-.02em;margin:12px 0 14px;}
   .ln-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:28px;align-items:start;}
+  /* ---- Запуск площадки: пошаговый мастер ---- */
+  .ob-steps{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;}
+  .ob-st{display:flex;align-items:center;gap:6px;font:inherit;font-size:var(--fs-xs);color:var(--text-3);padding:4px 10px 4px 4px;border-radius:var(--r-pill);
+    background:var(--surface);border:1px solid var(--line);cursor:pointer;}
+  .ob-st i{font-style:normal;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;background:var(--surface-2);border:1px solid var(--line);font-size:10px;font-weight:600;}
+  .ob-st.done{color:var(--green);} .ob-st.done i{background:var(--green-bg);border-color:var(--green-bg);color:var(--green);}
+  .ob-st.cur{color:var(--accent-dark);border-color:var(--accent);} .ob-st.cur i{background:var(--accent);border-color:var(--accent);color:var(--on-solid);}
+  .ob-st:not([disabled]):hover{border-color:var(--accent);color:var(--accent-dark);}
+  .ob-st[disabled]{cursor:default;}
+  .ob-st:not(.cur):not(.done)[disabled]{opacity:.6;}
+  .ob-wrap{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:22px;align-items:start;}
+  @media (max-width:900px){ .ob-wrap{grid-template-columns:minmax(0,1fr);} }
+  .ob-card{display:flex;flex-direction:column;gap:16px;min-width:0;}
+  .ob-h{margin:0;font-size:var(--fs-2xl);line-height:1.15;letter-spacing:-.01em;text-wrap:balance;}
+  .ob-lead{margin:-6px 0 0;color:var(--text-2);max-width:62ch;}
+  .ob-eyebrow{font-size:var(--fs-xs);font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--accent-dark);margin-bottom:-6px;}
+  .ob-f{display:flex;flex-direction:column;gap:6px;min-width:0;}
+  .ob-f > label,.ob-lbl{font-size:var(--fs-sm);color:var(--text-2);font-weight:500;}
+  .ob-f .name{width:100%;}
+  .ob-help,.ob-note{font-size:var(--fs-xs);color:var(--text-3);margin:0;}
+  .ob-prefilled{font-size:var(--fs-xs);color:var(--green);}
+  .ob-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+  @media (max-width:560px){ .ob-two{grid-template-columns:1fr;} }
+  .ob-price-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+  .ob-chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .ob-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-top:12px;border-top:1px solid var(--line);}
+  .ob-foot .btn:last-child{margin-left:auto;}
+  .ob-msg{font-size:var(--fs-sm);color:var(--red);flex:1;min-width:0;}
+  .ob-warn{font-size:var(--fs-sm);background:var(--amber-bg);color:var(--amber);border-radius:var(--r-sm);padding:8px 12px;}
+  .ob-ok{font-size:var(--fs-sm);background:var(--green-bg);color:var(--green);border-radius:var(--r-sm);padding:8px 12px;}
+  .ob-intro{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+  @media (max-width:640px){ .ob-intro{grid-template-columns:1fr;} }
+  .ob-col{border:1px solid var(--line);border-radius:var(--r-md);padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0;}
+  .ob-col.now{border-color:var(--accent);background:var(--accent-bg);}
+  .ob-col-h{display:flex;align-items:center;gap:8px;font-size:var(--fs-sm);color:var(--text-2);}
+  .ob-badge{font-size:var(--fs-xs);font-weight:700;padding:2px 9px;border-radius:var(--r-pill);background:var(--accent);color:var(--on-solid);}
+  .ob-badge.soft{background:var(--surface-2);color:var(--text-2);border:1px solid var(--line);}
+  .ob-list{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:7px;}
+  .ob-list li::marker{color:var(--accent-dark);font-weight:600;}
+  .ob-list b{display:block;font-weight:600;} .ob-list span{display:block;font-size:var(--fs-xs);color:var(--text-3);}
+  .ob-tags{display:flex;flex-wrap:wrap;gap:6px;}
+  .ob-tags span{font-size:var(--fs-sm);padding:4px 10px;border-radius:var(--r-pill);background:var(--surface-2);border:1px solid var(--line);color:var(--text-2);}
+  .ob-prep{display:flex;flex-direction:column;gap:8px;}
+  .ob-prep-row{display:flex;flex-wrap:wrap;gap:6px;}
+  .ob-prep-row span{font-size:var(--fs-sm);padding:5px 11px;border-radius:var(--r-sm);border:1px dashed var(--line-strong);}
+  .ob-choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;}
+  .ob-choice{text-align:left;font:inherit;color:var(--text);background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r-md);padding:14px;cursor:pointer;display:flex;flex-direction:column;gap:6px;min-height:96px;}
+  .ob-choice svg{width:28px;height:28px;color:var(--accent-dark);}
+  .ob-choice span{font-size:var(--fs-xs);color:var(--text-3);}
+  .ob-choice:hover{border-color:var(--accent);}
+  .ob-choice.on{border-color:var(--accent);background:var(--accent-bg);box-shadow:inset 0 0 0 1px var(--accent);}
+  .ob-opts{display:flex;flex-direction:column;gap:8px;}
+  .ob-opt{display:flex;gap:12px;align-items:flex-start;text-align:left;font:inherit;color:var(--text);background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r-md);padding:12px 14px;cursor:pointer;}
+  .ob-opt > i{width:18px;height:18px;border-radius:50%;border:2px solid var(--line-strong);flex:none;margin-top:1px;}
+  .ob-opt.on{border-color:var(--accent);background:var(--accent-bg);box-shadow:inset 0 0 0 1px var(--accent);}
+  .ob-opt.on > i{border-color:var(--accent);background:radial-gradient(circle,var(--accent) 45%,transparent 50%);}
+  .ob-opt b{display:block;} .ob-opt span span{display:block;font-size:var(--fs-sm);color:var(--text-2);margin-top:2px;}
+  .ob-presets{display:flex;flex-wrap:wrap;gap:6px;}
+  .ob-preset{font:inherit;font-size:var(--fs-sm);border:1px solid var(--line-strong);background:var(--surface);color:var(--text-2);border-radius:var(--r-pill);padding:6px 12px;cursor:pointer;}
+  .ob-preset.on{border-color:var(--accent);background:var(--accent-bg);color:var(--accent-dark);font-weight:600;}
+  .ob-preset.own{border-style:dashed;cursor:default;}
+  .ob-done-row{display:flex;flex-direction:column;gap:4px;border:1px solid var(--line);border-radius:var(--r-md);padding:14px 16px;}
+  .ob-done-row span{font-size:var(--fs-sm);color:var(--text-2);} .ob-done-row .linkish{align-self:flex-start;margin-top:4px;}
+  .ob-check{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:18px;align-items:start;}
+  @media (max-width:640px){ .ob-check{grid-template-columns:1fr;} }
+  .ob-checks{display:flex;flex-direction:column;gap:8px;align-items:flex-start;}
+  .ob-ck{display:flex;gap:8px;align-items:flex-start;font-size:var(--fs-sm);}
+  .ob-ck span{flex:none;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;}
+  .ob-ck.ok span{background:var(--green-bg);color:var(--green);} .ob-ck.no span{background:var(--amber-bg);color:var(--amber);}
+  .ob-client{margin-top:6px;}
+  .ob-share{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;align-items:start;}
+  @media (max-width:560px){ .ob-share{grid-template-columns:1fr;} }
+  .ob-qr{background:#fff;padding:8px;border-radius:var(--r-sm);border:1px solid var(--line);width:max-content;min-width:144px;min-height:144px;}
+  .ob-copy{display:flex;gap:8px;} .ob-copy .name{font-family:var(--f-mono);font-size:var(--fs-sm);}
+  .ob-tpl{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px;font-size:var(--fs-sm);white-space:pre-line;}
+  .ob-side{position:sticky;top:18px;}
+  .ob-panel{border:1px solid var(--line);border-radius:var(--r-md);padding:14px 16px;display:flex;flex-direction:column;gap:8px;background:var(--surface-2);}
+  .ob-panel h3{margin:0;font-size:var(--fs-md);} .ob-panel p{margin:0;font-size:var(--fs-sm);color:var(--text-2);}
+  .ob-kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:var(--fs-sm);margin:0;}
+  .ob-kv dt{color:var(--text-3);} .ob-kv dd{margin:0;}
   /* превью «как увидят клиенты» */
   .pv{position:sticky;top:18px;}
   .pv-t{font-size:var(--fs-xs);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px;}
@@ -2074,7 +2155,7 @@
     <span class="badge" id="sStatus" style="padding:2px 10px 18px"></span>
     <!-- «Запуск студии» — чек-лист до публикации; виден владельцу, пока студия
          не опубликована (syncLaunchNav). Та же механика папки, что у «Дашборда». -->
-    <button class="nav-dashboard nav-launch" id="launchBtn" data-folder="launch" type="button" hidden><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>Запуск студии</button>
+    <button class="nav-dashboard nav-launch" id="launchBtn" data-folder="launch" type="button" hidden><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>Запуск площадки</button>
     <button class="nav-dashboard" id="dashboardBtn" data-folder="dashboard" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Дашборд</button>
     <nav class="nav" id="nav">
       <button class="nav-folder" data-folder="clients" type="button"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>Клиенты</button>
@@ -2176,23 +2257,8 @@
 
     <!-- Запуск студии (0051): что осталось до публикации, по шагам. -->
     <div class="card" id="sec-launch" data-folder="launch">
-      <h2>Запуск студии</h2>
-      <div class="muted" style="margin:-6px 0 18px">Пять шагов — и студия появится в каталоге. Обязательное помечено, остальное можно донастроить потом.</div>
-      <div class="ln-grid">
-        <div>
-          <div class="ln-progress"><div class="sc-bar"><i id="lnBar"></i></div><b id="lnCount"></b></div>
-          <div class="ln-steps" id="lnSteps"></div>
-          <div class="ln-submit">
-            <p id="lnSubmitText"></p>
-            <button class="btn" id="lnSubmit" type="button">Отправить на публикацию</button>
-          </div>
-          <div class="note" id="lnNote"></div>
-        </div>
-        <aside class="pv">
-          <div class="pv-t">Так пространство увидят клиенты</div>
-          <div class="pv-card" id="lnPreview"></div>
-        </aside>
-      </div>
+      <div class="ob-steps" id="obSteps"></div>
+      <div class="ob-wrap"><div class="ob-card" id="obScreen"></div><aside class="ob-side" id="obSide"></aside></div>
     </div>
 
     <!-- «Студия» — всё общее для всех залов: название, адрес, парковка и
@@ -7876,91 +7942,426 @@ var PF = (function(){
     if(b) edOpen('studio', b.dataset.scEdit);
   });
 
-  // ---------- запуск студии: чек-лист до публикации ----------
+  // ---------- Запуск площадки: пошаговый мастер ----------
+  // Новая площадка проходит короткий мастер: одна тема на экран, 1–3 вопроса,
+  // остальное подставляется по типу пространства и видно в панели «Заполнено
+  // за вас». Всё то же самое потом правится в разделах кабинета — мастер пишет
+  // теми же запросами (профиль, пространство и цели, фото, часы, правила).
+  // Шаг и выбранный тип помним в localStorage (ps_onb_<id>); что уже сделано —
+  // считаем по данным площадки, так что вернуться можно с любого устройства.
   function readyHallIndex(){
     for(var i = 0; i < hallsDraft.length; i++){ if(!hallReadiness(hallsDraft[i]).missing.length) return i; }
     return -1;
   }
-  function launchSteps(){
-    var brandOk = STUDIO_SECTIONS[0].done() && STUDIO_SECTIONS[1].done();
-    var ri = readyHallIndex();
-    var h0 = hallsDraft[0];
-    var hallV = !hallsDraft.length ? 'Пространств пока нет'
-      : ri >= 0 ? '«' + (hallsDraft[ri].title || hallsDraft[ri].name) + '» готово'
-      : '«' + (h0.title || h0.name) + '» — готово на ' + hallReadiness(h0).pct + '%. Нужно: ' + hallReadiness(h0).missing.join(', ').toLowerCase();
-    return [
-      { t:'Профиль студии', d:'Название, адрес с меткой на карте и телефон — чтобы клиенты нашли вас.',
-        done:brandOk, v:brandOk ? [profileDraft.name, [profileDraft.city, profileDraft.address].filter(Boolean).join(', ')].filter(Boolean).join(' · ')
-          : 'Нужно: ' + [ (profileDraft.name || '').trim().length >= 2 ? '' : 'название',
-                          (profileDraft.city || '').trim() && (profileDraft.address || '').trim() ? '' : 'город и адрес',
-                          profileDraft.lat != null ? '' : 'метка на карте' ].filter(Boolean).join(', '),
-        cta:brandOk ? 'Изменить' : 'Заполнить', go:function(){ goFolder('main'); } },
-      { t:'Первое пространство', d:'Название и тип, вместимость, ' + PHOTOS_MIN + '+ фото и цена — без этого клиенту нечего бронировать.',
-        done:ri >= 0, v:hallV, cta:!hallsDraft.length ? 'Добавить' : ri >= 0 ? 'Открыть' : 'Дозаполнить',
-        go:function(){ goFolder('halls'); if(!hallsDraft.length) nhOpen(); else wzOpen(ri >= 0 ? ri : 0); } },
-      { t:'Часы работы', d:'Когда студия принимает брони. Отдельное пространство может работать по своему расписанию.',
-        done:true, v:fmtWeek(hoursDraft), cta:'Изменить', go:function(){ goFolder('main'); edOpen('studio', 'studioHours'); } },
-      { t:'Правила бронирования', d:'Подтверждать ли заявки вручную и какие условия отмены. Стоят разумные значения — проверьте их.',
-        done:!!ONB.rulesConfirmedAt, v:rulesSummaryLine(), cta:ONB.rulesConfirmedAt ? 'Изменить' : 'Всё верно',
-        go:ONB.rulesConfirmedAt ? function(){ goFolder('booking'); } : confirmRules, alt:ONB.rulesConfirmedAt ? null : 'Изменить' },
-      { t:'Уведомления', d:'О новых заявках бот пишет вам в Telegram. Тексты для клиентов можно поменять.',
-        done:true, opt:true, v:'Вам — в Telegram · клиентам — стандартные тексты', cta:'Настроить', go:function(){ goFolder('team'); setTimeout(function(){ $('sec-notify').scrollIntoView({ block:'start' }); }, 50); } },
-    ];
-  }
-  function rulesSummaryLine(){
-    var pol = policyDraft || [], first = pol[0], last = pol[pol.length - 1];
-    var conf = settingsDraft.autoConfirm ? 'брони подтверждаются сами' : 'заявки подтверждаете вы';
-    var canc = first && pol.length > 1 ? (first.refundPct >= 100 ? 'отмена бесплатна за ' + first.hoursBefore + ' ч' : 'отмена платная') + ', позже — до ' + (100 - last.refundPct) + '% стоимости'
-      : last ? 'за отмену — до ' + (100 - last.refundPct) + '% стоимости' : '';
-    return [conf, canc].filter(Boolean).join(' · ');
-  }
   function confirmRules(){
-    api('POST', '/admin/onboarding/confirm-rules')
-      .then(function(){ ONB.rulesConfirmedAt = new Date().toISOString(); renderLaunch(); })
-      .catch(function(e){ flash($('lnNote'), e.message); });
+    return api('POST', '/admin/onboarding/confirm-rules').then(function(){ ONB.rulesConfirmedAt = new Date().toISOString(); });
   }
   function goFolder(f){ if(window.PS_SELECT_FOLDER) window.PS_SELECT_FOLDER(f); }
-  var LN_STEPS = [];
-  function renderLaunch(){
-    if(!$('lnSteps') || ROLE !== 'owner') return;
-    var steps = LN_STEPS = launchSteps();
-    var done = steps.filter(function(s){ return s.done; }).length;
-    var firstOpen = -1;
-    steps.forEach(function(s, i){ if(firstOpen < 0 && !s.done) firstOpen = i; });
-    $('lnBar').style.width = Math.round(done * 100 / steps.length) + '%';
-    $('lnCount').textContent = done + ' из ' + steps.length;
-    $('lnSteps').innerHTML = steps.map(function(s, i){
-      return '<div class="ln-step' + (s.done ? ' done' : i === firstOpen ? ' cur' : '') + '">' +
-        '<div class="ln-dot">' + (s.done ? '✓' : i + 1) + '</div>' +
-        '<div class="ln-main"><div class="ln-t">' + esc(s.t) + (s.opt ? ' <span class="muted">· можно позже</span>' : '') + '</div>' +
-          '<div class="ln-d">' + esc(s.d) + '</div><div class="ln-v">' + esc(s.v) + '</div></div>' +
-        '<div class="ln-acts"><button class="btn small' + (i === firstOpen ? '' : ' ghost') + '" type="button" data-ln="' + i + '">' + esc(s.cta) + '</button>' +
-          (s.alt ? '<button class="linkish" type="button" data-ln-alt="' + i + '">' + esc(s.alt) + '</button>' : '') + '</div></div>';
-    }).join('');
-    var ready = steps.every(function(s){ return s.done || s.opt; });
-    var pending = !!ONB.reviewRequestedAt, suspended = ONB.status === 'suspended';
-    $('lnSubmit').disabled = !ready || pending;
-    $('lnSubmit').textContent = pending ? 'Отправлено на проверку' : 'Отправить на публикацию';
-    $('lnSubmitText').innerHTML = pending
-      ? '<b>Студия на проверке.</b> Когда платформа её опубликует, бот напишет вам в Telegram.'
-      : suspended ? '<b>Студия приостановлена платформой.</b> Проверьте шаги выше и отправьте её на публикацию снова.'
-      : ready ? 'Всё обязательное готово. Платформа проверит карточку и опубликует студию — клиенты увидят её в каталоге.'
-      : 'Кнопка станет активной, когда будут готовы обязательные шаги.';
-    var ri = readyHallIndex(), h = hallsDraft[ri >= 0 ? ri : 0];
-    $('lnPreview').innerHTML = h ? hallPreviewHtml(h) : '<div class="pv-body"><div class="muted">Здесь появится карточка первого пространства.</div></div>';
+
+  var OB_TYPES = [
+    { v:'shoot',   label:'Студия для съёмок',   sub:'фото, видео, подкасты',       purposes:['photo'],          min:60,  buf:10, step:60, cap:8,  price:40, hours:'daily',
+      spaceType:'Фотостудия', bizPh:'Студия «Свет»', spacePh:'Белый зал' },
+    { v:'event',   label:'Зал для мероприятий', sub:'дни рождения, банкеты',       purposes:['event'],          min:180, buf:30, step:60, cap:40, price:90, hours:'late',
+      spaceType:'Зал для праздников', bizPh:'Зал «Праздник»', spacePh:'Банкетный зал' },
+    { v:'sauna',   label:'Баня или сауна',      sub:'отдых компанией',             purposes:['leisure'],        min:120, buf:30, step:60, cap:8,  price:60, hours:'late',
+      spaceType:'Баня', bizPh:'Банный двор «Пар»', spacePh:'Русская баня' },
+    { v:'meeting', label:'Переговорная',        sub:'встречи, тренинги',           purposes:['meeting'],        min:60,  buf:0,  step:30, cap:10, price:25, hours:'weekdays',
+      spaceType:'Переговорная в офисе', bizPh:'Коворкинг «Точка»', spacePh:'Переговорная на 10' },
+    { v:'loft',    label:'Лофт под разное',     sub:'съёмки, праздники, встречи',  purposes:['photo','event'],  min:120, buf:15, step:60, cap:25, price:50, hours:'daily',
+      spaceType:'Лофт для мероприятий', bizPh:'Лофт «Кирпич»', spacePh:'Большой зал' },
+    { v:'other',   label:'Другое',              sub:'выберете цели сами',          purposes:[],                 min:60,  buf:10, step:60, cap:10, price:30, hours:'daily',
+      spaceType:'', bizPh:'Название', spacePh:'Название пространства' },
+  ];
+  var OB_ICONS = {
+    shoot:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+    event:'<path d="M8 3c2 2 2 4 0 6M12 3c2 2 2 4 0 6M16 3c2 2 2 4 0 6"/><rect x="4" y="11" width="16" height="9" rx="2"/>',
+    sauna:'<path d="M3 20h18M5 20V10l7-5 7 5v10"/><path d="M10 14c0-1.5 1.5-1.5 1.5-3M13 14c0-1.5 1.5-1.5 1.5-3"/>',
+    meeting:'<rect x="4" y="9" width="16" height="6" rx="1.5"/><path d="M7 15v4M17 15v4M8 6h8"/>',
+    loft:'<path d="M3 21V9l9-6 9 6v12"/><path d="M8 21v-7h8v7M8 11h1M15 11h1"/>',
+    other:'<circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/>',
+  };
+  // Готовые расписания: [с, до] на Пн…Вс (null — выходной).
+  var OB_HOURS = [
+    { v:'daily',    t:'Каждый день 9–22',            days:[[9,22],[9,22],[9,22],[9,22],[9,22],[9,22],[9,22]] },
+    { v:'split',    t:'Будни 10–20, выходные 11–18', days:[[10,20],[10,20],[10,20],[10,20],[10,20],[11,18],[11,18]] },
+    { v:'weekdays', t:'Только будни 9–20',           days:[[9,20],[9,20],[9,20],[9,20],[9,20],null,null] },
+    { v:'late',     t:'Каждый день 12–24',           days:[[12,24],[12,24],[12,24],[12,24],[12,24],[12,24],[12,24]] },
+    { v:'always',   t:'Круглосуточно',               days:[[0,24],[0,24],[0,24],[0,24],[0,24],[0,24],[0,24]] },
+  ];
+  // Условия отмены — три пресета; подробный редактор ступеней остаётся в «Правилах брони».
+  var OB_CANCEL = [
+    { v:'soft',   t:'Мягкие',  s:'За 12 ч — бесплатно, позже — вправе потребовать 30%. Перенос бесплатный, неявка — 50%.',
+      pol:[{ hoursBefore:12, refundPct:100, rescheduleFree:true }, { hoursBefore:0, refundPct:70, rescheduleFree:true }], ns:50, rs:0 },
+    { v:'normal', t:'Обычные', s:'За 24 ч — бесплатно, позже — вправе потребовать 50%. Неявка — 100%, поздний перенос — 25%.',
+      pol:[{ hoursBefore:24, refundPct:100, rescheduleFree:true }, { hoursBefore:0, refundPct:50, rescheduleFree:false }], ns:100, rs:25 },
+    { v:'strict', t:'Строгие', s:'За 72 ч — бесплатно, позже — вправе потребовать 100%. Поздний перенос — 50%.',
+      pol:[{ hoursBefore:72, refundPct:100, rescheduleFree:true }, { hoursBefore:0, refundPct:0, rescheduleFree:false }], ns:100, rs:50 },
+  ];
+  var OB_STEPS = ['Начало', 'Что сдаёте', 'Название и адрес', 'Пространство', 'Фото', 'Часы работы', 'Брони и отмена', 'Проверка', 'Готово'];
+  var OB_KEY = 'ps_onb_' + STUDIO_ID;
+  var OB = (function(){ try{ return JSON.parse(localStorage.getItem(OB_KEY) || 'null') || {}; }catch(e){ return {}; } })();
+  OB.step = OB.step || 0; OB.max = OB.max || 0;
+  var OBD = { title:'', typeText:'', cap:'', purposes:null, prices:{}, hallType:null, confirm:null, cancel:null };   // черновики экранов
+  var ME_PHONE = '';
+  var MINIAPP_URL = 'https://poontstudio-ui.github.io/photostudio-frontend/';
+  var PUBLIC_PAGE_BASE = 'https://api.poont.space/s/';
+  function obSave(){ try{ localStorage.setItem(OB_KEY, JSON.stringify({ step:OB.step, max:OB.max, type:OB.type, appliedType:OB.appliedType,
+    photosLater:OB.photosLater, hoursSet:OB.hoursSet, hoursFor:OB.hoursFor })); }catch(e){} }
+  function obType(){ return OB_TYPES.filter(function(t){ return t.v === OB.type; })[0] || null; }
+  function obHallIdx(){ var ri = readyHallIndex(); return ri >= 0 ? ri : (hallsDraft.length ? 0 : -1); }
+  function obProfileOk(){ return (profileDraft.name || '').trim().length >= 2 && !!(profileDraft.city || '').trim() && !!(profileDraft.address || '').trim() && profileDraft.lat != null; }
+  function obWeekFromHours(){   // hoursDraft по getDay → сетка Пн…Вс
+    return [1,2,3,4,5,6,0].map(function(d){ return hgCells(hoursDraft[d] || { start:0, end:0 }); });
   }
-  $('lnSteps').addEventListener('click', function(e){
-    var b = e.target.closest && e.target.closest('button');
-    if(!b) return;
-    if(b.dataset.ln != null) LN_STEPS[+b.dataset.ln].go();
-    else if(b.dataset.lnAlt != null) goFolder('booking');
+  function obPresetOf(){
+    var w = obWeekFromHours();
+    var p = OB_HOURS.filter(function(x){
+      return x.days.every(function(d, i){ return w[i].every(function(on, h){ return on === (!!d && h >= d[0] && h < d[1]); }); });
+    })[0];
+    return p ? p.v : null;
+  }
+  function obApplyHours(v){
+    var p = OB_HOURS.filter(function(x){ return x.v === v; })[0]; if(!p) return;
+    p.days.forEach(function(d, i){ hoursDraft[(i + 1) % 7] = d ? { start:d[0], end:d[1] } : { start:0, end:0 }; });
+  }
+  function obCancelOf(){
+    var pol = policyDraft || [];
+    var p = OB_CANCEL.filter(function(x){
+      return x.pol.length === pol.length && x.pol.every(function(t, i){ return t.hoursBefore === pol[i].hoursBefore && t.refundPct === pol[i].refundPct; })
+        && x.ns === settingsDraft.noShowFeePct;
+    })[0];
+    return p ? p.v : null;
+  }
+  // Что уже сделано — по данным площадки; дальше этого шага переходить можно сразу.
+  function obDerivedMax(){
+    if(ONB.reviewRequestedAt) return 8;
+    var hi = obHallIdx(), h = hi >= 0 ? hallsDraft[hi] : null;
+    var done = [true, !!OB.type || !!h, obProfileOk(), !!h, !!h && ((h.photos || []).length >= PHOTOS_MIN || !!OB.photosLater),
+      !!OB.hoursSet, !!ONB.rulesConfirmedAt];
+    var k = 0; while(k < done.length && done[k]) k++;
+    return k;
+  }
+  function obReady(){
+    return obProfileOk() && readyHallIndex() >= 0 && hoursDraft.some(function(d){ return d.end > d.start; });
+  }
+
+  // ---- экраны ----
+  function obIntro(){
+    var now = [['Что сдаёте', 'от этого зависят подсказки'], ['Название и адрес', 'чтобы вас нашли'], ['Пространство и цена за час', 'одно, остальные — потом'],
+      ['Фото', 'можно добавить позже'], ['Часы работы', 'готовым вариантом или на сетке'], ['Как принимать брони и отмену', 'выбрать из трёх вариантов']];
+    var later = ['Цены в часы пик', 'Оплата за гостей', 'Пакеты часов', 'Брони по 15 и 30 минут', 'Перерывы в расписании', 'Свои часы у пространства',
+      'Отмена по ступеням', 'Что входит в аренду', 'Допы за плату', 'Скидка на горящие окна', 'Напоминания клиентам', 'Команда и администраторы'];
+    return '<div class="ob-eyebrow">Настройка площадки · около 5 минут</div><h2 class="ob-h">Сначала — главное. Тонко настроите потом</h2>' +
+      '<p class="ob-lead">Сейчас спросим только то, без чего клиент не сможет забронировать. Остальное заполним разумно и покажем, что именно. Всё это можно поменять в кабинете в любой момент.</p>' +
+      '<div class="ob-intro"><div class="ob-col now"><div class="ob-col-h"><span class="ob-badge">Сейчас</span>6 коротких шагов</div><ol class="ob-list">' +
+        now.map(function(x){ return '<li><b>' + esc(x[0]) + '</b><span>' + esc(x[1]) + '</span></li>'; }).join('') + '</ol></div>' +
+      '<div class="ob-col"><div class="ob-col-h"><span class="ob-badge soft">Потом</span>в кабинете, когда понадобится</div><div class="ob-tags">' +
+        later.map(function(x){ return '<span>' + esc(x) + '</span>'; }).join('') + '</div><p class="ob-note">Ничего из этого не нужно, чтобы начать принимать брони.</p></div></div>' +
+      '<div class="ob-prep"><span class="ob-lbl">Пригодится под рукой</span><div class="ob-prep-row"><span>адрес</span><span>цена за час</span><span>' + PHOTOS_MIN + ' фото пространства</span></div></div>';
+  }
+  function obTypeScreen(){
+    return '<h2 class="ob-h">Что вы сдаёте?</h2><p class="ob-lead">От ответа зависят только подсказки и начальные значения — всё можно поменять сейчас или потом.</p>' +
+      '<div class="ob-choices">' + OB_TYPES.map(function(t){
+        return '<button type="button" class="ob-choice' + (OB.type === t.v ? ' on' : '') + '" data-obtype="' + t.v + '" aria-pressed="' + (OB.type === t.v) + '">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + OB_ICONS[t.v] + '</svg>' +
+          '<b>' + esc(t.label) + '</b><span>' + esc(t.sub) + '</span></button>';
+      }).join('') + '</div>';
+  }
+  function obProfileScreen(){
+    var t = obType() || OB_TYPES[5];
+    return '<h2 class="ob-h">Как называется площадка и где она?</h2><p class="ob-lead">Название и адрес увидят клиенты. Метку на карте поставим по адресу — её можно подвинуть на вход.</p>' +
+      '<div class="ob-f"><label for="obName">Название</label><input class="name" id="obName" maxlength="120" placeholder="Например, ' + esc(t.bizPh) + '" value="' + esc(profileDraft.name || '') + '"></div>' +
+      '<div class="ob-two"><div class="ob-f"><label for="obCity">Город</label><input class="name" id="obCity" maxlength="120" placeholder="Минск" value="' + esc(profileDraft.city || '') + '"></div>' +
+        '<div class="ob-f"><label for="obPhone">Телефон для клиентов</label><input class="name" id="obPhone" type="tel" autocomplete="off" value="' + esc(profileDraft.phone || ME_PHONE || '') + '">' +
+        (!profileDraft.phone && ME_PHONE ? '<span class="ob-prefilled">Подставлен из входа — поменяйте, если звонить на другой номер</span>' : '') + '</div></div>' +
+      '<div class="ob-f"><label for="obAddr">Адрес</label><div style="position:relative"><input class="name" id="obAddr" maxlength="200" placeholder="Начните печатать и выберите из списка" autocomplete="off" value="' + esc(profileDraft.address || '') + '">' +
+        '<div id="obAddrSuggest" class="addr-suggest" hidden></div></div>' +
+        '<div class="ob-help" id="obMapHint" hidden>Выберите адрес из подсказок или перетащите метку на карте.</div><div id="obMap" class="fr-map" hidden></div></div>';
+  }
+  function obSpaceScreen(){
+    var t = obType() || OB_TYPES[5], hi = obHallIdx();
+    if(hi >= 0){
+      var h = hallsDraft[hi];
+      return '<h2 class="ob-h">Первое пространство</h2><p class="ob-lead">Оно уже создано. Цены, цели и всё остальное о нём — на странице пространства.</p>' +
+        '<div class="ob-done-row"><b>' + esc(h.title || h.name) + '</b><span>' + esc(hallPriceText(h) || 'цена не указана') + ' · до ' + esc(h.capacity) + ' чел.</span>' +
+        '<button type="button" class="linkish" data-obgo-hall="' + hi + '">Открыть страницу пространства</button></div>';
+    }
+    if(OBD.purposes == null) OBD.purposes = t.purposes.slice();
+    if(!OBD.typeText) OBD.typeText = t.spaceType;
+    var others = HALL_PURPOSE_LIST.filter(function(p){ return OBD.purposes.indexOf(p.v) < 0; });
+    return '<h2 class="ob-h">Первое пространство</h2><p class="ob-lead">Комната или зал, который бронируют. Остальные добавите потом в разделе «Пространства».</p>' +
+      '<div class="ob-f"><label for="obTitle">Название пространства</label><input class="name" id="obTitle" maxlength="120" placeholder="Например, ' + esc(t.spacePh) + '" value="' + esc(OBD.title) + '"></div>' +
+      '<div class="ob-two"><div class="ob-f"><label for="obSpaceType">Тип</label><div style="position:relative"><input class="name" id="obSpaceType" autocomplete="off" placeholder="Начните печатать" value="' + esc(OBD.typeText) + '"><div id="obSpaceTypeSuggest" class="addr-suggest" hidden></div></div></div>' +
+        '<div class="ob-f"><label for="obCap">Сколько человек вмещает</label><span class="unitwrap"><input class="num" id="obCap" type="number" min="1" max="1000" placeholder="' + t.cap + '" value="' + esc(OBD.cap) + '"><span class="u">чел.</span></span></div></div>' +
+      OBD.purposes.map(function(code){
+        var lab = (HALL_PURPOSE_LIST.filter(function(p){ return p.v === code; })[0] || {}).label || code;
+        return '<div class="ob-f"><label for="obPrice-' + code + '">Цена за час — ' + esc(lab.toLowerCase()) + '</label><div class="ob-price-row"><span class="unitwrap"><input class="num" id="obPrice-' + code + '" data-obprice="' + code + '" type="number" min="1" placeholder="' + t.price + '" value="' + esc(OBD.prices[code] || '') + '"><span class="u">' + esc(CUR) + '/ч</span></span>' +
+          (OBD.purposes.length > 1 ? '<button type="button" class="linkish" data-obunpurp="' + code + '">Не сдаю для ' + esc(purposeGen(code)) + '</button>' : '') + '</div></div>';
+      }).join('') +
+      (others.length ? '<div class="ob-f"><span class="ob-lbl">' + (OBD.purposes.length ? 'Сдаю ещё и для:' : 'Для чего сдаёте:') + '</span><div class="ob-chips">' +
+        others.map(function(p){ return '<button type="button" class="pm-add-btn" data-obpurp="' + p.v + '">+ ' + esc(purposeGen(p.v)) + '</button>'; }).join('') + '</div></div>' : '') +
+      '<p class="ob-note">Цены в часы пик, за гостей, пакеты и что входит в аренду — на странице пространства, когда понадобится.</p>';
+  }
+  function obPhotosScreen(){
+    var hi = obHallIdx();
+    if(hi < 0) return '<h2 class="ob-h">Фото пространства</h2><p class="ob-lead">Сначала создайте пространство на прошлом шаге.</p>';
+    var n = (hallsDraft[hi].photos || []).length;
+    return '<h2 class="ob-h">Фото пространства</h2><p class="ob-lead">Нужно хотя бы ' + PHOTOS_MIN + ' фото — без них пространство почти не выбирают. Первое станет обложкой, порядок меняется перетаскиванием.</p>' +
+      '<div class="hall-photos" data-i="' + hi + '"></div>' +
+      (n < PHOTOS_MIN ? '<div><button type="button" class="linkish" id="obPhotosLater">Добавлю позже — дальше без фото</button></div>' +
+        (OB.photosLater ? '<div class="ob-warn">Хорошо. Без ' + PHOTOS_MIN + ' фото отправить на публикацию не получится — напомним в конце.</div>' : '') : '');
+  }
+  function obHoursScreen(){
+    var cur = obPresetOf();
+    return '<h2 class="ob-h">Когда работаете?</h2><p class="ob-lead">Закрашенные клетки — время, когда клиенты смогут бронировать. Выберите готовый вариант или отметьте часы на сетке: клетка — час, флажок у дня или часа — сразу весь ряд. Перерыв — снятые часы внутри дня.</p>' +
+      '<div class="ob-presets">' + OB_HOURS.map(function(h){
+        return '<button type="button" class="ob-preset' + (cur === h.v ? ' on' : '') + '" data-obhours="' + h.v + '">' + esc(h.t) + '</button>';
+      }).join('') + (cur ? '' : '<span class="ob-preset on own">Своё расписание</span>') + '</div>' +
+      '<div id="obHoursGrid"></div><p class="ob-note">У отдельного пространства потом можно задать свои часы — в его карточке.</p>';
+  }
+  function obRulesScreen(){
+    if(OBD.confirm == null) OBD.confirm = ONB.rulesConfirmedAt ? !!settingsDraft.autoConfirm : null;
+    if(OBD.cancel == null) OBD.cancel = obCancelOf() || 'normal';
+    var opt = function(attr, v, on, t, s){ return '<button type="button" class="ob-opt' + (on ? ' on' : '') + '" ' + attr + '="' + v + '" aria-pressed="' + on + '"><i></i><span><b>' + esc(t) + '</b><span>' + esc(s) + '</span></span></button>'; };
+    return '<h2 class="ob-h">Как принимать брони?</h2><p class="ob-lead">Платформа деньги не принимает: оплата — напрямую вам. Здесь — как клиент бронирует и что будет при отмене.</p>' +
+      '<div class="ob-f"><span class="ob-lbl">Когда клиент бронирует</span><div class="ob-opts">' +
+        opt('data-obconfirm', 1, OBD.confirm === true, 'Бронь сразу встаёт в расписание', 'Клиент получает подтверждение мгновенно. Удобно, если расписание всегда актуально.') +
+        opt('data-obconfirm', 0, OBD.confirm === false, 'Сначала подтверждаю я', 'Заявка ждёт вашего ответа до ' + HOLD_HOURS_UI + ' ч, потом истекает и время освобождается.') +
+      '</div></div>' +
+      '<div class="ob-f"><span class="ob-lbl">Условия отмены</span><div class="ob-opts">' +
+        OB_CANCEL.map(function(c){ return opt('data-obcancel', c.v, OBD.cancel === c.v, c.t, c.s); }).join('') +
+      '</div><span class="ob-help">Подробно, по ступеням — в «Правилах брони». Клиент видит условия до брони и перед отменой.</span></div>';
+  }
+  function obCheckScreen(){
+    var hi = obHallIdx(), h = hi >= 0 ? hallsDraft[hi] : null, photos = h ? (h.photos || []).length : 0;
+    var ck = function(ok, t){ return '<div class="ob-ck ' + (ok ? 'ok' : 'no') + '"><span>' + (ok ? '✓' : '!') + '</span>' + esc(t) + '</div>'; };
+    var pend = !!ONB.reviewRequestedAt;
+    return '<h2 class="ob-h">Проверьте, как вас увидят клиенты</h2><p class="ob-lead">Так пространство выглядит в каталоге. Откройте площадку как клиент и попробуйте забронировать — себе бронировать можно и до публикации.</p>' +
+      '<div class="ob-check"><div class="pv-card">' + (h ? hallPreviewHtml(h) : '<div class="pv-body"><div class="muted">Здесь появится карточка пространства.</div></div>') + '</div>' +
+      '<div class="ob-checks">' +
+        ck(obProfileOk(), 'Название, адрес и метка на карте') +
+        ck(!!h && !hallReadiness(h).gaps.some(function(g){ return g.key !== 'media'; }), h ? 'Пространство, тип и цена' : 'Пространство и цена: не создано') +
+        ck(photos >= PHOTOS_MIN, photos >= PHOTOS_MIN ? 'Фото' : 'Фото: нужно ещё ' + (PHOTOS_MIN - photos)) +
+        ck(hoursDraft.some(function(d){ return d.end > d.start; }), 'Часы работы') + ck(!!ONB.rulesConfirmedAt, 'Брони и отмена') +
+        '<a class="btn ghost small ob-client" href="' + esc(MINIAPP_URL + '?tenant=' + encodeURIComponent(STUDIO_ID)) + '" target="_blank" rel="noopener">Открыть как клиент ↗</a>' +
+        (ONB.status === 'suspended' ? '<div class="ob-warn">Площадка приостановлена платформой. Проверьте данные и отправьте её на публикацию снова.</div>' : '') +
+        (pend ? '<div class="ob-ok">Уже отправлено на проверку.</div>'
+          : obReady() ? '<p class="ob-note">После отправки мы проверим площадку — обычно в течение суток — и бот напишет вам в Telegram.</p>'
+          : '<div class="ob-warn">Чтобы отправить на публикацию, закончите отмеченное «!». ' + (photos < PHOTOS_MIN && h ? '<button type="button" class="linkish" data-obstep="4">Добавить фото</button>' : '') + '</div>') +
+      '</div></div>';
+  }
+  function obDoneScreen(){
+    var url = PUBLIC_PAGE_BASE + encodeURIComponent(STUDIO_ID);
+    return '<h2 class="ob-h">' + (ONB.status === 'published' ? 'Площадка опубликована' : 'Площадка на проверке') + '</h2>' +
+      '<p class="ob-lead">' + (ONB.status === 'published' ? 'Клиенты уже видят её в каталоге.' : 'Обычно это занимает до суток — бот напишет в Telegram, когда опубликуем.') + ' А пока подготовьте, как звать своих клиентов.</p>' +
+      '<div class="ob-share"><div id="obQr" class="ob-qr" aria-label="QR-код ссылки на площадку"></div><div class="ob-f" style="gap:10px">' +
+        '<span class="ob-lbl">Ссылка для Instagram, сайта и мессенджеров' + (ONB.status === 'published' ? '' : ' · заработает после публикации') + '</span>' +
+        '<div class="ob-copy"><input class="name" id="obUrl" readonly value="' + esc(url) + '"><button type="button" class="btn ghost" id="obCopy">Копировать</button></div>' +
+        '<span class="ob-lbl">Текст для клиентов</span><div class="ob-tpl">Теперь нас можно забронировать онлайн: выберите время, и бронь сразу придёт нам.\n' + esc(url) + '</div>' +
+      '</div></div>' +
+      '<p class="ob-note">Дальше — кабинет: Дашборд с бронями, настройки пространства (цены по часам, пакеты, что входит в аренду), «Правила брони» и команда.</p>';
+  }
+  var OB_SCREENS = [obIntro, obTypeScreen, obProfileScreen, obSpaceScreen, obPhotosScreen, obHoursScreen, obRulesScreen, obCheckScreen, obDoneScreen];
+
+  function obSide(){
+    var t = obType();
+    if(!t) return '<div class="ob-panel"><h3>Заполнено за вас</h3><p>Здесь появится то, что мы подставим сами по типу пространства: минимальная бронь, уборка, часы. Видно сразу — и всё меняется в кабинете.</p></div>';
+    var pp = OBD.purposes || t.purposes;
+    return '<div class="ob-panel"><h3>Заполнено за вас</h3><p>По типу «' + esc(t.label) + '». Поменять — в кабинете, в любой момент.</p><dl class="ob-kv">' +
+      '<dt>Цели</dt><dd>' + (pp.length ? esc(pp.map(function(c){ return (HALL_PURPOSE_LIST.filter(function(p){ return p.v === c; })[0] || {}).label; }).join(', ')) : 'выберете сами') + '</dd>' +
+      '<dt>Мин. бронь</dt><dd>' + esc(durLabel(t.min)) + '</dd>' +
+      '<dt>Время</dt><dd>' + esc(stepsPhrase(t.step, t.step)) + '</dd>' +
+      '<dt>Уборка</dt><dd>' + (t.buf ? t.buf + ' мин после брони' : 'не нужна') + '</dd>' +
+      '<dt>Часы</dt><dd>' + esc(fmtWeek(hoursDraft)) + '</dd>' +
+      '</dl><p class="ob-note">Уведомления о бронях придут вам в Telegram. Тексты для клиентов — стандартные.</p></div>';
+  }
+
+  // Снаружи (после сохранений в других разделах) экран мастера перерисовываем,
+  // только если в нём сейчас не печатают — иначе пропал бы набранный текст.
+  function renderLaunch(){
+    var ae = document.activeElement, scr = $('obScreen');
+    if(scr && ae && scr.contains(ae) && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return;
+    obRender();
+  }
+  function obRender(){
+    if(!$('obScreen') || ROLE !== 'owner') return;
+    var tt = obType();
+    // Часы — по типу пространства, один раз: их видно на сетке, сохраняются по «Дальше».
+    if(OB.step === 5 && tt && !OB.hoursSet && OB.hoursFor !== tt.v){ obApplyHours(tt.hours); OB.hoursFor = tt.v; }
+    OB.max = Math.max(OB.max, obDerivedMax());
+    if(ONB.reviewRequestedAt && OB.step < 8 && !OB.reviewing) OB.step = 8;
+    if(OB.step > OB.max) OB.step = OB.max;
+    var last = OB.step === OB_STEPS.length - 1, check = OB.step === OB_STEPS.length - 2;
+    $('obSteps').innerHTML = OB_STEPS.map(function(t, i){
+      var reach = i <= OB.max && !(i === OB_STEPS.length - 1 && !ONB.reviewRequestedAt);
+      return '<button type="button" class="ob-st' + (i === OB.step ? ' cur' : i < OB.max ? ' done' : '') + '" data-obstep="' + i + '"' +
+        (reach && i !== OB.step ? '' : ' disabled') + (i === OB.step ? ' aria-current="step"' : '') + '><i>' + (i !== OB.step && i < OB.max ? '✓' : i + 1) + '</i>' + esc(t) + '</button>';
+    }).join('');
+    var nextLabel = check ? (ONB.reviewRequestedAt ? 'Дальше' : 'Отправить на публикацию') : OB.step === 0 ? 'Начать' : 'Дальше';
+    $('obScreen').innerHTML = OB_SCREENS[OB.step]() +
+      '<div class="ob-foot">' + (OB.step > 0 ? '<button type="button" class="btn ghost" id="obBack">Назад</button>' : '<span class="ob-note">Можно выйти на любом шаге — продолжите с того же места.</span>') +
+        '<span class="ob-msg" id="obMsg" role="alert"></span>' +
+        (last ? '<button type="button" class="btn" id="obToDash">Перейти на Дашборд</button>'
+          : '<button type="button" class="btn" id="obNext"' + (check && !ONB.reviewRequestedAt && !obReady() ? ' disabled' : '') + '>' + nextLabel + '</button>') + '</div>';
+    $('obSide').innerHTML = obSide();
+    obWire();
+    obSave();
+  }
+  function obMsg(t){ var m = $('obMsg'); if(m) m.textContent = t || ''; }
+
+  function obWire(){
+    var scr = $('obScreen');
+    var all = function(sel){ return scr.querySelectorAll(sel); };
+    all('[data-obtype]').forEach(function(b){ b.onclick = function(){
+      if(OB.type !== b.dataset.obtype){ OB.type = b.dataset.obtype; OBD.purposes = null; OBD.typeText = ''; OB.hoursSet = false; }
+      obRender(); }; });
+    if($('obAddr')){
+      wzAddrHelper({ addr:'obAddr', box:'obAddrSuggest', map:'obMap', mapHint:'obMapHint' }, profileDraft);
+      PF.attach($('obPhone'), { iso: profileDraft.country || 'BY' }); PF.setValue($('obPhone'), $('obPhone').value);
+    }
+    if($('obSpaceType')){
+      loadDict('space_type');
+      wzComboHelper({ input:'obSpaceType', box:'obSpaceTypeSuggest' }, 'space_type', OBD, 'hallType');
+      // Тип — по выбору на шаге «Что сдаёте»: если он есть в справочнике, берём его код,
+      // иначе оставляем текст (новое слово заведётся при сохранении). Помощник
+      // подсказок при подключении и после загрузки справочника поле переписывает — возвращаем.
+      var obTypeFill = function(){
+        var el = $('obSpaceType'); if(!el || OBD.hallType || document.activeElement === el) return;
+        var hit = (DICT_CACHE.space_type || []).find(function(d){ return (d.labelRu || '').toLowerCase() === (OBD.typeText || '').toLowerCase(); });
+        if(hit) OBD.hallType = hit.code;
+        el.value = hit ? hit.labelRu : OBD.typeText;
+      };
+      obTypeFill(); loadDict('space_type').then(obTypeFill);
+      $('obSpaceType').addEventListener('input', function(){ OBD.typeText = this.value; OBD.hallType = null; });
+      $('obTitle').oninput = function(){ OBD.title = this.value; };
+      $('obCap').oninput = function(){ OBD.cap = this.value; };
+    }
+    all('[data-obprice]').forEach(function(i){ i.oninput = function(){ OBD.prices[i.dataset.obprice] = i.value; }; });
+    all('[data-obpurp]').forEach(function(b){ b.onclick = function(){ OBD.purposes.push(b.dataset.obpurp); obRender(); }; });
+    all('[data-obunpurp]').forEach(function(b){ b.onclick = function(){ OBD.purposes = OBD.purposes.filter(function(c){ return c !== b.dataset.obunpurp; }); obRender(); }; });
+    all('[data-obgo-hall]').forEach(function(b){ b.onclick = function(){ goFolder('halls'); wzOpen(+b.dataset.obgoHall); }; });
+    var ph = scr.querySelector('.hall-photos[data-i]'); if(ph) renderHallPhotos(+ph.dataset.i);
+    if($('obPhotosLater')) $('obPhotosLater').onclick = function(){ OB.photosLater = true; obRender(); };
+    if($('obHoursGrid')){
+      hgRender($('obHoursGrid'), hoursDraft, function(){ obHoursMarks(); $('obSide').innerHTML = obSide(); });
+    }
+    all('[data-obhours]').forEach(function(b){ b.onclick = function(){ obApplyHours(b.dataset.obhours); obRender(); }; });
+    all('[data-obconfirm]').forEach(function(b){ b.onclick = function(){ OBD.confirm = b.dataset.obconfirm === '1'; obRender(); }; });
+    all('[data-obcancel]').forEach(function(b){ b.onclick = function(){ OBD.cancel = b.dataset.obcancel; obRender(); }; });
+    if($('obCopy')) $('obCopy').onclick = function(){
+      var v = $('obUrl').value, btn = this;
+      (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject()).then(function(){ btn.textContent = 'Скопировано'; }, function(){ $('obUrl').select(); });
+    };
+    obDrawQr(0);
+    if($('obBack')) $('obBack').onclick = function(){ OB.step--; obRender(); window.scrollTo(0, 0); };
+    if($('obToDash')) $('obToDash').onclick = function(){ goFolder('dashboard'); };
+    if($('obNext')) $('obNext').onclick = obNext;
+  }
+  // QR ссылки на площадку. Библиотека грузится отложенно — если её ещё нет, ждём немного.
+  function obDrawQr(tries){
+    var box = $('obQr'); if(!box || box.childNodes.length) return;
+    if(window.QRCode){ new QRCode(box, { text: $('obUrl').value, width:128, height:128, colorDark:'#111111', colorLight:'#ffffff' }); return; }
+    if(tries < 30) setTimeout(function(){ obDrawQr(tries + 1); }, 300);
+  }
+  // Сетка правит hoursDraft на месте — переключаем только подсветку вариантов.
+  function obHoursMarks(){
+    var cur = obPresetOf(), pr = $('obScreen').querySelector('.ob-presets'); if(!pr) return;
+    pr.querySelectorAll('[data-obhours]').forEach(function(b){ b.classList.toggle('on', b.dataset.obhours === cur); });
+    var own = pr.querySelector('.own');
+    if(!cur && !own) pr.insertAdjacentHTML('beforeend', '<span class="ob-preset on own">Своё расписание</span>');
+    if(cur && own) own.remove();
+  }
+  $('obSteps').addEventListener('click', function(e){
+    var b = e.target.closest('[data-obstep]'); if(!b || b.disabled) return;
+    OB.step = +b.dataset.obstep; obRender(); window.scrollTo(0, 0);
   });
-  $('lnSubmit').addEventListener('click', function(){
-    $('lnSubmit').disabled = true;
-    api('POST', '/admin/submit-review')
-      .then(function(r){ ONB.reviewRequestedAt = r.reviewRequestedAt; renderLaunch(); syncStudioStatusBadge(); })
-      .catch(function(e){ flash($('lnNote'), e.message); renderLaunch(); });
+  $('obScreen').addEventListener('click', function(e){
+    var b = e.target.closest('[data-obstep]'); if(!b) return;
+    OB.step = +b.dataset.obstep; obRender(); window.scrollTo(0, 0);
   });
+
+  // Действие «Дальше» на каждом шаге: сохраняем то, что спросили, и идём дальше.
+  function obAction(){
+    var t = obType();
+    switch(OB.step){
+      case 1:
+        if(!t) return Promise.reject(new Error('Выберите, что вы сдаёте'));
+        if(OB.appliedType === t.v) return Promise.resolve();
+        // Начальные значения по типу: уборка и шаги времени — в правила брони площадки.
+        return saveSettingsPatch({ bufferMin:t.buf, slotStepMin:t.step, durationStepMin:t.step, minBookingMin:60 })
+          .then(function(){ OB.appliedType = t.v; });
+      case 2:
+        var name = $('obName').value.trim(), city = $('obCity').value.trim(), addr = $('obAddr').value.trim();
+        if(name.length < 2) return Promise.reject(new Error('Название — хотя бы 2 символа'));
+        if(city.length < 2) return Promise.reject(new Error('Укажите город'));
+        if(!addr) return Promise.reject(new Error('Укажите адрес'));
+        if(profileDraft.lat == null) return Promise.reject(new Error('Выберите адрес из подсказок — так мы поставим метку на карте'));
+        var payload = { name:name, city:city, address:addr, phone:PF.e164($('obPhone')), country:profileDraft.country || 'BY', lat:profileDraft.lat, lon:profileDraft.lon };
+        return api('PUT', '/admin/profile', payload).then(function(u){
+          profileDraft.name = u.name || name; profileDraft.city = u.city || ''; profileDraft.address = u.address || '';
+          profileDraft.phone = u.phone || ''; profileDraft.lat = Number.isFinite(u.lat) ? u.lat : profileDraft.lat; profileDraft.lon = Number.isFinite(u.lon) ? u.lon : profileDraft.lon;
+          $('sName').textContent = profileDraft.name; setPageHead(profileDraft.name, profileDraft.city, profileDraft.address);
+        });
+      case 3:
+        if(obHallIdx() >= 0) return Promise.resolve();
+        return obCreateHall(t);
+      case 4:
+        var hi = obHallIdx(), n = hi >= 0 ? (hallsDraft[hi].photos || []).length : 0;
+        if(n < PHOTOS_MIN && !OB.photosLater) return Promise.reject(new Error('Добавьте ещё ' + (PHOTOS_MIN - n) + ' фото или нажмите «Добавлю позже»'));
+        return Promise.resolve();
+      case 5:
+        return WZ_SAVERS.studioHours().then(function(){ OB.hoursSet = true; });
+      case 6:
+        if(OBD.confirm == null) return Promise.reject(new Error('Выберите, как принимать брони'));
+        var c = OB_CANCEL.filter(function(x){ return x.v === OBD.cancel; })[0];
+        return saveSettingsPatch({ autoConfirm:OBD.confirm, cancelPolicy:c.pol, noShowFeePct:c.ns, rescheduleFeePct:c.rs }).then(confirmRules);
+      case 7:
+        if(ONB.reviewRequestedAt){ OB.reviewing = true; return Promise.resolve(); }
+        return api('POST', '/admin/submit-review').then(function(r){ ONB.reviewRequestedAt = r.reviewRequestedAt; syncStudioStatusBadge(); });
+    }
+    return Promise.resolve();
+  }
+  function obNext(){
+    var btn = $('obNext'); btn.disabled = true; obMsg('');
+    // Сначала — тип пространства: из поля «Тип» в словарь (новое слово заведётся само).
+    var pre = OB.step === 3 && obHallIdx() < 0 && $('obSpaceType') && $('obSpaceType').value.trim() ? wzComboResolve('obSpaceType', 'space_type', OBD, 'hallType') : Promise.resolve();
+    pre.then(obAction).then(function(){
+      OB.step++; OB.max = Math.max(OB.max, OB.step); obRender(); window.scrollTo(0, 0);
+    }).catch(function(e){ btn.disabled = false; obMsg((e && e.message) || 'Не получилось сохранить — попробуйте ещё раз'); });
+  }
+  // Пространство и его цели — теми же запросами, что «Новое пространство».
+  // Минимальная бронь по типу (баня — от 2 ч) — у цели: у площадки минимум до 1 ч.
+  function obCreateHall(t){
+    var title = ($('obTitle').value || '').trim(), cap = parseInt($('obCap').value, 10);
+    if(title.length < 2) return Promise.reject(new Error('Введите название пространства'));
+    if(!OBD.hallType) return Promise.reject(new Error('Укажите тип пространства — например, «баня» или «переговорная»'));
+    if(!(cap >= 1 && cap <= 1000)) return Promise.reject(new Error('Вместимость — от 1 до 1000 человек'));
+    if(!OBD.purposes.length) return Promise.reject(new Error('Выберите, для чего сдаёте пространство'));
+    var bad = OBD.purposes.filter(function(c){ var r = Number(OBD.prices[c]); return !(r > 0 && r <= 100000); })[0];
+    if(bad) return Promise.reject(new Error('Укажите цену за час для ' + purposeGen(bad)));
+    var rate = Math.min.apply(null, OBD.purposes.map(function(c){ return Number(OBD.prices[c]); }));
+    var before = hallsDraft.map(function(h){ return h.id; });
+    var nh = mapHall({ name:title, title:title, capacity:cap, rate:rate, hallType:OBD.hallType });
+    hallsDraft.push(nh);
+    return saveHallsNow().then(function(){
+      var idx = -1;
+      hallsDraft.forEach(function(h, i){ if(before.indexOf(h.id) < 0) idx = i; });
+      if(idx < 0) throw new Error('Пространство сохранено, но не найдено — обновите страницу');
+      var h = hallsDraft[idx];
+      var clean = OBD.purposes.map(function(c){
+        var p = { code:c, active:true, rate:Number(OBD.prices[c]) };
+        if(t && t.min > 60) p.minBookingMin = t.min;
+        return p;
+      });
+      return api('PUT', '/admin/halls/' + encodeURIComponent(h.id) + '/purposes', clean)
+        .then(function(res){ h.purposes = Array.isArray(res.purposes) ? res.purposes : clean; })
+        .catch(function(e){ throw new Error('Пространство создано, но цены не сохранились: ' + e.message + '. Задайте их на странице пространства.'); });
+    }).catch(function(e){
+      var k = hallsDraft.indexOf(nh); if(k >= 0 && !nh.id) hallsDraft.splice(k, 1);
+      throw e;
+    });
+  }
+
   // Запуск студии виден владельцу, пока студия не опубликована.
   function syncLaunchNav(){
     var b = document.querySelector('.nav-dashboard[data-folder="launch"]');
@@ -8000,9 +8401,9 @@ var PF = (function(){
     var b = $('nhBody');
     if(NH.step === 0){
       b.innerHTML = '<h2>Что это за пространство</h2><p class="nh-lead">Главное о пространстве. Остальное — описание, удобства, правила — заполните потом в его карточке.</p>' +
-        '<label class="nh-f" for="nhTitle">Название пространства</label><input class="name" id="nhTitle" maxlength="120" placeholder="Например, Белая циклорама" value="' + esc(d.title) + '">' +
+        '<label class="nh-f" for="nhTitle">Название пространства</label><input class="name" id="nhTitle" maxlength="120" placeholder="Например, Большой зал" value="' + esc(d.title) + '">' +
         '<div class="nh-hint">Так пространство будет подписано в каталоге и в сетке броней.</div>' +
-        '<label class="nh-f" for="nhType">Тип пространства</label><div style="position:relative"><input class="name" id="nhType" placeholder="Начните печатать — фотостудия, лофт…" autocomplete="off"><div id="nhTypeSuggest" class="addr-suggest" hidden></div></div>' +
+        '<label class="nh-f" for="nhType">Тип пространства</label><div style="position:relative"><input class="name" id="nhType" placeholder="Начните печатать — зал, баня, переговорная…" autocomplete="off"><div id="nhTypeSuggest" class="addr-suggest" hidden></div></div>' +
         '<div class="nh-two"><div><label class="nh-f" for="nhCap">Вместимость</label><span class="unitwrap"><input class="num" type="number" min="1" max="1000" id="nhCap" value="' + esc(d.capacity) + '"><span class="u">чел.</span></span></div>' +
         '<div><label class="nh-f" for="nhArea">Площадь <span class="muted">· необязательно</span></label><span class="unitwrap"><input class="num" type="number" min="1" id="nhArea" value="' + esc(d.area) + '"><span class="u">м²</span></span></div></div>';
       wzComboHelper({ input:'nhType', box:'nhTypeSuggest' }, 'space_type', d, 'hallType');
@@ -9054,6 +9455,7 @@ var PF = (function(){
     meApi()
       .then(function(me){
         (me.memberships || []).forEach(function(m){ if(m.studioId === STUDIO_ID) membership = m; });
+        ME_PHONE = (me.user && me.user.phone) || '';
         if(!membership){ var e = new Error('not a member'); e.status = 403; throw e; }
         applyRole(membership.role);
         return api('GET','/config');
