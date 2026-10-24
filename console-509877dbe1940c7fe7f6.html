@@ -117,7 +117,7 @@
     <a class="back" href="./cabinet.html">←</a>
     <h1>Кабинет платформы</h1>
   </div>
-  <div class="sub">Дашборд и модерация студий</div>
+  <div class="sub">Дашборд и модерация площадок</div>
 
   <div id="loading" class="card"><span class="muted">Загрузка…</span></div>
   <div id="denied" class="card" hidden><span class="err" id="deniedMsg"></span></div>
@@ -131,7 +131,7 @@
     <div class="card">
       <h2>По городам</h2>
       <div class="scroll"><table id="cityTable">
-        <thead><tr><th>Город</th><th class="num">Студий</th><th class="num">Активных броней</th></tr></thead>
+        <thead><tr><th>Город</th><th class="num">Площадок</th><th class="num">Активных броней</th></tr></thead>
         <tbody></tbody>
       </table></div>
     </div>
@@ -190,7 +190,7 @@
     </div>
 
     <div class="card">
-      <h2>Студии <span class="muted" id="studioCount"></span></h2>
+      <h2>Площадки <span class="muted" id="studioCount"></span></h2>
       <div class="filters">
         <input type="search" id="sQ" placeholder="Название, город, адрес или id">
         <select id="sStatus">
@@ -202,7 +202,7 @@
       </div>
       <div class="scroll"><table id="studioTable">
         <thead><tr>
-          <th>Студия</th><th>Статус</th><th class="num">Пространства</th><th class="num">Брони</th><th class="num">Команда</th><th>Действия</th>
+          <th>Площадка</th><th>Статус</th><th class="num">Пространства</th><th class="num">Брони</th><th class="num">Команда</th><th>Действия</th>
         </tr></thead>
         <tbody></tbody>
       </table></div>
@@ -322,7 +322,7 @@
         '<td><a href="./studio.html?id=' + encodeURIComponent(s.id) + '">' + esc(s.name || s.id) + '</a>' +
           '<div class="muted">' + esc(s.city || '') + '</div></td>' +
         '<td><span class="badge ' + esc(s.status) + '">' + esc(STATUS_RU[s.status] || s.status) + '</span>' +
-          (s.reviewRequestedAt ? ' <span class="badge sending" title="Владелец отправил студию на публикацию">ждёт проверки</span>' : '') + '</td>' +
+          (s.reviewRequestedAt ? ' <span class="badge sending" title="Владелец отправил площадку на публикацию">ждёт проверки</span>' : '') + '</td>' +
         '<td class="num">' + esc(s.halls) + '</td>' +
         '<td class="num">' + esc(s.activeBookings) + '</td>' +
         '<td class="num">' + esc(s.members) + '</td>' +
@@ -332,7 +332,7 @@
         var btn = document.createElement('button');
         btn.className = 'btn ' + a.c; btn.textContent = a.t;
         btn.addEventListener('click', function(){
-          if(!confirm('Студия «' + (s.name || s.id) + '» → ' + (STATUS_RU[a.s] || a.s) + '?')) return;
+          if(!confirm('Площадка «' + (s.name || s.id) + '» → ' + (STATUS_RU[a.s] || a.s) + '?')) return;
           cell.querySelectorAll('button').forEach(function(x){ x.disabled = true; });
           api('POST', '/api/platform/studios/' + encodeURIComponent(s.id) + '/status', { status: a.s })
             .then(function(){ $('modNote').textContent = '«' + (s.name || s.id) + '» → ' + (STATUS_RU[a.s] || a.s); load(true); })
