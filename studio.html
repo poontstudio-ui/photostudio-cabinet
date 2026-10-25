@@ -451,8 +451,19 @@
       var r = o.range(), k = o.startK(key), d = o.durK(key);
       var top = (fixedLen() == null && sel.want != null) ? Math.max(len, Math.round(sel.want / o.slotMin())) : len;
       var lens = [];
-      for(var n = top; n > len; n -= d) lens.push(n);
-      lens.push(len);
+      if(key !== sel.key && fixedLen() == null){
+        // Другой столбец — другие минимум и шаг: длину подгоняем под его сетку
+        // (2:30 при минимуме 1 ч и шаге 1 ч → 3 ч, а не жёлтый блок), потом ступенями короче.
+        var a0 = Math.max(Math.ceil(r.start / k) * k, Math.min(Math.floor((slot - grab) / k) * k, r.end - top));
+        var m = o.minSlots(key, a0), f = fit(key, a0, top);
+        while(f > m && f > o.maxSlots()) f -= d;
+        var lo = len <= m ? m : m + Math.floor((len - m) / d) * d;
+        for(var q = f; q >= lo; q -= d) lens.push(q);
+        if(!lens.length) lens.push(f);
+      } else {
+        for(var n = top; n > len; n -= d) lens.push(n);
+        lens.push(len);
+      }
       for(var i = 0; i < lens.length; i++){
         var a = Math.floor((slot - grab) / k) * k;
         a = Math.max(Math.ceil(r.start / k) * k, Math.min(a, r.end - lens[i]));
