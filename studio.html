@@ -8015,7 +8015,7 @@ var PF = (function(){
   var OBD = { title:'', typeText:'', cap:'', purposes:null, prices:{}, hallType:null, confirm:null, cancel:null };   // черновики экранов
   var ME_PHONE = '';
   var MINIAPP_URL = 'https://poontstudio-ui.github.io/photostudio-frontend/';
-  var PUBLIC_PAGE_BASE = 'https://studio.poont.space/s/';   // тот же сервер, что api.*; адрес для людей, он же canonical страницы
+  var PUBLIC_PAGE_BASE = 'https://poont.space/s/';   // короткий адрес; /s/* отдаёт тот же сервер через Cloudflare
   function obSave(){ try{ localStorage.setItem(OB_KEY, JSON.stringify({ step:OB.step, max:OB.max, type:OB.type, appliedType:OB.appliedType,
     photosLater:OB.photosLater, hoursSet:OB.hoursSet, hoursFor:OB.hoursFor })); }catch(e){} }
   function obType(){ return OB_TYPES.filter(function(t){ return t.v === OB.type; })[0] || null; }
