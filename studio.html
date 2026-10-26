@@ -1108,6 +1108,17 @@
   .fr-unit .fr-num{width:120px;}
   .fr-unit > span{font-size:var(--fs-sm);color:var(--text-3);}
   .fr-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  /* Посуточный режим (0065): сезоны — строками, у каждой своё × */
+  .nt-line{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:var(--fs-sm);color:var(--text-2);}
+  .nt-line .fr-in{width:auto;}
+  .nt-line .fr-num{width:84px;}
+  .nt-seasons{display:flex;flex-direction:column;gap:8px;}
+  .nt-season{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface-2);font-size:var(--fs-sm);color:var(--text-2);}
+  .nt-season .nt-sn{width:170px;}
+  .nt-season .nt-sd{width:68px;text-align:center;}
+  .nt-season .fr-num{width:76px;}
+  .nt-season .nt-x{margin-left:auto;border:none;background:none;color:var(--text-3);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;border-radius:6px;}
+  .nt-season .nt-x:hover{color:var(--red);}
   .fr-hours{display:inline-flex;flex-wrap:wrap;align-items:center;gap:8px;}
   .fr-sel{width:auto;min-width:92px;padding-right:8px;}
   .fr-dash{color:var(--text-3);}
@@ -3324,6 +3335,7 @@ var PF = (function(){
   function dateLabel(iso){ return new Date(String(iso).slice(0,10)+'T00:00:00').toLocaleDateString('ru-RU',{day:'numeric',month:'long'}); }
 
   var HALLS_BY_ID = {};
+  var FEATURES = {};   // включённые функции площадки (консоль → «Функции»): { nightly }
   var blocksList = [];
   // Телефон клиента — активная ссылка: клик набирает номер с устройства.
   // href чистим до «+» и цифр (в брони номер может быть с пробелами/дефисами),
@@ -3497,7 +3509,10 @@ var PF = (function(){
       lat:Number.isFinite(h.lat)?h.lat:null, lon:Number.isFinite(h.lon)?h.lon:null,
       hours:Array.isArray(h.hours)&&h.hours.length===7 ? h.hours.map(hgCopyDay) : null,
       slotStepMin:[15, 30, 60].indexOf(h.slotStepMin) >= 0 ? h.slotStepMin : null,
-      durationStepMin:[15, 30, 60].indexOf(h.durationStepMin) >= 0 ? h.durationStepMin : null};
+      durationStepMin:[15, 30, 60].indexOf(h.durationStepMin) >= 0 ? h.durationStepMin : null,
+      // Как сдаётся (0065). Пишется отдельным запросом (/rental), не через список залов.
+      rentalMode:h.rentalMode === 'nightly' ? 'nightly' : 'hourly',
+      nightly:h.nightly ? JSON.parse(JSON.stringify(h.nightly)) : null};
     HALL_BOOLS.forEach(function(f){ o[f] = !!h[f]; });
     // Описания — тоже через белый список: поле, забытое здесь, вернулось бы
     // с сервера, не попало в черновик и ушло обратно пустым, стерев текст.
@@ -7633,6 +7648,11 @@ var PF = (function(){
   // Цена зала — цены его включённых целей (0052); у зала без целей — старое h.rate.
   // Подпись цены пространства: «от 30 BYN/ч» или, если сдаётся только за людей, «от 5 BYN/чел».
   function hallPriceText(h){
+    if(h.rentalMode === 'nightly'){
+      var ns = h.nightly || {}, ps = [ns.priceWd, ns.priceWe].concat((ns.seasons || []).map(function(z){ return z.wd; }))
+        .filter(function(v){ return typeof v === 'number' && isFinite(v); });
+      return ps.length ? 'от ' + Math.min.apply(null, ps) + ' ' + CUR + '/ночь' : '';
+    }
     var r = hallMinRate(h);
     if(r != null) return 'от ' + r + ' ' + CUR + '/ч';
     var per = [];
@@ -7655,12 +7675,20 @@ var PF = (function(){
     {key:'basics',  grp:'Главное', title:'Основное', need:'req',
       done:function(h){ return !!((h.title || h.name || '').trim() && h.capacity >= 1 && h.hallType); },
       miss:function(h){ return [!(h.title || h.name || '').trim() && 'название', !(h.capacity >= 1) && 'вместимость', !h.hallType && 'тип пространства'].filter(Boolean); }},
+    // Как сдаётся (0065): видна, если посуточная сдача открыта площадке (флажок)
+    // или зал уже посуточный. У посуточного зала цена за ночь обязательна.
+    {key:'rental',  grp:'Главное', title:'Как сдаётся',
+      skip:function(h){ return !FEATURES.nightly && h.rentalMode !== 'nightly'; },
+      need:function(h){ return h.rentalMode === 'nightly' ? 'req' : 'rec'; },
+      done:function(h){ return h.rentalMode !== 'nightly' || !!(h.nightly && typeof h.nightly.priceWd === 'number'); },
+      miss:function(){ return ['цена за ночь']; }},
     {key:'media',   grp:'Главное', title:'Фото и видео', need:'req',
       done:function(h){ return (h.photos || []).length >= PHOTOS_MIN; },
       miss:function(h){ var n = (h.photos || []).length; return [n ? 'ещё ' + (PHOTOS_MIN - n) + ' фото (нужно ' + PHOTOS_MIN + ')' : PHOTOS_MIN + ' фото']; }},
     // «Цели и цены» — ниже, после фото (порядок групп и карточек — по этому списку).
     // Своя карточка: внутри — список целей с ценами (renderHallPurposes).
     {key:'pricing', grp:'Главное', title:'Цели и цены', need:'req',
+      skip:function(h){ return h.rentalMode === 'nightly'; },   // у посуточного цена — в «Как сдаётся»
       miss:function(){ return ['цель с ценой']; },
       done:function(h){ return activeHallPurposes(h).some(function(p){ return p.rate > 0 || !gpRentApplies(p.guestPricing); }); }},
     {key:'describe', grp:'Описание', title:'Удобства и техника', need:'rec',
@@ -7672,6 +7700,7 @@ var PF = (function(){
     {key:'hallLocation', grp:'Адрес и часы', title:'Адрес', need:'inh',
       own:function(h){ return h.lat != null; }},
     {key:'hours',   grp:'Адрес и часы', title:'Часы работы и время брони', need:'inh',
+      skip:function(h){ return h.rentalMode === 'nightly'; },   // у посуточного — заезд и выезд
       own:function(h){ return Array.isArray(h.hours) || h.slotStepMin != null || h.durationStepMin != null; }},
   ];
   var STUDIO_SECTIONS = [
@@ -7688,9 +7717,11 @@ var PF = (function(){
     {key:'visitRules', title:'Правила посещения', need:'rec',
       done:function(){ return STUDIO_AMENITY_GROUPS[1].items.some(function(x){ return amenitiesDraft[x.f]; }) || amenitiesDraft.hasVideoSurveillance === true; }},
   ];
+  function secNeed(sec, obj){ return typeof sec.need === 'function' ? sec.need(obj) : sec.need; }
   function secState(sec, obj){
-    if(sec.need === 'inh') return sec.own(obj) ? 'own' : 'inh';
-    return sec.done(obj) ? 'ok' : sec.need;
+    var need = secNeed(sec, obj);
+    if(need === 'inh') return sec.own(obj) ? 'own' : 'inh';
+    return sec.done(obj) ? 'ok' : need;
   }
   var SC_CHIP = {
     ok:'<span class="sc-chip ok">заполнено</span>', req:'<span class="sc-chip req">нужно для публикации</span>',
@@ -7701,11 +7732,13 @@ var PF = (function(){
   function hallReadiness(h){
     var got = 0, total = 0, missing = [], gaps = [];
     HALL_SECTIONS.forEach(function(s){
-      if(s.need === 'inh') return;
-      var w = s.need === 'req' ? 3 : 1;
+      if(s.skip && s.skip(h)) return;
+      var need = secNeed(s, h);
+      if(need === 'inh') return;
+      var w = need === 'req' ? 3 : 1;
       total += w;
       if(s.done(h)) got += w;
-      else if(s.need === 'req'){
+      else if(need === 'req'){
         var items = s.miss ? s.miss(h) : [s.title.toLowerCase()];
         if(!items.length) items = [s.title.toLowerCase()];
         missing.push.apply(missing, items);
@@ -7740,8 +7773,21 @@ var PF = (function(){
     }).join('') + '</dl>';
   }
   function emptyLine(t){ return '<span class="sc-empty">' + esc(t) + '</span>'; }
+  function ntHm(min){ return String(Math.floor(min / 60)).padStart(2, '0') + ':' + String(min % 60).padStart(2, '0'); }
+  function ntNights(n){ var a = n % 10, b = n % 100; return n + ' ' + ((a === 1 && b !== 11) ? 'ночь' : (a >= 2 && a <= 4 && (b < 12 || b > 14)) ? 'ночи' : 'ночей'); }
   function hallSummary(key, h){
     switch(key){
+      case 'rental':
+        if(h.rentalMode !== 'nightly') return kvHtml([['Режим', 'по часам — клиент выбирает время на сетке']]);
+        var n = h.nightly || {};
+        return kvHtml([
+          ['Режим', 'посуточно — клиент выбирает даты заезда и выезда'],
+          ['Заезд и выезд', n.checkIn != null ? 'заезд с ' + ntHm(n.checkIn) + ', выезд до ' + ntHm(n.checkOut) : ''],
+          ['Цена за ночь', typeof n.priceWd === 'number' ? n.priceWd + ' ' + CUR + (n.priceWe != null && n.priceWe !== n.priceWd ? ', пт–сб ' + n.priceWe + ' ' + CUR : '') : '', 'не указана'],
+          ['Минимум', n.minNights ? ntNights(n.minNights) + ((n.minNightsWe || 1) > n.minNights ? ', с выходными — ' + ntNights(n.minNightsWe) : '') : ''],
+          ['Гости', n.guestsIncluded ? 'в цене до ' + n.guestsIncluded + (n.extraGuest ? ', каждый следующий +' + n.extraGuest + ' ' + CUR + ' за ночь' : '') : 'цена не зависит от числа гостей'],
+          ['Ранний заезд / поздний выезд', [n.early ? 'с ' + ntHm(n.early.from) + ' за ' + n.early.price + ' ' + CUR : '', n.late ? 'до ' + ntHm(n.late.to) + ' за ' + n.late.price + ' ' + CUR : ''].filter(Boolean).join(' · '), 'нет'],
+          ['Сезоны и праздники', (n.seasons || []).map(function(z){ return z.name; }).join(', '), 'нет'] ]);
       case 'basics': return kvHtml([
         ['Название', h.title || h.name],
         ['Тип', hallTypeLabel(h.hallType), 'не выбран'],
@@ -7980,15 +8026,16 @@ var PF = (function(){
     });
     if(ED.scope === 'hall') parkEditor();          // карточки перерисуются — редактор вынесем и вернём
     var groups = [];
-    HALL_SECTIONS.forEach(function(s){ if(groups.indexOf(s.grp) < 0) groups.push(s.grp); });
+    var visible = HALL_SECTIONS.filter(function(s){ return !(s.skip && s.skip(h)); });
+    visible.forEach(function(s){ if(groups.indexOf(s.grp) < 0) groups.push(s.grp); });
     $('hpSecs').innerHTML = groups.map(function(g){
       return '<div class="sc-group">' + esc(g) + (g === 'Адрес и часы' ? ' <span>· общие для площадки, для пространства можно задать свои</span>' : '') + '</div>' +
-        HALL_SECTIONS.filter(function(s){ return s.grp === g && s.card !== false; }).map(function(s){
+        visible.filter(function(s){ return s.grp === g && s.card !== false; }).map(function(s){
           var st = secState(s, h);
           // Цели и цены редактируются своим редактором прямо в карточке (renderHallPurposes).
           if(s.key === 'pricing') return '<div class="sc sc-purp" data-sec="pricing"><div class="sc-h"><span class="sc-t">' + esc(s.title) + '</span>' +
             (SC_CHIP[st] || '') + '</div><div class="sc-sum"><div class="hall-purposes" data-i="' + WZ.hallIndex + '"></div></div></div>';
-          return secCardHtml(s, st, hallSummary(s.key, h), ED.scope === 'hall' && ED.key === s.key, s.need === 'inh' ? ' inh' : '');
+          return secCardHtml(s, st, hallSummary(s.key, h), ED.scope === 'hall' && ED.key === s.key, secNeed(s, h) === 'inh' ? ' inh' : '');
         }).join('');
     }).join('');
     renderHallPurposes(WZ.hallIndex);
@@ -9373,6 +9420,140 @@ var PF = (function(){
     return saveHallsNow();
   };
 
+  // ---------- Пространство: как сдаётся — по часам или посуточно (0065) ----------
+  // Сохраняется отдельным запросом PUT /admin/halls/:id/rental: сервер проверяет
+  // флажок посуточной сдачи и настройки (lib/nightly.js) и не даёт вернуть зал
+  // в почасовой режим, пока у него есть будущие посуточные брони.
+  var NT_DEF = { checkIn:840, checkOut:720, priceWd:null, priceWe:null, minNights:1, minNightsWe:1,
+    guestsIncluded:null, extraGuest:0, early:null, late:null, seasons:[] };
+  var ntDraft = null;
+  function ntTimes(from, to, cur){
+    var o = '';
+    for(var m = from; m <= to; m += 30) o += '<option value="' + m + '"' + (m === cur ? ' selected' : '') + '>' + ntHm(m) + '</option>';
+    return o;
+  }
+  function ntMd(md){ return md ? md.slice(3) + '.' + md.slice(0, 2) : ''; }          // мм-дд → дд.мм
+  function ntMdIn(v){
+    var m = /^\s*(\d{1,2})[.\/-](\d{1,2})\s*$/.exec(v || ''); if(!m) return null;
+    var d = +m[1], mo = +m[2]; if(mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+    return String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+  }
+  WZ_RENDERERS.rental = function(keep){
+    var h = wzHall();
+    if(!keep) ntDraft = null;   // открыли заново — с сохранённых настроек, а не с прошлой правки
+    if(!ntDraft || ntDraft.hallId !== h.id) ntDraft = { hallId:h.id, mode:h.rentalMode || 'hourly', n:Object.assign({}, NT_DEF, clone(h.nightly) || {}) };
+    var n = ntDraft.n, nightly = ntDraft.mode === 'nightly';
+    var seasons = (n.seasons || []).map(function(z, i){
+      return '<div class="nt-season">' +
+        '<input class="fr-in nt-sn" data-s="' + i + '" data-f="name" value="' + esc(z.name || '') + '" maxlength="60" placeholder="Название" aria-label="Название сезона">' +
+        'с <input class="fr-in nt-sd" data-s="' + i + '" data-f="from" value="' + esc(ntMd(z.from)) + '" placeholder="дд.мм" aria-label="Начало">' +
+        'по <input class="fr-in nt-sd" data-s="' + i + '" data-f="to" value="' + esc(ntMd(z.to)) + '" placeholder="дд.мм" aria-label="Конец">' +
+        'будни ' + frNum(null, z.wd, CUR, ' inputmode="decimal" data-s="' + i + '" data-f="wd" aria-label="Цена в будни"') +
+        'пт–сб ' + frNum(null, z.we, CUR, ' inputmode="decimal" placeholder="как будни" data-s="' + i + '" data-f="we" aria-label="Цена пт–сб"') +
+        'от ' + frNum(null, z.min || '', 'ноч.', ' inputmode="numeric" placeholder="—" data-s="' + i + '" data-f="min" aria-label="Минимум ночей"') +
+        '<button type="button" class="nt-x" data-sdel="' + i + '" aria-label="Удалить сезон">×</button></div>';
+    }).join('');
+    $('wzBody').innerHTML =
+      frow('Режим', frSeg('ntMode', [['hourly', 'По часам'], ['nightly', 'Посуточно']], ntDraft.mode),
+        { note: nightly ? 'Клиент выбирает даты заезда и выезда, цена — за ночь. Цели аренды, часы работы и шаг сетки для этого пространства не используются.'
+                        : 'Как сейчас: клиент выбирает время на сетке, цена — за час.' }) +
+      '<div id="ntFields"' + (nightly ? '' : ' hidden') + '>' +
+      frow('Заезд и выезд', '<div class="nt-line">заезд с <select class="fr-in" id="ntIn">' + ntTimes(600, 1080, n.checkIn) + '</select>' +
+        ' выезд до <select class="fr-in" id="ntOut">' + ntTimes(480, 840, n.checkOut) + '</select></div>',
+        { note:'Обычно заезд в 14:00, выезд в 12:00 — между гостями время на уборку.' }) +
+      frow('Цена за ночь', '<div class="nt-line">будни ' + frNum('ntWd', n.priceWd, CUR, ' inputmode="decimal"') +
+        ' пт–сб ' + frNum('ntWe', n.priceWe, CUR, ' inputmode="decimal" placeholder="как в будни"') + '</div>',
+        { req:true, note:'«Пт–сб» — ночи с пятницы на субботу и с субботы на воскресенье.' }) +
+      frow('Минимум ночей', '<div class="nt-line">' + frNum('ntMin', n.minNights, 'ноч.', ' inputmode="numeric"') +
+        ' если в выбор попали выходные — ' + frNum('ntMinWe', n.minNightsWe, 'ноч.', ' inputmode="numeric"') + '</div>') +
+      frow('Гости', '<div class="nt-line">в цене до ' + frNum('ntIncl', n.guestsIncluded, 'чел.', ' inputmode="numeric" placeholder="все"') +
+        ' каждый следующий + ' + frNum('ntExtra', n.extraGuest, CUR + ' за ночь', ' inputmode="decimal"') + '</div>',
+        { note:'Пусто в «в цене до» — цена не зависит от числа гостей. Вместимость — в разделе «Основное».' }) +
+      frow('Ранний заезд', '<div class="nt-line"><label class="chk"><input type="checkbox" id="ntEarlyOn"' + (n.early ? ' checked' : '') + '> с</label>' +
+        ' <select class="fr-in" id="ntEarlyFrom">' + ntTimes(360, 1020, n.early ? n.early.from : 600) + '</select> за ' +
+        frNum('ntEarlyP', n.early ? n.early.price : '', CUR, ' inputmode="decimal"') + '</div>',
+        { note:'Клиент увидит эту опцию, только если накануне в пространстве никто не живёт.' }) +
+      frow('Поздний выезд', '<div class="nt-line"><label class="chk"><input type="checkbox" id="ntLateOn"' + (n.late ? ' checked' : '') + '> до</label>' +
+        ' <select class="fr-in" id="ntLateTo">' + ntTimes(540, 1320, n.late ? n.late.to : 960) + '</select> за ' +
+        frNum('ntLateP', n.late ? n.late.price : '', CUR, ' inputmode="decimal"') + '</div>',
+        { note:'Только если в день выезда никто не заезжает.' }) +
+      frow('Сезоны и праздники', '<div class="nt-seasons">' + seasons + '</div>' +
+        '<button type="button" class="btn ghost small" id="ntSeasonAdd" style="margin-top:8px">+ Сезон</button>',
+        { note:'Повторяются каждый год и могут переходить через Новый год (30.12–08.01). Цена сезона заменяет обычную; минимум — если указан.' }) +
+      '</div>';
+    var body = $('wzBody');
+    body.querySelectorAll('#ntMode [data-v]').forEach(function(b){
+      b.addEventListener('click', function(){ ntRead(); ntDraft.mode = b.dataset.v; WZ_RENDERERS.rental(true); });
+    });
+    $('ntSeasonAdd').addEventListener('click', function(){
+      ntRead(); (ntDraft.n.seasons = ntDraft.n.seasons || []).push({ name:'', from:'', to:'', wd:null, we:null, min:0 });   // пустые пт–сб = как будни сезона
+      WZ_RENDERERS.rental(true);
+    });
+    body.querySelectorAll('[data-sdel]').forEach(function(b){
+      b.addEventListener('click', function(){ ntRead(); ntDraft.n.seasons.splice(+b.dataset.sdel, 1); WZ_RENDERERS.rental(true); });
+    });
+  };
+  function ntNum(id, int){
+    var el = typeof id === 'string' ? $(id) : id; if(!el) return null;
+    var v = String(el.value || '').replace(',', '.').trim(); if(v === '') return null;
+    var x = Number(v); return isFinite(x) ? (int ? Math.round(x) : x) : NaN;
+  }
+  // Поля формы → ntDraft (без проверок — их делает ntPayload при сохранении).
+  function ntRead(){
+    if(!ntDraft || !$('ntIn')) return;
+    var n = ntDraft.n;
+    n.checkIn = +$('ntIn').value; n.checkOut = +$('ntOut').value;
+    n.priceWd = ntNum('ntWd'); n.priceWe = ntNum('ntWe');
+    n.minNights = ntNum('ntMin', true); n.minNightsWe = ntNum('ntMinWe', true);
+    n.guestsIncluded = ntNum('ntIncl', true); n.extraGuest = ntNum('ntExtra');
+    n.early = $('ntEarlyOn').checked ? { from:+$('ntEarlyFrom').value, price:ntNum('ntEarlyP') } : null;
+    n.late = $('ntLateOn').checked ? { to:+$('ntLateTo').value, price:ntNum('ntLateP') } : null;
+    $('wzBody').querySelectorAll('.nt-season').forEach(function(row, i){
+      var z = n.seasons[i]; if(!z) return;
+      row.querySelectorAll('[data-f]').forEach(function(inp){
+        var f = inp.dataset.f;
+        if(f === 'name') z.name = inp.value.trim();
+        else if(f === 'from' || f === 'to') z[f] = ntMdIn(inp.value) || inp.value.trim();
+        else z[f] = ntNum(inp, f === 'min');
+      });
+    });
+  }
+  function ntErr(msg, sel){ var e = new Error(msg); if(sel) e.field = sel; return e; }
+  function ntPayload(){
+    ntRead();
+    var n = ntDraft.n;
+    if(n.priceWd == null || isNaN(n.priceWd) || n.priceWd < 0) throw ntErr('Укажите цену за ночь', '#ntWd');
+    if(n.priceWe != null && (isNaN(n.priceWe) || n.priceWe < 0)) throw ntErr('Цена в выходные указана неверно', '#ntWe');
+    if(!(n.minNights >= 1)) throw ntErr('Минимум — от 1 ночи', '#ntMin');
+    if(n.minNightsWe == null) n.minNightsWe = n.minNights;
+    if(n.guestsIncluded != null && !(n.guestsIncluded >= 1)) throw ntErr('Гостей в цене — от 1', '#ntIncl');
+    if(n.extraGuest == null) n.extraGuest = 0;
+    if(n.early && !(n.early.price >= 0)) throw ntErr('Укажите цену раннего заезда', '#ntEarlyP');
+    if(n.late && !(n.late.price >= 0)) throw ntErr('Укажите цену позднего выезда', '#ntLateP');
+    if(n.early && n.early.from >= n.checkIn) throw ntErr('Ранний заезд — раньше обычного заезда', '#ntEarlyFrom');
+    if(n.late && n.late.to <= n.checkOut) throw ntErr('Поздний выезд — позже обычного выезда', '#ntLateTo');
+    var seasons = (n.seasons || []).filter(function(z){ return z.name || z.from || z.to; });
+    for(var i = 0; i < seasons.length; i++){
+      var z = seasons[i];
+      if(!z.name) throw ntErr('У сезона нужно название');
+      if(!/^\d{2}-\d{2}$/.test(z.from) || !/^\d{2}-\d{2}$/.test(z.to)) throw ntErr('Сезон «' + z.name + '»: даты в виде ДД.ММ');
+      if(!(z.wd >= 0)) throw ntErr('Сезон «' + z.name + '»: укажите цену');
+      if(z.we == null) z.we = z.wd;
+    }
+    return { checkIn:n.checkIn, checkOut:n.checkOut, priceWd:n.priceWd, priceWe:n.priceWe, minNights:n.minNights,
+      minNightsWe:Math.max(n.minNights, n.minNightsWe), guestsIncluded:n.guestsIncluded, extraGuest:n.extraGuest,
+      early:n.early, late:n.late, seasons:seasons.map(function(z){ return { name:z.name, from:z.from, to:z.to, wd:z.wd, we:z.we, min:z.min || 0 }; }) };
+  }
+  WZ_SAVERS.rental = function(){
+    var h = wzHall();
+    var body = ntDraft.mode === 'nightly' ? { rentalMode:'nightly', nightly:ntPayload() } : { rentalMode:'hourly' };
+    return api('PUT', '/admin/halls/' + encodeURIComponent(h.id) + '/rental', body).then(function(r){
+      h.rentalMode = r.rentalMode; h.nightly = r.nightly;
+      if(HALLS_BY_ID[h.id]){ HALLS_BY_ID[h.id].rentalMode = r.rentalMode; HALLS_BY_ID[h.id].nightly = r.nightly; }
+      ntDraft = null;
+    });
+  };
+
   // ---------- Студия: парковка, правила посещения, удобства и Wi-Fi ----------
   WZ_RENDERERS.parking = function(){
     $('wzBody').innerHTML =
@@ -9534,6 +9715,7 @@ var PF = (function(){
         return api('GET','/config');
       })
       .then(function(cfg){
+        FEATURES = cfg.features || {};
         $('sName').textContent = cfg.name || (membership && membership.studioName) || STUDIO_ID;
         setPageHead(cfg.name || (membership && membership.studioName) || STUDIO_ID, cfg.city, cfg.address);
         var st = (membership && membership.studioStatus) || '';
