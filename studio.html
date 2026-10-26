@@ -451,11 +451,17 @@
       var r = o.range(), k = o.startK(key), d = o.durK(key);
       var top = (fixedLen() == null && sel.want != null) ? Math.max(len, Math.round(sel.want / o.slotMin())) : len;
       var lens = [];
-      if(key !== sel.key && fixedLen() == null){
-        // Другой столбец — другие минимум и шаг: длину подгоняем под его сетку
-        // (2:30 при минимуме 1 ч и шаге 1 ч → 3 ч, а не жёлтый блок), потом ступенями короче.
-        var a0 = Math.max(Math.ceil(r.start / k) * k, Math.min(Math.floor((slot - grab) / k) * k, r.end - top));
-        var m = o.minSlots(key, a0), f = fit(key, a0, top);
+      // Длина, с которой блок взяли, может не подходить сетке места, куда его несут:
+      // другой столбец (свои минимум и шаг) или другое время (своё окно с минимумом).
+      // Тогда подгоняем под сетку этого места: 2:30 при минимуме 1 ч и шаге 1 ч → 3 ч,
+      // а не жёлтый блок, потом ступенями короче. Проверка на каждом шаге переноса,
+      // а не только при смене столбца: g.len в жесте не меняется, и без неё следующий
+      // шаг внутри нового столбца снова ставил бы исходную, недопустимую длину.
+      var a0 = Math.max(Math.ceil(r.start / k) * k, Math.min(Math.floor((slot - grab) / k) * k, r.end - top));
+      var m = o.minSlots(key, a0);
+      var misfit = key !== sel.key || (len > m && (len - m) % d !== 0);
+      if(fixedLen() == null && misfit){
+        var f = fit(key, a0, top);
         while(f > m && f > o.maxSlots()) f -= d;
         var lo = len <= m ? m : m + Math.floor((len - m) / d) * d;
         for(var q = f; q >= lo; q -= d) lens.push(q);
