@@ -3150,6 +3150,29 @@ var PF = (function(){
     leisure:'<g transform="rotate(-42 12 12)"><ellipse cx="12" cy="8.2" rx="5.6" ry="6.4"/><rect x="10.5" y="14.9" width="3" height="6.4" rx="1.1"/><path d="M8.6 9.6c1.9 1.5 4.9 1.5 6.8 0"/></g><circle cx="5.2" cy="18.6" r="1.9"/>',
     meeting:'<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9.5" r="2.3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14.6 14.3c2.8.5 5.4 2.7 5.4 5.7"/>',
   };
+
+  // Фото лежат в R2; для показа Cloudflare сам делает нужный размер по ссылке
+  // (Images → Transformations, хост img.poont.space). Оригинал не трогаем: в базе
+  // остаётся прежняя ссылка, а размер выбирается при показе. Старые ссылки
+  // pub-….r2.dev понимаются так же. Не наше хранилище — ссылка как есть.
+  var IMG_ORIGIN = 'https://img.poont.space';
+  function photoUrl(u, w){
+    u = String(u || '');
+    var key = null, m;
+    if(u.indexOf(IMG_ORIGIN + '/') === 0 && u.indexOf('/cdn-cgi/image/') < 0) key = u.slice(IMG_ORIGIN.length + 1);
+    else if((m = /^https:\/\/pub-[0-9a-f]+\.r2\.dev\//.exec(u))) key = u.slice(m[0].length);
+    if(key == null || !w) return u;
+    return IMG_ORIGIN + '/cdn-cgi/image/width=' + w + ',quality=80,format=auto,fit=scale-down/' + key;
+  }
+  // Уменьшенная версия не открылась — показываем оригинал.
+  document.addEventListener('error', function(e){
+    var t = e.target;
+    if(!t || t.tagName !== 'IMG' || t.dataset.photoFallback) return;
+    var m = /^https:\/\/img\.poont\.space\/cdn-cgi\/image\/[^/]*\/(.+)$/.exec(t.src);
+    if(!m) return;
+    t.dataset.photoFallback = '1';
+    t.src = IMG_ORIGIN + '/' + m[1];
+  }, true);
   function purposeIconSvg(code){
     var d = HALL_PURPOSE_ICONS[code];
     if(!d) return '';
@@ -4222,7 +4245,7 @@ var PF = (function(){
       : (short ? esc(short.replace(' с гостя', '')) + ' <small>с гостя' + (g.unit === 'hour' ? ' в час' : '') + '</small>' : '<small>цена не указана</small>');
     var photo = Array.isArray(h.photos) && h.photos[0];
     var pks = pmRent(p) ? (p.packages || []).filter(function(x){ return x.hours && typeof x.price === 'number'; }) : [];
-    return '<div class="pm-cl-hero"' + (photo ? ' style="background-image:url(\'' + esc(photo) + '\')"' : '') + '>' + (photo ? '' : '<span>фото пространства</span>') + '</div>' +
+    return '<div class="pm-cl-hero"' + (photo ? ' style="background-image:url(\'' + esc(photoUrl(photo, 800)) + '\')"' : '') + '>' + (photo ? '' : '<span>фото пространства</span>') + '</div>' +
       '<div class="pm-cl-body"><div><div class="pm-cl-name">' + esc(h.title || h.name || 'Пространство') + '</div><div class="pm-cl-sub">' + esc([profileDraft.name, h.address || profileDraft.address].filter(Boolean).join(' · ')) + '</div></div>' +
       (list.length > 1 ? '<div class="pm-cl-pur">' + list.map(function(x){
         var q = pmCur(i, x.v);
@@ -4578,7 +4601,7 @@ var PF = (function(){
     var thumbs = (h.photos||[]).map(function(u, pi){
       return '<span class="ph-thumb" draggable="true" data-url="'+esc(u)+'" data-pi="'+pi+'" ' +
         'style="position:relative;display:inline-block;cursor:grab">' +
-        '<img src="'+esc(u)+'" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--line);pointer-events:none">' +
+        '<img src="'+esc(photoUrl(u, 160))+'" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--line);pointer-events:none">' +
         (pi===0 ? '<span style="position:absolute;left:2px;bottom:2px;background:rgba(20,22,28,.72);color:#fff;font-size:9px;padding:1px 5px;border-radius:4px;pointer-events:none">обложка</span>' : '') +
         '<button class="ph-del" data-url="'+esc(u)+'" type="button" title="Удалить" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1">×</button>' +
         '</span>';
@@ -4726,7 +4749,7 @@ var PF = (function(){
       var card = document.createElement('div');
       card.className = 'listing-card';
       var photo = (Array.isArray(h.photos) && h.photos[0])
-        ? '<div class="listing-photo"><img src="'+esc(h.photos[0])+'" alt="" loading="lazy"></div>'
+        ? '<div class="listing-photo"><img src="'+esc(photoUrl(h.photos[0], 600))+'" alt="" loading="lazy"></div>'
         : '<div class="listing-photo listing-photo-empty">Нет фото</div>';
       var meta = [hallTypeLabel(h.hallType), h.capacity ? 'до '+h.capacity+' чел.' : '', h.areaM2 ? h.areaM2+' м²' : ''].filter(Boolean).join(' · ');
       card.innerHTML =
@@ -7729,7 +7752,7 @@ var PF = (function(){
         ['Описание', clip(h.description, 180), 'нет — пара фраз помогает выбрать пространство'] ]);
       case 'media':
         var ph = h.photos || [];
-        var thumbs = ph.slice(0, 5).map(function(u){ return '<img src="' + esc(u) + '" alt="" loading="lazy">'; }).join('');
+        var thumbs = ph.slice(0, 5).map(function(u){ return '<img src="' + esc(photoUrl(u, 160)) + '" alt="" loading="lazy">'; }).join('');
         var extra = [h.videoTourUrl ? 'видео-тур' : '', h.tour3dUrl ? '3D-тур' : ''].filter(Boolean).join(', ');
         return (thumbs ? '<div class="sc-thumbs">' + thumbs + '</div>' : '') +
           (ph.length ? esc(ph.length + ' фото') + (ph.length < PHOTOS_MIN ? ' · добавьте ещё ' + (PHOTOS_MIN - ph.length) + ' — нужно минимум ' + PHOTOS_MIN : '') : emptyLine('Нет ни одного фото — без них пространство почти не выбирают')) +
@@ -7923,7 +7946,7 @@ var PF = (function(){
     var r = hallReadiness(h), rate = hallMinRate(h), photo = (h.photos || [])[0];
     var addr = h.lat != null ? [h.city, h.address] : [profileDraft.city, profileDraft.address];
     var am = hallAmenityLabels(h).slice(0, 4);
-    return '<div class="pv-photo">' + (photo ? '<img src="' + esc(photo) + '" alt="">' + '<span class="pv-cnt">' + (h.photos.length) + ' фото</span>' : '<span>Нет фото</span>') + '</div>' +
+    return '<div class="pv-photo">' + (photo ? '<img src="' + esc(photoUrl(photo, 800)) + '" alt="">' + '<span class="pv-cnt">' + (h.photos.length) + ' фото</span>' : '<span>Нет фото</span>') + '</div>' +
       '<div class="pv-body"><div class="pv-name">' + esc(h.title || h.name || 'Без названия') + '</div>' +
       '<div class="pv-meta">' + esc([hallTypeLabel(h.hallType), h.capacity ? 'до ' + h.capacity + ' чел.' : '', h.areaM2 ? h.areaM2 + ' м²' : ''].filter(Boolean).join(' · ')) + '</div>' +
       '<div class="pv-meta">' + esc(addr.filter(Boolean).join(', ')) + '</div>' +
