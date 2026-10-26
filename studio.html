@@ -1420,6 +1420,12 @@
   .set-sub{margin:2px 0 12px 4px;padding-left:14px;border-left:2px solid var(--line);}
   .set-sub[hidden]{display:none;}
   .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:9px;}
+  /* Допы за плату: где доп есть (0066) — строкой под позицией */
+  .eq-item{border-bottom:1px solid var(--line);padding-bottom:9px;margin-bottom:9px;}
+  .eq-item:last-child{border-bottom:none;}
+  .eq-item .row{margin-bottom:6px;}
+  .eq-where{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:var(--fs-sm);color:var(--text-2);}
+  .eq-qty{width:64px;}
   .row input,.row select,.row textarea,.pg-bar input,
   .fld input.name,.fld textarea.name,.fld input.num,.fld select.name{
     background:var(--bg);border:1px solid transparent;border-radius:var(--r-sm);
@@ -4845,25 +4851,50 @@ var PF = (function(){
       });
   }
   function saveHallsSilently(){ return saveHallsNow().catch(function(e){ hallFlash(e.message); throw e; }); }
+  // Позиция: название, цена, единица. С посуточной сдачей (флажок) — ещё
+  // единица «за ночь» и «до N шт.». Если пространств больше одного — где доп
+  // есть: во всех или только в выбранных (0066; баня — только у своего домика).
+  function eqMap(e){ return { id:e.id, name:e.name, price:e.price, unit:e.unit, maxQty:e.maxQty || 1,
+    hallIds:Array.isArray(e.hallIds) && e.hallIds.length ? e.hallIds.slice() : null }; }
   function renderEquip(){
     var c = $('equipEd'); c.innerHTML = '';
     if(!equipDraft.length) c.innerHTML = '<div class="muted">Оборудования нет.</div>';
+    var night = !!FEATURES.nightly || equipDraft.some(function(it){ return it.unit === 'night'; });
+    var halls = hallsDraft.filter(function(h){ return h.id; });
     equipDraft.forEach(function(it, i){
-      var row = document.createElement('div'); row.className = 'row';
-      row.innerHTML =
+      var box = document.createElement('div'); box.className = 'eq-item';
+      var where = it.hallIds && it.hallIds.length ? it.hallIds : null;
+      box.innerHTML = '<div class="row">' +
         '<input class="name" data-i="'+i+'" data-f="name" placeholder="Название" value="'+esc(it.name)+'">' +
         '<span class="unitwrap"><input class="num" type="number" min="0" step="1" data-i="'+i+'" data-f="price" value="'+esc(it.price)+'"><span class="u">'+CUR+'</span></span>' +
-        '<select data-i="'+i+'" data-f="unit"><option value="flat"'+(it.unit==='flat'?' selected':'')+'>за бронь</option><option value="hour"'+(it.unit==='hour'?' selected':'')+'>за час</option></select>' +
-        '<button class="del" data-i="'+i+'" type="button">✕</button>';
-      c.appendChild(row);
+        '<select data-i="'+i+'" data-f="unit"><option value="flat"'+(it.unit==='flat'?' selected':'')+'>за бронь</option><option value="hour"'+(it.unit==='hour'?' selected':'')+'>за час</option>' +
+          (night ? '<option value="night"'+(it.unit==='night'?' selected':'')+'>за ночь</option>' : '') + '</select>' +
+        (night ? '<span class="unitwrap" title="Сколько штук клиент может взять в посуточную бронь">до <input class="num eq-qty" type="number" min="1" max="20" step="1" data-i="'+i+'" data-f="maxQty" value="'+esc(it.maxQty || 1)+'"><span class="u">шт.</span></span>' : '') +
+        '<button class="del" data-i="'+i+'" type="button">✕</button></div>' +
+        (halls.length > 1 ? '<div class="eq-where">Где есть: ' +
+          '<button type="button" class="chip-tog' + (where ? '' : ' on') + '" data-eqall="'+i+'" aria-pressed="'+(!where)+'">во всех</button>' +
+          halls.map(function(h){
+            var on = !!where && where.indexOf(h.id) >= 0;
+            return '<button type="button" class="chip-tog' + (on ? ' on' : '') + '" data-eqh="'+i+'" data-hid="'+esc(h.id)+'" aria-pressed="'+on+'">' + esc(h.title || h.name || 'Пространство') + '</button>';
+          }).join('') + '</div>' : '');
+      c.appendChild(box);
     });
     c.querySelectorAll('[data-f]').forEach(function(inp){
       inp.addEventListener('input', function(){
         var it = equipDraft[+inp.dataset.i], f = inp.dataset.f;
-        it[f] = f==='price' ? parseFloat(inp.value) : inp.value;
+        it[f] = f==='price' ? parseFloat(inp.value) : f==='maxQty' ? parseInt(inp.value, 10) : inp.value;
       });
     });
     c.querySelectorAll('.del').forEach(function(b){ b.addEventListener('click', function(){ equipDraft.splice(+b.dataset.i,1); renderEquip(); }); });
+    c.querySelectorAll('[data-eqall]').forEach(function(b){ b.addEventListener('click', function(){ equipDraft[+b.dataset.eqall].hallIds = null; renderEquip(); }); });
+    c.querySelectorAll('[data-eqh]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var it = equipDraft[+b.dataset.eqh], ids = (it.hallIds || []).slice(), k = ids.indexOf(b.dataset.hid);
+        if(k >= 0) ids.splice(k, 1); else ids.push(b.dataset.hid);
+        it.hallIds = ids.length ? ids : null;
+        renderEquip();
+      });
+    });
   }
   // ---------- профиль студии + карта ----------
   // Один чекбокс «выберите всё, что подходит». attr — по какому атрибуту его
@@ -6481,14 +6512,15 @@ var PF = (function(){
   });
 
   // ---------- save handlers ----------
-  $('equipAdd').addEventListener('click', function(){ equipDraft.push({name:'',price:10,unit:'flat'}); renderEquip(); });
+  $('equipAdd').addEventListener('click', function(){ equipDraft.push({name:'',price:10,unit:'flat',maxQty:1,hallIds:null}); renderEquip(); });
   function saveEquip(){
     for(var i=0;i<equipDraft.length;i++){ var it=equipDraft[i];
       if(!it.name||!it.name.trim()){ flash($('equipNote'),'У каждой позиции должно быть название'); return Promise.reject(new Error('validation')); }
       if(!(it.price>=0)){ flash($('equipNote'),'Цена — число от 0'); return Promise.reject(new Error('validation')); }
-      if(it.unit!=='flat'&&it.unit!=='hour'){ flash($('equipNote'),'Единица — за бронь или за час'); return Promise.reject(new Error('validation')); } }
-    return api('PUT','/admin/equipment', equipDraft.map(function(it){ return {id:it.id,name:it.name.trim(),price:it.price,unit:it.unit}; }))
-      .then(function(u){ equipDraft = u.filter(function(e){return e.active!==false;}).map(function(e){return {id:e.id,name:e.name,price:e.price,unit:e.unit};}); renderEquip(); flash($('equipNote'),'Допы обновлены',true); })
+      if(['flat','hour','night'].indexOf(it.unit) < 0){ flash($('equipNote'),'Единица — за бронь, за час или за ночь'); return Promise.reject(new Error('validation')); }
+      if(!(it.maxQty >= 1 && it.maxQty <= 20)){ flash($('equipNote'),'Количество — от 1 до 20'); return Promise.reject(new Error('validation')); } }
+    return api('PUT','/admin/equipment', equipDraft.map(function(it){ return {id:it.id,name:it.name.trim(),price:it.price,unit:it.unit,maxQty:it.maxQty||1,hallIds:it.hallIds||null}; }))
+      .then(function(u){ equipDraft = u.filter(function(e){return e.active!==false;}).map(eqMap); renderEquip(); flash($('equipNote'),'Допы обновлены',true); })
       .catch(function(e){ flash($('equipNote'), e.message); throw e; });
   }
   svRegister('equipment', function(){ return equipDraft; }, saveEquip);
@@ -6797,7 +6829,7 @@ var PF = (function(){
       QB.halls = (ov.halls||[]).filter(function(h){return h.active!==false;});
       qbRecalcStep();
       if(!SV.dirty.equipment){
-        equipDraft = (ov.equipment||[]).filter(function(e){return e.active!==false;}).map(function(e){return {id:e.id,name:e.name,price:e.price,unit:e.unit};});
+        equipDraft = (ov.equipment||[]).filter(function(e){return e.active!==false;}).map(eqMap);
         svSnap('equipment');
       }
       $('stCount').textContent = ov.stats.count;
