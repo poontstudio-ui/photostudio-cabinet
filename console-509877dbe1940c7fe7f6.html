@@ -109,6 +109,25 @@
   .bc-stats b{color:var(--text);}
   .prog{height:4px;background:var(--border);border-radius:2px;margin:8px 0 2px;overflow:hidden;}
   .prog i{display:block;height:100%;background:var(--blue);}
+  /* Функции платформы (флажки) */
+  .feat{padding:14px 0;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:10px;}
+  .feat:first-child{padding-top:0;}
+  .feat:last-child{border-bottom:none;padding-bottom:0;}
+  .feat-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .feat-h b{font-size:14px;}
+  .seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--border-strong);border-radius:var(--r-sm);overflow:hidden;align-self:flex-start;}
+  .seg button{font:inherit;font-size:13px;padding:6px 12px;border:none;background:var(--surface);color:var(--text-2);cursor:pointer;}
+  .seg button + button{border-left:1px solid var(--border-strong);}
+  .seg button.on{background:var(--blue-bg);color:var(--blue-dark);font-weight:600;box-shadow:inset 0 0 0 1px var(--blue);}
+  .seg button:focus-visible{outline:2px solid var(--blue);outline-offset:-2px;}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:3px 4px 3px 10px;border-radius:999px;background:var(--surface-2);border:1px solid var(--border);}
+  .chip button{border:none;background:none;color:var(--text-3);cursor:pointer;font-size:14px;line-height:1;padding:0 4px;}
+  .chip button:hover{color:var(--red);}
+  .fpick{position:relative;max-width:360px;}
+  .fpick-list{position:absolute;left:0;right:0;top:100%;margin-top:4px;background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--r-sm);box-shadow:var(--shadow);z-index:5;max-height:240px;overflow:auto;}
+  .fpick-list button{display:block;width:100%;text-align:left;font:inherit;font-size:13px;border:none;background:none;padding:8px 10px;cursor:pointer;}
+  .fpick-list button:hover{background:var(--blue-bg);}
 </style>
 </head>
 <body>
@@ -117,7 +136,7 @@
     <a class="back" href="./cabinet.html">←</a>
     <h1>Кабинет платформы</h1>
   </div>
-  <div class="sub">Дашборд и модерация площадок</div>
+  <div class="sub">Дашборд, модерация площадок и функции платформы</div>
 
   <div id="loading" class="card"><span class="muted">Загрузка…</span></div>
   <div id="denied" class="card" hidden><span class="err" id="deniedMsg"></span></div>
@@ -126,6 +145,12 @@
     <div class="card">
       <h2>Сводка</h2>
       <div class="tiles" id="tiles"></div>
+    </div>
+
+    <div class="card">
+      <h2>Функции</h2>
+      <div class="muted" style="margin:-6px 0 12px">Функции, которые уже есть в коде, но открываются постепенно: скрыто, только выбранным площадкам или всем. Площадки, которые функцией уже пользуются, сохраняют её при любом положении.</div>
+      <div id="featList"><span class="muted">Загрузка…</span></div>
     </div>
 
     <div class="card">
@@ -549,8 +574,86 @@
   }
 
   // keepPage: после смены статуса остаёмся на той же странице списка студий.
+  // ---------- Функции (флажки) ----------
+  var FSTATES = [['off','Скрыто'],['selected','Выбранные площадки'],['all','Для всех']];
+  var features = [];
+  function loadFeatures(){
+    return api('GET','/api/platform/features').then(function(list){ features = list || []; renderFeatures(); })
+      .catch(function(e){ $('featList').innerHTML = '<span class="err">' + esc(e.message) + '</span>'; });
+  }
+  function renderFeatures(){
+    if(!features.length){ $('featList').innerHTML = '<span class="muted">Пока нет функций под флажком.</span>'; return; }
+    $('featList').innerHTML = features.map(function(f){
+      var badge = f.state === 'all' ? '<span class="badge published">для всех</span>'
+        : f.state === 'selected' ? '<span class="badge draft">выбранным: ' + f.studios.length + '</span>'
+        : '<span class="badge">скрыто</span>';
+      return '<div class="feat" data-code="' + esc(f.code) + '">' +
+        '<div class="feat-h"><b>' + esc(f.title) + '</b>' + badge + '</div>' +
+        '<div class="muted">' + esc(f.about) + '</div>' +
+        '<div class="seg" role="group" aria-label="Положение">' + FSTATES.map(function(x){
+          return '<button type="button" data-state="' + x[0] + '" class="' + (f.state === x[0] ? 'on' : '') + '">' + x[1] + '</button>';
+        }).join('') + '</div>' +
+        (f.state === 'selected'
+          ? '<div class="chips">' + (f.studios.length ? f.studios.map(function(st){
+              return '<span class="chip">' + esc(st.name) + '<button type="button" data-del="' + esc(st.id) + '" aria-label="Убрать ' + esc(st.name) + '">×</button></span>';
+            }).join('') : '<span class="muted">Пока никого — добавьте площадку ниже.</span>') + '</div>' +
+            '<div class="fpick"><input type="search" class="field" placeholder="Добавить площадку: название или id" data-pick>' +
+            '<div class="fpick-list" hidden></div></div>'
+          : '') +
+        (f.inUse.length ? '<div class="muted">Уже пользуются (функция у них работает при любом положении): ' +
+          f.inUse.map(function(st){ return esc(st.name); }).join(', ') + '</div>' : '') +
+        '<div class="muted" data-note></div>' +
+      '</div>';
+    }).join('');
+    $('featList').querySelectorAll('.feat').forEach(function(box){
+      var f = features.filter(function(x){ return x.code === box.dataset.code; })[0];
+      var note = box.querySelector('[data-note]');
+      box.querySelectorAll('[data-state]').forEach(function(b){
+        b.addEventListener('click', function(){
+          var st = b.dataset.state; if(st === f.state) return;
+          if(st === 'off' && f.inUse.length && !confirm('«' + f.title + '» уже используют: ' +
+              f.inUse.map(function(x){ return x.name; }).join(', ') + '. У них функция продолжит работать. Скрыть для остальных?')) return;
+          api('PUT','/api/platform/features/' + encodeURIComponent(f.code), { state: st })
+            .then(loadFeatures).catch(function(e){ note.textContent = e.message; note.className = 'err'; });
+        });
+      });
+      box.querySelectorAll('[data-del]').forEach(function(b){
+        b.addEventListener('click', function(){
+          api('DELETE','/api/platform/features/' + encodeURIComponent(f.code) + '/studios/' + encodeURIComponent(b.dataset.del))
+            .then(loadFeatures).catch(function(e){ note.textContent = e.message; note.className = 'err'; });
+        });
+      });
+      var inp = box.querySelector('[data-pick]');
+      if(inp){
+        var list = box.querySelector('.fpick-list'), t = null;
+        inp.addEventListener('input', function(){
+          clearTimeout(t);
+          var q = inp.value.trim();
+          if(q.length < 2){ list.hidden = true; return; }
+          t = setTimeout(function(){
+            api('GET','/api/platform/studios?limit=8&q=' + encodeURIComponent(q)).then(function(r){
+              var have = f.studios.map(function(x){ return x.id; });
+              var rows = (r.studios || []).filter(function(st){ return have.indexOf(st.id) < 0; });
+              list.innerHTML = rows.length ? rows.map(function(st){
+                return '<button type="button" data-add="' + esc(st.id) + '">' + esc(st.name) + ' <span class="muted">' + esc([st.city, st.id].filter(Boolean).join(' · ')) + '</span></button>';
+              }).join('') : '<div class="muted" style="padding:8px 10px">Ничего не нашлось</div>';
+              list.hidden = false;
+              list.querySelectorAll('[data-add]').forEach(function(b){
+                b.addEventListener('click', function(){
+                  api('POST','/api/platform/features/' + encodeURIComponent(f.code) + '/studios', { studioId: b.dataset.add })
+                    .then(loadFeatures).catch(function(e){ note.textContent = e.message; note.className = 'err'; });
+                });
+              });
+            });
+          }, 250);
+        });
+      }
+    });
+  }
+
   function load(keepPage){
     if(!keepPage) sPage = 0;
+    loadFeatures();
     return Promise.all([ api('GET','/api/platform/overview'), loadStudios() ])
       .then(function(r){
         renderOverview(r[0]);
