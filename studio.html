@@ -957,29 +957,11 @@
   .ln-submit{margin-top:16px;border:1px dashed var(--line-strong);border-radius:var(--r-md);padding:14px 16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;}
   .ln-submit p{margin:0;flex:1;min-width:220px;color:var(--text-2);font-size:var(--fs-sm);}
   .nav-launch{color:var(--amber);}
-  /* новое пространство */
-  #nhView{max-width:620px;}
-  .nh-steps{display:flex;gap:8px;margin-bottom:22px;}
-  .nh-steps div{flex:1;}
-  .nh-steps i{display:block;height:4px;border-radius:var(--r-pill);background:var(--line);}
-  .nh-steps div.on i,.nh-steps div.done i{background:var(--blue);}
-  .nh-steps span{display:block;font-size:var(--fs-xs);color:var(--text-3);margin-top:6px;}
-  .nh-steps div.on span{color:var(--blue-dark);font-weight:600;}
-  #nhBody h2{margin:0 0 4px;}
-  .nh-lead{color:var(--text-2);margin:0 0 16px;}
-  /* Поля новых разделов и мастера — вне .row, поэтому свой контейнер .fld
+  /* Поля вне .row (редакторы разделов и «Новое пространство») — свой контейнер .fld
      с теми же стилями полей (см. .row input выше). */
   .fld input.name,.fld textarea.name{width:100%;display:block;}
   .fld input.num{width:120px;}
   .nh-f{display:block;font-size:var(--fs-sm);font-weight:600;color:var(--text-2);margin:14px 0 5px;}
-  .nh-hint{font-size:var(--fs-sm);color:var(--text-3);margin-top:6px;}
-  .nh-two{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-  .nh-per{flex:none;} .nh-per[data-off] button{opacity:.5;cursor:default;}
-  .nh-per button{font-size:var(--fs-sm);padding:5px 10px;}
-  .nh-purp{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line);}
-  .nh-purp:first-child{border-top:none;}
-  .nh-foot{display:flex;align-items:center;gap:12px;margin-top:26px;padding-top:16px;border-top:1px solid var(--line);}
-  .nh-foot .wz-note{flex:1;}
   .listing-photo-empty{display:grid;place-items:center;color:var(--text-3);font-size:var(--fs-sm);}
   @media(max-width:600px){ .listing-photo.listing-photo-empty{aspect-ratio:auto;height:72px;} }
   .listing-ready{margin-top:8px;}
@@ -988,7 +970,7 @@
     .ln-grid{grid-template-columns:minmax(0,1fr);}
     .pv{position:static;}
   }
-  @media(max-width:600px){ .nh-two{grid-template-columns:minmax(0,1fr);} .sc-kv{grid-template-columns:minmax(0,1fr);} .sc-kv dt{margin-top:6px;} .ln-step{grid-template-columns:28px minmax(0,1fr);} .ln-acts{grid-column:2;align-items:flex-start;} }
+  @media(max-width:600px){ .sc-kv{grid-template-columns:minmax(0,1fr);} .sc-kv dt{margin-top:6px;} .ln-step{grid-template-columns:28px minmax(0,1fr);} .ln-acts{grid-column:2;align-items:flex-start;} }
   @media (prefers-reduced-motion:reduce){ .sc-bar i{transition:none;} }
 
   /* ---------- «Бронирование»: схемы правил ---------- */
@@ -2329,16 +2311,11 @@
         <div class="note" id="hallNoteList"></div>
       </div>
 
-      <!-- Новое пространство: три коротких шага (название/тип/вместимость →
-           цена → фото), дальше — страница пространства. См. nhOpen. -->
+      <!-- Новое пространство: те же экраны, что у мастера запуска (что сдаёте →
+           название, тип, цена → фото), дальше — страница пространства. См. nhOpen. -->
       <div id="nhView" hidden>
-        <div class="nh-steps" id="nhSteps"></div>
-        <div id="nhBody" class="fld"></div>
-        <div class="nh-foot">
-          <button class="btn ghost" id="nhBack" type="button">Отмена</button>
-          <span class="wz-note" id="nhNote"></span>
-          <button class="btn" id="nhNext" type="button">Дальше</button>
-        </div>
+        <div class="ob-steps" id="nhSteps"></div>
+        <div class="ob-wrap"><div class="ob-card" id="nhScreen"></div><aside class="ob-side" id="nhSide"></aside></div>
       </div>
 
       <!-- Страница пространства: разделы-карточки со сводкой и статусом,
@@ -8211,13 +8188,16 @@ var PF = (function(){
         later.map(function(x){ return '<span>' + esc(x) + '</span>'; }).join('') + '</div><p class="ob-note">Ничего из этого не нужно, чтобы начать принимать брони.</p></div></div>' +
       '<div class="ob-prep"><span class="ob-lbl">Пригодится под рукой</span><div class="ob-prep-row"><span>адрес</span><span>цена за час</span><span>' + PHOTOS_MIN + ' фото пространства</span></div></div>';
   }
+  function typeChoicesHtml(attr, sel){
+    return '<div class="ob-choices">' + OB_TYPES.map(function(t){
+      return '<button type="button" class="ob-choice' + (sel === t.v ? ' on' : '') + '" ' + attr + '="' + t.v + '" aria-pressed="' + (sel === t.v) + '">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + OB_ICONS[t.v] + '</svg>' +
+        '<b>' + esc(t.label) + '</b><span>' + esc(t.sub) + '</span></button>';
+    }).join('') + '</div>';
+  }
   function obTypeScreen(){
     return '<h2 class="ob-h">Что вы сдаёте?</h2><p class="ob-lead">От ответа зависят только подсказки и начальные значения — всё можно поменять сейчас или потом.</p>' +
-      '<div class="ob-choices">' + OB_TYPES.map(function(t){
-        return '<button type="button" class="ob-choice' + (OB.type === t.v ? ' on' : '') + '" data-obtype="' + t.v + '" aria-pressed="' + (OB.type === t.v) + '">' +
-          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + OB_ICONS[t.v] + '</svg>' +
-          '<b>' + esc(t.label) + '</b><span>' + esc(t.sub) + '</span></button>';
-      }).join('') + '</div>';
+      typeChoicesHtml('data-obtype', OB.type);
   }
   function obProfileScreen(){
     var t = obType() || OB_TYPES[5];
@@ -8230,6 +8210,48 @@ var PF = (function(){
         '<div id="obAddrSuggest" class="addr-suggest" hidden></div></div>' +
         '<div class="ob-help" id="obMapHint" hidden>Выберите адрес из подсказок или перетащите метку на карте.</div><div id="obMap" class="fr-map" hidden></div></div>';
   }
+  // Форма пространства: название, тип, вместимость, цена по целям. Одна на мастер
+  // запуска (P='ob') и на «+ Добавить пространство» (P='nh'): те же поля и подсказки.
+  // Префикс P — в id полей и в атрибутах data-<P>price / data-<P>purp / data-<P>unpurp.
+  function spaceFormHtml(P, t, D){
+    var others = HALL_PURPOSE_LIST.filter(function(p){ return D.purposes.indexOf(p.v) < 0; });
+    return '<div class="ob-f"><label for="' + P + 'Title">Название пространства</label><input class="name" id="' + P + 'Title" maxlength="120" placeholder="Например, ' + esc(t.spacePh) + '" value="' + esc(D.title) + '"></div>' +
+      '<div class="ob-two"><div class="ob-f"><label for="' + P + 'SpaceType">Тип</label><div style="position:relative"><input class="name" id="' + P + 'SpaceType" autocomplete="off" placeholder="Начните печатать" value="' + esc(D.typeText) + '"><div id="' + P + 'SpaceTypeSuggest" class="addr-suggest" hidden></div></div></div>' +
+        '<div class="ob-f"><label for="' + P + 'Cap">Сколько человек вмещает</label><span class="unitwrap"><input class="num" id="' + P + 'Cap" type="number" min="1" max="1000" placeholder="' + t.cap + '" value="' + esc(D.cap) + '"><span class="u">чел.</span></span></div></div>' +
+      D.purposes.map(function(code){
+        var lab = (HALL_PURPOSE_LIST.filter(function(p){ return p.v === code; })[0] || {}).label || code;
+        return '<div class="ob-f"><label for="' + P + 'Price-' + code + '">Цена за час — ' + esc(lab.toLowerCase()) + '</label><div class="ob-price-row"><span class="unitwrap"><input class="num" id="' + P + 'Price-' + code + '" data-' + P + 'price="' + code + '" type="number" min="1" placeholder="' + t.price + '" value="' + esc(D.prices[code] || '') + '"><span class="u">' + esc(CUR) + '/ч</span></span>' +
+          (D.purposes.length > 1 ? '<button type="button" class="linkish" data-' + P + 'unpurp="' + code + '">Не сдаю для ' + esc(purposeGen(code)) + '</button>' : '') + '</div></div>';
+      }).join('') +
+      (others.length ? '<div class="ob-f"><span class="ob-lbl">' + (D.purposes.length ? 'Сдаю ещё и для:' : 'Для чего сдаёте:') + '</span><div class="ob-chips">' +
+        others.map(function(p){ return '<button type="button" class="pm-add-btn" data-' + P + 'purp="' + p.v + '">+ ' + esc(purposeGen(p.v)) + '</button>'; }).join('') + '</div></div>' : '') +
+      '<p class="ob-note">Цены в часы пик, за гостей, пакеты и что входит в аренду — на странице пространства, когда понадобится.</p>';
+  }
+  // Подключение полей формы: подсказки типа, ввод в черновик D, цели. rerender — перерисовать экран.
+  function spaceFormWire(P, scope, D, rerender){
+    var all = function(sel){ return scope.querySelectorAll(sel); };
+    var typeId = P + 'SpaceType';
+    if($(typeId)){
+      loadDict('space_type');
+      wzComboHelper({ input:typeId, box:typeId + 'Suggest' }, 'space_type', D, 'hallType');
+      // Тип — по выбору на шаге «Что сдаёте»: если он есть в справочнике, берём его код,
+      // иначе оставляем текст (новое слово заведётся при сохранении). Помощник
+      // подсказок при подключении и после загрузки справочника поле переписывает — возвращаем.
+      var typeFill = function(){
+        var el = $(typeId); if(!el || D.hallType || document.activeElement === el) return;
+        var hit = (DICT_CACHE.space_type || []).find(function(d){ return (d.labelRu || '').toLowerCase() === (D.typeText || '').toLowerCase(); });
+        if(hit) D.hallType = hit.code;
+        el.value = hit ? hit.labelRu : D.typeText;
+      };
+      typeFill(); loadDict('space_type').then(typeFill);
+      $(typeId).addEventListener('input', function(){ D.typeText = this.value; D.hallType = null; });
+      $(P + 'Title').oninput = function(){ D.title = this.value; };
+      $(P + 'Cap').oninput = function(){ D.cap = this.value; };
+    }
+    all('[data-' + P + 'price]').forEach(function(i){ i.oninput = function(){ D.prices[i.getAttribute('data-' + P + 'price')] = i.value; }; });
+    all('[data-' + P + 'purp]').forEach(function(b){ b.onclick = function(){ D.purposes.push(b.getAttribute('data-' + P + 'purp')); rerender(); }; });
+    all('[data-' + P + 'unpurp]').forEach(function(b){ b.onclick = function(){ var c = b.getAttribute('data-' + P + 'unpurp'); D.purposes = D.purposes.filter(function(x){ return x !== c; }); rerender(); }; });
+  }
   function obSpaceScreen(){
     var t = obType() || OB_TYPES[5], hi = obHallIdx();
     if(hi >= 0){
@@ -8240,19 +8262,8 @@ var PF = (function(){
     }
     if(OBD.purposes == null) OBD.purposes = t.purposes.slice();
     if(!OBD.typeText) OBD.typeText = t.spaceType;
-    var others = HALL_PURPOSE_LIST.filter(function(p){ return OBD.purposes.indexOf(p.v) < 0; });
     return '<h2 class="ob-h">Первое пространство</h2><p class="ob-lead">Комната или зал, который бронируют. Остальные добавите потом в разделе «Пространства».</p>' +
-      '<div class="ob-f"><label for="obTitle">Название пространства</label><input class="name" id="obTitle" maxlength="120" placeholder="Например, ' + esc(t.spacePh) + '" value="' + esc(OBD.title) + '"></div>' +
-      '<div class="ob-two"><div class="ob-f"><label for="obSpaceType">Тип</label><div style="position:relative"><input class="name" id="obSpaceType" autocomplete="off" placeholder="Начните печатать" value="' + esc(OBD.typeText) + '"><div id="obSpaceTypeSuggest" class="addr-suggest" hidden></div></div></div>' +
-        '<div class="ob-f"><label for="obCap">Сколько человек вмещает</label><span class="unitwrap"><input class="num" id="obCap" type="number" min="1" max="1000" placeholder="' + t.cap + '" value="' + esc(OBD.cap) + '"><span class="u">чел.</span></span></div></div>' +
-      OBD.purposes.map(function(code){
-        var lab = (HALL_PURPOSE_LIST.filter(function(p){ return p.v === code; })[0] || {}).label || code;
-        return '<div class="ob-f"><label for="obPrice-' + code + '">Цена за час — ' + esc(lab.toLowerCase()) + '</label><div class="ob-price-row"><span class="unitwrap"><input class="num" id="obPrice-' + code + '" data-obprice="' + code + '" type="number" min="1" placeholder="' + t.price + '" value="' + esc(OBD.prices[code] || '') + '"><span class="u">' + esc(CUR) + '/ч</span></span>' +
-          (OBD.purposes.length > 1 ? '<button type="button" class="linkish" data-obunpurp="' + code + '">Не сдаю для ' + esc(purposeGen(code)) + '</button>' : '') + '</div></div>';
-      }).join('') +
-      (others.length ? '<div class="ob-f"><span class="ob-lbl">' + (OBD.purposes.length ? 'Сдаю ещё и для:' : 'Для чего сдаёте:') + '</span><div class="ob-chips">' +
-        others.map(function(p){ return '<button type="button" class="pm-add-btn" data-obpurp="' + p.v + '">+ ' + esc(purposeGen(p.v)) + '</button>'; }).join('') + '</div></div>' : '') +
-      '<p class="ob-note">Цены в часы пик, за гостей, пакеты и что входит в аренду — на странице пространства, когда понадобится.</p>';
+      spaceFormHtml('ob', t, OBD);
   }
   function obPhotosScreen(){
     var hi = obHallIdx();
@@ -8371,26 +8382,7 @@ var PF = (function(){
       wzAddrHelper({ addr:'obAddr', box:'obAddrSuggest', map:'obMap', mapHint:'obMapHint' }, profileDraft);
       PF.attach($('obPhone'), { iso: profileDraft.country || 'BY' }); PF.setValue($('obPhone'), $('obPhone').value);
     }
-    if($('obSpaceType')){
-      loadDict('space_type');
-      wzComboHelper({ input:'obSpaceType', box:'obSpaceTypeSuggest' }, 'space_type', OBD, 'hallType');
-      // Тип — по выбору на шаге «Что сдаёте»: если он есть в справочнике, берём его код,
-      // иначе оставляем текст (новое слово заведётся при сохранении). Помощник
-      // подсказок при подключении и после загрузки справочника поле переписывает — возвращаем.
-      var obTypeFill = function(){
-        var el = $('obSpaceType'); if(!el || OBD.hallType || document.activeElement === el) return;
-        var hit = (DICT_CACHE.space_type || []).find(function(d){ return (d.labelRu || '').toLowerCase() === (OBD.typeText || '').toLowerCase(); });
-        if(hit) OBD.hallType = hit.code;
-        el.value = hit ? hit.labelRu : OBD.typeText;
-      };
-      obTypeFill(); loadDict('space_type').then(obTypeFill);
-      $('obSpaceType').addEventListener('input', function(){ OBD.typeText = this.value; OBD.hallType = null; });
-      $('obTitle').oninput = function(){ OBD.title = this.value; };
-      $('obCap').oninput = function(){ OBD.cap = this.value; };
-    }
-    all('[data-obprice]').forEach(function(i){ i.oninput = function(){ OBD.prices[i.dataset.obprice] = i.value; }; });
-    all('[data-obpurp]').forEach(function(b){ b.onclick = function(){ OBD.purposes.push(b.dataset.obpurp); obRender(); }; });
-    all('[data-obunpurp]').forEach(function(b){ b.onclick = function(){ OBD.purposes = OBD.purposes.filter(function(c){ return c !== b.dataset.obunpurp; }); obRender(); }; });
+    spaceFormWire('ob', scr, OBD, obRender);
     all('[data-obgo-hall]').forEach(function(b){ b.onclick = function(){ goFolder('halls'); wzOpen(+b.dataset.obgoHall); }; });
     var ph = scr.querySelector('.hall-photos[data-i]'); if(ph) renderHallPhotos(+ph.dataset.i);
     if($('obPhotosLater')) $('obPhotosLater').onclick = function(){ OB.photosLater = true; obRender(); };
@@ -8481,38 +8473,42 @@ var PF = (function(){
       OB.step++; OB.max = Math.max(OB.max, OB.step); obRender(); window.scrollTo(0, 0);
     }).catch(function(e){ btn.disabled = false; obMsg((e && e.message) || 'Не получилось сохранить — попробуйте ещё раз'); });
   }
-  // Пространство и его цели — теми же запросами, что «Новое пространство».
+  // Пространство и его цели — одними запросами и для мастера запуска, и для «+ Добавить пространство».
   // Минимальная бронь по типу (баня — от 2 ч) — у цели: у площадки минимум до 1 ч.
-  function obCreateHall(t){
-    var title = ($('obTitle').value || '').trim(), cap = parseInt($('obCap').value, 10);
+  // extra — поля пространства поверх обязательных (свой шаг времени); onCreated(idx) —
+  // как только пространство сохранено, до записи целей: при сбое целей повторное «Дальше» его не задвоит.
+  function spaceCreate(P, D, t, extra, onCreated){
+    var title = ($(P + 'Title').value || '').trim(), cap = parseInt($(P + 'Cap').value, 10);
     if(title.length < 2) return Promise.reject(new Error('Введите название пространства'));
-    if(!OBD.hallType) return Promise.reject(new Error('Укажите тип пространства — например, «баня» или «переговорная»'));
+    if(!D.hallType) return Promise.reject(new Error('Укажите тип пространства — например, «баня» или «переговорная»'));
     if(!(cap >= 1 && cap <= 1000)) return Promise.reject(new Error('Вместимость — от 1 до 1000 человек'));
-    if(!OBD.purposes.length) return Promise.reject(new Error('Выберите, для чего сдаёте пространство'));
-    var bad = OBD.purposes.filter(function(c){ var r = Number(OBD.prices[c]); return !(r > 0 && r <= 100000); })[0];
+    if(!D.purposes.length) return Promise.reject(new Error('Выберите, для чего сдаёте пространство'));
+    var bad = D.purposes.filter(function(c){ var r = Number(D.prices[c]); return !(r > 0 && r <= 100000); })[0];
     if(bad) return Promise.reject(new Error('Укажите цену за час для ' + purposeGen(bad)));
-    var rate = Math.min.apply(null, OBD.purposes.map(function(c){ return Number(OBD.prices[c]); }));
+    var rate = Math.min.apply(null, D.purposes.map(function(c){ return Number(D.prices[c]); }));
     var before = hallsDraft.map(function(h){ return h.id; });
-    var nh = mapHall({ name:title, title:title, capacity:cap, rate:rate, hallType:OBD.hallType });
+    var nh = mapHall(Object.assign({ name:title, title:title, capacity:cap, rate:rate, hallType:D.hallType }, extra || {}));
     hallsDraft.push(nh);
     return saveHallsNow().then(function(){
       var idx = -1;
       hallsDraft.forEach(function(h, i){ if(before.indexOf(h.id) < 0) idx = i; });
       if(idx < 0) throw new Error('Пространство сохранено, но не найдено — обновите страницу');
+      if(onCreated) onCreated(idx);
       var h = hallsDraft[idx];
-      var clean = OBD.purposes.map(function(c){
-        var p = { code:c, active:true, rate:Number(OBD.prices[c]) };
+      var clean = D.purposes.map(function(c){
+        var p = { code:c, active:true, rate:Number(D.prices[c]) };
         if(t && t.min > 60) p.minBookingMin = t.min;
         return p;
       });
       return api('PUT', '/admin/halls/' + encodeURIComponent(h.id) + '/purposes', clean)
-        .then(function(res){ h.purposes = Array.isArray(res.purposes) ? res.purposes : clean; })
+        .then(function(res){ h.purposes = Array.isArray(res.purposes) ? res.purposes : clean; return idx; })
         .catch(function(e){ throw new Error('Пространство создано, но цены не сохранились: ' + e.message + '. Задайте их на странице пространства.'); });
     }).catch(function(e){
       var k = hallsDraft.indexOf(nh); if(k >= 0 && !nh.id) hallsDraft.splice(k, 1);
       throw e;
     });
   }
+  function obCreateHall(t){ return spaceCreate('ob', OBD, t); }
 
   // Запуск студии виден владельцу, пока студия не опубликована.
   function syncLaunchNav(){
@@ -8529,135 +8525,131 @@ var PF = (function(){
     $('sStatus').textContent = label; $('sStatus').className = 'badge ' + st;
   }
 
-  // ---------- новое пространство: три коротких шага ----------
-  // Зал создаётся на втором шаге, уже с ценой: у опубликованной студии он
-  // сразу виден клиентам, и нулевая цена там не должна появиться даже на минуту.
-  // Фото — третьим шагом: загрузке нужен id зала.
-  var NH = { step:0, d:null, idx:-1 };
-  var NH_STEPS = ['Что это за пространство', 'Цена', 'Фотографии'];
+  // ---------- новое пространство: те же экраны, что у мастера запуска ----------
+  // Что сдаёте → название, тип и цена → фото. Тип подставляет цели, цену-ориентир и
+  // минимальную бронь; общие правила площадки (часы, уборка, отмена) не трогаем — они уже
+  // заданы. Пространство создаётся на втором шаге, уже с ценой: у опубликованной площадки
+  // оно сразу видно клиентам, и нулевая цена там не должна появиться даже на минуту.
+  // Фото — третьим шагом: загрузке нужен id пространства.
+  var NH = null;
+  var NH_STEPS = ['Что сдаёте', 'Пространство', 'Фото'];
+  function nhType(){ return NH && OB_TYPES.filter(function(t){ return t.v === NH.type; })[0] || null; }
+  // Шаг времени по типу — своим у пространства, только если он отличается от общего у площадки.
+  function nhOwnSteps(t){
+    if(!t || t.v === 'other') return {};
+    var sS = [15, 30, 60].indexOf(settingsDraft.slotStep) >= 0 ? settingsDraft.slotStep : 60;
+    var sD = [15, 30, 60].indexOf(settingsDraft.durationStep) >= 0 ? settingsDraft.durationStep : sS;
+    var o = {};
+    if(t.step !== sS) o.slotStepMin = t.step;
+    if(t.step !== sD) o.durationStepMin = t.step;
+    return o;
+  }
   function nhOpen(){
     if(ED.key) edCancel();
     WZ.open = false;
-    NH = { step:0, idx:-1, d:{ title:'', hallType:null, capacity:'', area:'', purposes:{ photo:{ on:true, rate:'' } } } };
+    NH = { step:0, max:0, idx:-1, type:null, photosLater:false,
+      d:{ title:'', typeText:'', cap:'', purposes:null, prices:{}, hallType:null } };
     $('hallsListView').hidden = true; $('wzView').hidden = true; $('nhView').hidden = false;
     window.scrollTo(0, 0);
     loadDict('space_type');
     nhRender();
   }
-  function nhRender(){
-    var d = NH.d;
-    $('nhSteps').innerHTML = NH_STEPS.map(function(t, i){
-      return '<div class="' + (i === NH.step ? 'on' : i < NH.step ? 'done' : '') + '"><i></i><span>' + (i + 1) + '. ' + esc(t) + '</span></div>';
-    }).join('');
-    $('nhNote').textContent = '';
-    var b = $('nhBody');
+  function nhMsg(t){ var m = $('nhMsg'); if(m) m.textContent = t || ''; }
+  function nhScreenHtml(){
+    var t = nhType(), d = NH.d;
     if(NH.step === 0){
-      b.innerHTML = '<h2>Что это за пространство</h2><p class="nh-lead">Главное о пространстве. Остальное — описание, удобства, правила — заполните потом в его карточке.</p>' +
-        '<label class="nh-f" for="nhTitle">Название пространства</label><input class="name" id="nhTitle" maxlength="120" placeholder="Например, Большой зал" value="' + esc(d.title) + '">' +
-        '<div class="nh-hint">Так пространство будет подписано в каталоге и в сетке броней.</div>' +
-        '<label class="nh-f" for="nhType">Тип пространства</label><div style="position:relative"><input class="name" id="nhType" placeholder="Начните печатать — зал, баня, переговорная…" autocomplete="off"><div id="nhTypeSuggest" class="addr-suggest" hidden></div></div>' +
-        '<div class="nh-two"><div><label class="nh-f" for="nhCap">Вместимость</label><span class="unitwrap"><input class="num" type="number" min="1" max="1000" id="nhCap" value="' + esc(d.capacity) + '"><span class="u">чел.</span></span></div>' +
-        '<div><label class="nh-f" for="nhArea">Площадь <span class="muted">· необязательно</span></label><span class="unitwrap"><input class="num" type="number" min="1" id="nhArea" value="' + esc(d.area) + '"><span class="u">м²</span></span></div></div>';
-      wzComboHelper({ input:'nhType', box:'nhTypeSuggest' }, 'space_type', d, 'hallType');
-      $('nhTitle').focus();
-    } else if(NH.step === 1){
-      b.innerHTML = '<h2>Для чего сдаёте и почём</h2><p class="nh-lead">Отметьте цели и укажите цену: за час аренды пространства или с каждого человека. У праздника цена может быть выше, чем у встречи. Из этого и складывается цена пространства.</p>' +
-        '<div id="nhPurp">' + HALL_PURPOSE_LIST.map(function(p){
-          var x = d.purposes[p.v] || { on:false, rate:'', per:'hour' };
-          var per = x.per === 'person' ? 'person' : 'hour';
-          return '<div class="nh-purp"><label class="chk"><input type="checkbox" data-np="' + p.v + '"' + (x.on ? ' checked' : '') + '> ' + esc(p.label) + '</label>' +
-            '<span class="seg nh-per" data-per-for="' + p.v + '"' + (x.on ? '' : ' data-off="1"') + '>' +
-              '<button type="button" data-per="hour"' + (per === 'hour' ? ' class="on"' : '') + '>за час</button>' +
-              '<button type="button" data-per="person"' + (per === 'person' ? ' class="on"' : '') + '>за гостя</button></span>' +
-            '<span class="unitwrap"><input class="num" type="number" min="1" data-npr="' + p.v + '" value="' + esc(x.rate) + '" placeholder="цена"' + (x.on ? '' : ' disabled') + '><span class="u" data-npu="' + p.v + '">' + CUR + (per === 'person' ? '/чел. в час' : '/ч') + '</span></span></div>';
-        }).join('') + '</div>' +
-        '<div class="nh-hint">«За гостя» — цена складывается из числа гостей в брони (например, 5 ' + CUR + ' с каждого за час), аренда пространства отдельно не берётся. Доплату сверх лимита, ступени по числу людей, цены по дням и часам и минимальную бронь настроите позже, на странице «Пространства».</div>';
-      b.querySelectorAll('[data-np]').forEach(function(c){ c.addEventListener('change', function(){
-        d.purposes[c.dataset.np] = d.purposes[c.dataset.np] || { on:false, rate:'', per:'hour' };
-        d.purposes[c.dataset.np].on = c.checked;
-        b.querySelector('[data-npr="' + c.dataset.np + '"]').disabled = !c.checked;
-        var sg = b.querySelector('[data-per-for="' + c.dataset.np + '"]'); if(sg){ if(c.checked) sg.removeAttribute('data-off'); else sg.setAttribute('data-off', '1'); }
-      }); });
-      b.querySelectorAll('[data-npr]').forEach(function(i){ i.addEventListener('input', function(){ d.purposes[i.dataset.npr].rate = i.value; }); });
-      b.querySelectorAll('.nh-per button').forEach(function(btn){ btn.addEventListener('click', function(){
-        var sg = btn.parentNode, code = sg.dataset.perFor;
-        if(sg.hasAttribute('data-off')) return;
-        d.purposes[code] = d.purposes[code] || { on:true, rate:'', per:'hour' };
-        d.purposes[code].per = btn.dataset.per;
-        sg.querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', x === btn); });
-        b.querySelector('[data-npu="' + code + '"]').textContent = CUR + (btn.dataset.per === 'person' ? '/чел. в час' : '/ч');
-      }); });
-      var firstRate = b.querySelector('[data-npr]:not([disabled])'); if(firstRate) firstRate.focus();
-    } else {
-      b.innerHTML = '<h2>Фотографии</h2><p class="nh-lead">Пространства с ' + PHOTOS_MIN + '+ фото выбирают заметно чаще. Первое фото — обложка, порядок меняется перетаскиванием. Можно пропустить и добавить позже.</p>' +
-        '<div class="hall-photos" data-i="' + NH.idx + '"></div>';
-      renderHallPhotos(NH.idx);
+      return '<h2 class="ob-h">Что сдаёте?</h2><p class="ob-lead">От ответа зависят подсказки: цели, цена-ориентир и минимальная бронь. Часы работы, уборку и условия отмены не трогаем — они общие для площадки.</p>' +
+        typeChoicesHtml('data-nhtype', NH.type);
     }
-    $('nhBack').textContent = NH.step === 0 ? 'Отмена' : NH.step === 2 ? 'Закрыть' : 'Назад';
-    $('nhNext').textContent = NH.step === 2 ? 'Создать пространство' : 'Дальше';
+    if(NH.step === 1){
+      if(NH.idx >= 0){
+        var h = hallsDraft[NH.idx];
+        return '<h2 class="ob-h">Новое пространство</h2><p class="ob-lead">Оно уже создано. Цены, цели и всё остальное о нём — на странице пространства.</p>' +
+          '<div class="ob-done-row"><b>' + esc(h.title || h.name) + '</b><span>' + esc(hallPriceText(h) || 'цена не указана') + ' · до ' + esc(h.capacity) + ' чел.</span>' +
+          '<button type="button" class="linkish" data-nhgo="' + NH.idx + '">Открыть страницу пространства</button></div>';
+      }
+      t = t || OB_TYPES[5];
+      if(d.purposes == null) d.purposes = t.purposes.slice();
+      if(!d.typeText) d.typeText = t.spaceType;
+      return '<h2 class="ob-h">Название, тип и цена</h2><p class="ob-lead">Комната или зал, который бронируют. Остальное — описание, удобства, правила — в его карточке, когда понадобится.</p>' +
+        spaceFormHtml('nh', t, d);
+    }
+    var n = NH.idx >= 0 ? (hallsDraft[NH.idx].photos || []).length : 0;
+    return '<h2 class="ob-h">Фото пространства</h2><p class="ob-lead">Нужно хотя бы ' + PHOTOS_MIN + ' фото — без них пространство почти не выбирают. Первое станет обложкой, порядок меняется перетаскиванием.</p>' +
+      '<div class="hall-photos" data-i="' + NH.idx + '"></div>' +
+      (n < PHOTOS_MIN ? '<div><button type="button" class="linkish" id="nhPhotosLater">Добавлю позже — открыть страницу пространства</button></div>' +
+        (NH.photosLater ? '<div class="ob-warn">Хорошо. Без ' + PHOTOS_MIN + ' фото пространство не считается готовым — добавите на его странице.</div>' : '') : '');
   }
-  function nhCollectStep0(){
-    var d = NH.d;
-    d.title = $('nhTitle').value.trim();
-    d.capacity = $('nhCap').value; d.area = $('nhArea').value;
-    if(!d.title) return Promise.reject(new Error('Введите название пространства'));
-    var cap = parseInt(d.capacity, 10);
-    if(!(cap >= 1 && cap <= 1000)) return Promise.reject(new Error('Вместимость — от 1 до 1000 человек'));
-    if(!$('nhType').value.trim()) return Promise.reject(new Error('Выберите или впишите тип пространства'));
-    return wzComboResolve('nhType', 'space_type', d, 'hallType');
+  function nhSide(){
+    var t = nhType();
+    if(!t) return '<div class="ob-panel"><h3>Заполнено за вас</h3><p>Здесь появится то, что подставим по типу: цели, минимальная бронь, шаг времени. Общие правила площадки — часы, уборка, отмена — остаются как есть.</p></div>';
+    var pp = NH.d.purposes || t.purposes, own = nhOwnSteps(t);
+    var sS = own.slotStepMin || settingsDraft.slotStep || 60, sD = own.durationStepMin || settingsDraft.durationStep || settingsDraft.slotStep || 60;
+    var hasOwn = own.slotStepMin != null || own.durationStepMin != null;
+    return '<div class="ob-panel"><h3>Заполнено за вас</h3><p>По типу «' + esc(t.label) + '». Поменять — на странице пространства, в любой момент.</p><dl class="ob-kv">' +
+      '<dt>Цели</dt><dd>' + (pp.length ? esc(pp.map(function(c){ return (HALL_PURPOSE_LIST.filter(function(p){ return p.v === c; })[0] || {}).label; }).join(', ')) : 'выберете сами') + '</dd>' +
+      '<dt>Мин. бронь</dt><dd>' + (t.min > 60 ? esc(durLabel(t.min)) : 'как у площадки · ' + esc(durLabel(settingsDraft.minBookingMin || 60))) + '</dd>' +
+      '<dt>Время</dt><dd>' + (hasOwn ? 'своё · ' : 'как у площадки · ') + esc(stepsPhrase(sD, sS)) + '</dd>' +
+      '<dt>Уборка</dt><dd>как у площадки · ' + (settingsDraft.bufferMin ? settingsDraft.bufferMin + ' мин' : 'не нужна') + '</dd>' +
+      '<dt>Часы</dt><dd>как у площадки · ' + esc(fmtWeek(hoursDraft)) + '</dd>' +
+      '</dl></div>';
   }
-  function nhCreate(){
-    if(NH.idx >= 0) return Promise.resolve();      // пространство уже создано (повторное нажатие после ошибки в целях)
-    var d = NH.d;
-    var chosen = HALL_PURPOSE_LIST.filter(function(p){ return d.purposes[p.v] && d.purposes[p.v].on; });
-    if(!chosen.length) return Promise.reject(new Error('Отметьте хотя бы одну цель'));
-    var bad = chosen.filter(function(p){ var r = Number(d.purposes[p.v].rate); return !(r > 0 && r <= 100000); })[0];
-    if(bad) return Promise.reject(new Error('«' + bad.label + '»: укажите цену за час'));
-    // Цена зала — минимальная из целей (так же её считает сервер, 0052).
-    // «За человека» — почасовой ставки нет, цена зала считается сервером из целей.
-    var hourly = chosen.filter(function(p){ return d.purposes[p.v].per !== 'person'; });
-    var rate = hourly.length ? Math.min.apply(null, hourly.map(function(p){ return Number(d.purposes[p.v].rate); })) : 0;
-    var before = hallsDraft.map(function(h){ return h.id; });
-    var area = parseInt(d.area, 10);
-    var nh = mapHall({ name:d.title, title:d.title, capacity:parseInt(d.capacity, 10), rate:rate, hallType:d.hallType,
-      areaM2: area > 0 ? area : null });
-    hallsDraft.push(nh);
-    return saveHallsNow().then(function(){
-      var idx = -1;
-      hallsDraft.forEach(function(h, i){ if(before.indexOf(h.id) < 0) idx = i; });
-      if(idx < 0) throw new Error('Пространство сохранено, но не найдено в списке — обновите страницу');
-      NH.idx = idx;
-      var h = hallsDraft[idx];
-      var clean = chosen.map(function(p){
-        var x = d.purposes[p.v], price = Number(x.rate);
-        // за человека: цена с каждого за каждый час, аренда не берётся (guestPricing, 0054)
-        return x.per === 'person'
-          ? { code:p.v, active:true, guestPricing:{ mode:'perPerson', unit:'hour', withRent:false, tiers:[{ from:1, price:price }] } }
-          : { code:p.v, active:true, rate:price };
-      });
-      return api('PUT', '/admin/halls/' + encodeURIComponent(h.id) + '/purposes', clean)
-        .then(function(res){ h.purposes = Array.isArray(res.purposes) ? res.purposes : clean; })
-        .catch(function(e){ throw new Error('Пространство создано, но цели не сохранились: ' + e.message + '. Задайте их в карточке пространства.'); });
-    }).catch(function(e){
-      // не сохранилось — убираем черновик нового зала, чтобы он не уехал со следующим сохранением
-      if(NH.idx < 0){ var k = hallsDraft.indexOf(nh); if(k >= 0) hallsDraft.splice(k, 1); }
-      throw e;
-    });
+  function nhRender(){
+    var idx = NH.idx;
+    $('nhSteps').innerHTML = NH_STEPS.map(function(title, i){
+      var reach = i <= NH.max && !(idx >= 0 && i < 2);       // пространство создано — к вводу данных не вернуться
+      return '<button type="button" class="ob-st' + (i === NH.step ? ' cur' : i < NH.max ? ' done' : '') + '" data-nhstep="' + i + '"' +
+        (reach && i !== NH.step ? '' : ' disabled') + (i === NH.step ? ' aria-current="step"' : '') + '><i>' + (i !== NH.step && i < NH.max ? '✓' : i + 1) + '</i>' + esc(title) + '</button>';
+    }).join('');
+    $('nhScreen').innerHTML = nhScreenHtml() +
+      '<div class="ob-foot"><button type="button" class="btn ghost" id="nhBack">' + (NH.step === 0 ? 'Отмена' : NH.step === 2 ? 'К списку' : 'Назад') + '</button>' +
+        '<span class="ob-msg" id="nhMsg" role="alert"></span>' +
+        '<button type="button" class="btn" id="nhNext">' + (NH.step === 2 ? 'Готово' : 'Дальше') + '</button></div>';
+    $('nhSide').innerHTML = nhSide();
+    nhWire();
   }
-  $('nhNext').addEventListener('click', function(){
-    var btn = $('nhNext'); btn.disabled = true;
-    var p = NH.step === 0 ? nhCollectStep0() : NH.step === 1 ? nhCreate() : Promise.resolve();
-    p.then(function(){
-      btn.disabled = false;
-      if(NH.step === 2){ var i = NH.idx; $('nhView').hidden = true; wzOpen(i); return; }
-      NH.step++; nhRender();
-      if(NH.step === 2) hallFlash('Пространство сохранено — добавьте фото и нажмите «Создать пространство»', true);
-    }).catch(function(e){ btn.disabled = false; flash($('nhNote'), (e && e.message) || 'Ошибка'); });
+  function nhWire(){
+    var scr = $('nhScreen');
+    scr.querySelectorAll('[data-nhtype]').forEach(function(b){ b.onclick = function(){
+      if(NH.type !== b.dataset.nhtype){ NH.type = b.dataset.nhtype; NH.d.purposes = null; NH.d.typeText = ''; NH.d.hallType = null; }
+      nhRender(); }; });
+    spaceFormWire('nh', scr, NH.d, nhRender);
+    scr.querySelectorAll('[data-nhgo]').forEach(function(b){ b.onclick = function(){ $('nhView').hidden = true; wzOpen(+b.dataset.nhgo); }; });
+    var ph = scr.querySelector('.hall-photos[data-i]'); if(ph) renderHallPhotos(+ph.dataset.i);
+    if($('nhPhotosLater')) $('nhPhotosLater').onclick = function(){ NH.photosLater = true; nhRender(); };
+    $('nhBack').onclick = function(){
+      if(NH.step === 0 || NH.step === 2){ $('nhView').hidden = true; $('hallsListView').hidden = false; renderHalls(); return; }
+      NH.step--; nhRender(); window.scrollTo(0, 0);
+    };
+    $('nhNext').onclick = nhNext;
+  }
+  $('nhSteps').addEventListener('click', function(e){
+    var b = e.target.closest('[data-nhstep]'); if(!b || b.disabled) return;
+    NH.step = +b.dataset.nhstep; nhRender(); window.scrollTo(0, 0);
   });
-  $('nhBack').addEventListener('click', function(){
-    if(NH.step === 0 || NH.step === 2){ $('nhView').hidden = true; $('hallsListView').hidden = false; renderHalls(); return; }
-    NH.step--; nhRender();
-  });
+  function nhAction(){
+    var t = nhType();
+    switch(NH.step){
+      case 0:
+        return t ? Promise.resolve() : Promise.reject(new Error('Выберите, что вы сдаёте'));
+      case 1:
+        if(NH.idx >= 0) return Promise.resolve();       // уже создано (повторное «Дальше» после ошибки в целях)
+        // Сначала — тип пространства: из поля «Тип» в словарь (новое слово заведётся само).
+        var pre = $('nhSpaceType') && $('nhSpaceType').value.trim() ? wzComboResolve('nhSpaceType', 'space_type', NH.d, 'hallType') : Promise.resolve();
+        return pre.then(function(){ return spaceCreate('nh', NH.d, t, nhOwnSteps(t), function(i){ NH.idx = i; }); });
+      default:
+        var n = (hallsDraft[NH.idx].photos || []).length;
+        if(n < PHOTOS_MIN && !NH.photosLater) return Promise.reject(new Error('Добавьте ещё ' + (PHOTOS_MIN - n) + ' фото или нажмите «Добавлю позже»'));
+        return Promise.resolve();
+    }
+  }
+  function nhNext(){
+    var btn = $('nhNext'); btn.disabled = true; nhMsg('');
+    nhAction().then(function(){
+      if(NH.step === 2){ $('nhView').hidden = true; wzOpen(NH.idx); return; }
+      NH.step++; NH.max = Math.max(NH.max, NH.step); nhRender(); window.scrollTo(0, 0);
+    }).catch(function(e){ btn.disabled = false; nhMsg((e && e.message) || 'Не получилось сохранить — попробуйте ещё раз'); });
+  }
 
   // ======== «Бронирование»: правила карточками ========
   // Те же карточки разделов, что в «Студии» и в зале (secCardHtml/edOpen), но
