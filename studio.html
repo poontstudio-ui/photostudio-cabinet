@@ -838,6 +838,9 @@
   .sc-chip.inh{color:var(--text-2);background:var(--surface);border:1px solid var(--line);}
   .sc-ready{border:1px solid var(--line);border-radius:var(--r-md);padding:12px 16px;margin-bottom:22px;}
   .sc-ready-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:4px;}
+  .hp-vis{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:var(--fs-sm);color:var(--text-2);}
+  .hp-vis.draft b{color:var(--amber);}
+  .hp-vis-sub{display:block;font-size:var(--fs-xs);color:var(--text-3);margin-top:2px;}
   .sc-bar{flex:1;min-width:120px;height:8px;background:var(--bg);border-radius:var(--r-pill);overflow:hidden;}
   .sc-bar i{display:block;height:100%;width:0;background:var(--green);border-radius:var(--r-pill);transition:width .3s;}
   /* Пространства — одна колонка карточек той же ширины, что «Бронирование»;
@@ -3524,7 +3527,9 @@ var PF = (function(){
       durationStepMin:[15, 30, 60].indexOf(h.durationStepMin) >= 0 ? h.durationStepMin : null,
       // Как сдаётся (0065). Пишется отдельным запросом (/rental), не через список залов.
       rentalMode:h.rentalMode === 'nightly' ? 'nightly' : 'hourly',
-      nightly:h.nightly ? JSON.parse(JSON.stringify(h.nightly)) : null};
+      nightly:h.nightly ? JSON.parse(JSON.stringify(h.nightly)) : null,
+      // Черновик (0067): у опубликованной площадки клиенты его не видят. Пишется своим запросом (/visibility).
+      draft:!!h.draft};
     HALL_BOOLS.forEach(function(f){ o[f] = !!h[f]; });
     // Описания — тоже через белый список: поле, забытое здесь, вернулось бы
     // с сервера, не попало в черновик и ушло обратно пустым, стерев текст.
@@ -4835,7 +4840,7 @@ var PF = (function(){
               '<div class="listing-name">'+esc(h.title || h.name || 'Без названия')+'</div>' +
               '<div class="listing-meta">'+esc(meta)+'</div>' +
               '<div class="listing-rate">'+(hallPriceText(h) ? esc(hallPriceText(h)) : '<span class="muted">цена не указана</span>')+'</div>' +
-              '<div class="listing-ready">' + (r.missing.length
+              '<div class="listing-ready">' + (hallIsDraft(h) ? '<span class="sc-chip rec">черновик · клиенты не видят</span> ' : '') + (r.missing.length
                 ? '<span class="sc-chip req">не хватает: '+esc(r.missing.join(', '))+'</span>'
                 : '<span class="sc-chip ok">готово на '+r.pct+'%</span>') + '</div>' +
             '</div>' +
@@ -8092,6 +8097,41 @@ var PF = (function(){
     var card = document.querySelector('#hpSecs .sc[data-sec="pricing"]');
     if(card && card.scrollIntoView) card.scrollIntoView({ block:'start', behavior: scReduced() ? 'auto' : 'smooth' });
   }
+  // ---------- видят ли пространство клиенты (0067) ----------
+  // Черновик имеет смысл только у опубликованной площадки: до публикации клиенты
+  // не видят ничего, и пространства появятся вместе с площадкой.
+  function hallIsDraft(h){ return !!h && !!h.draft && ONB.status === 'published'; }
+  function hallReadyToShow(h){ return !hallReadiness(h).missing.length; }
+  function hallVisHtml(h){
+    if(ONB.status !== 'published' || !h || !h.id) return '';
+    if(h.draft){
+      var ok = hallReadyToShow(h);
+      return '<div class="hp-vis draft"><div><b>Черновик</b> — клиенты пока не видят это пространство.' +
+          (ok ? '' : '<span class="hp-vis-sub">Показать можно, когда будет всё обязательное.</span>') + '</div>' +
+        '<button type="button" class="btn small" data-vis="1"' + (ok ? '' : ' disabled') + '>Показать клиентам</button></div>';
+    }
+    return '<div class="hp-vis"><div>Клиенты видят это пространство и могут его бронировать.</div>' +
+      '<button type="button" class="btn ghost small" data-vis="0">Скрыть от клиентов</button></div>';
+  }
+  function setHallVisible(i, visible){
+    var h = hallsDraft[i];
+    if(!visible && !confirm('Скрыть «' + (h.title || h.name) + '» от клиентов? Принятые брони останутся, новых клиенты сделать не смогут.')) return Promise.resolve(false);
+    return api('PUT', '/admin/halls/' + encodeURIComponent(h.id) + '/visibility', { visible:visible })
+      .then(function(u){
+        h.draft = !!u.draft;
+        if(HALLS_BY_ID[h.id]) HALLS_BY_ID[h.id].draft = h.draft;
+        return true;
+      });
+  }
+  function wireHallVis(scope, i, after){
+    scope.querySelectorAll('[data-vis]').forEach(function(b){
+      b.onclick = function(){
+        b.disabled = true;
+        setHallVisible(i, b.dataset.vis === '1').then(function(done){ b.disabled = false; if(done) after(); },
+          function(e){ b.disabled = false; flash($('hpNote'), (e && e.message) || 'Не получилось — попробуйте ещё раз'); });
+      };
+    });
+  }
   function renderHallPage(){
     var h = wzHall();
     if(!h){ wzClose(); return; }
@@ -8103,7 +8143,8 @@ var PF = (function(){
       '<div class="muted">' + (r.missing.length
         ? 'Для публикации нужно: ' + readyGapsHtml(r) + '. Рекомендуемые разделы помогают клиентам выбрать именно это пространство.'
         : 'Рекомендуемые разделы помогают клиентам выбрать именно это пространство.') + '</div>' +
-      '';
+      hallVisHtml(h);
+    wireHallVis($('hpReady'), WZ.hallIndex, function(){ renderHallPage(); renderHalls(); flash($('hpNote'), hallsDraft[WZ.hallIndex].draft ? 'Скрыто от клиентов' : 'Пространство видно клиентам', true); });
     $('hpReady').querySelectorAll('[data-ready-go]').forEach(function(b){
       b.onclick = function(){
         var key = b.dataset.readyGo;
@@ -8643,13 +8684,14 @@ var PF = (function(){
   }
 
   // ---------- новое пространство: те же экраны, что у мастера запуска ----------
-  // Что сдаёте → название, тип и цена → фото. Тип подставляет цели, цену-ориентир и
+  // Что сдаёте → название, тип и цена → фото → проверка. Тип подставляет цели, цену-ориентир и
   // минимальную бронь; общие правила площадки (часы, уборка, отмена) не трогаем — они уже
   // заданы. Пространство создаётся на втором шаге, уже с ценой: у опубликованной площадки
   // оно сразу видно клиентам, и нулевая цена там не должна появиться даже на минуту.
-  // Фото — третьим шагом: загрузке нужен id пространства.
+  // Фото — третьим шагом: загрузке нужен id пространства. У опубликованной площадки
+  // новое пространство — черновик (0067): на проверке его показывают клиентам или оставляют черновиком.
   var NH = null;
-  var NH_STEPS = ['Что сдаёте', 'Пространство', 'Фото'];
+  var NH_STEPS = ['Что сдаёте', 'Пространство', 'Фото', 'Проверка'];
   function nhType(){ return NH && OB_TYPES.filter(function(t){ return t.v === NH.type; })[0] || null; }
   // Шаг времени по типу — своим у пространства, только если он отличается от общего у площадки.
   function nhOwnSteps(t){
@@ -8687,11 +8729,32 @@ var PF = (function(){
           : 'Комната или зал, который бронируют. Остальное — описание, удобства, правила — в его карточке, когда понадобится.') + '</p>' +
         spaceFormHtml('nh', t, d);
     }
+    if(NH.step === 3) return nhCheckHtml();
     var n = NH.idx >= 0 ? (hallsDraft[NH.idx].photos || []).length : 0;
     return '<h2 class="ob-h">Фото пространства</h2><p class="ob-lead">Нужно хотя бы ' + PHOTOS_MIN + ' фото — без них пространство почти не выбирают.</p>' +
       '<div class="hall-photos" data-i="' + NH.idx + '"></div>' +
-      (n < PHOTOS_MIN ? '<div><button type="button" class="linkish" id="nhPhotosLater">Добавлю позже — открыть страницу пространства</button></div>' +
-        (NH.photosLater ? '<div class="ob-warn">Хорошо. Без ' + PHOTOS_MIN + ' фото пространство не считается готовым — добавите на его странице.</div>' : '') : '');
+      (n < PHOTOS_MIN ? '<div><button type="button" class="linkish" id="nhPhotosLater">Добавлю позже — дальше без фото</button></div>' +
+        (NH.photosLater ? '<div class="ob-warn">Хорошо. Без ' + PHOTOS_MIN + ' фото показать пространство клиентам не получится — напомним на проверке.</div>' : '') : '');
+  }
+  // Проверка: карточка как в каталоге, что готово и что «как у площадки», видят ли клиенты.
+  function nhCheckHtml(){
+    var h = hallsDraft[NH.idx], r = hallReadiness(h), photos = (h.photos || []).length, pub = ONB.status === 'published';
+    var ck = function(ok, t, link){ return '<div class="ob-ck ' + (ok ? 'ok' : 'no') + '"><span>' + (ok ? '✓' : '!') + '</span><div>' + esc(t) + (link ? ' ' + link : '') + '</div></div>'; };
+    var go = function(attr, t){ return '<button type="button" class="linkish" ' + attr + '>' + esc(t) + '</button>'; };
+    var hours = Array.isArray(h.hours) ? 'свои: ' + fmtWeek(h.hours) : 'как у площадки: ' + fmtWeek(hoursDraft);
+    var status = !pub
+      ? '<p class="ob-note">Клиенты увидят его вместе с площадкой — после публикации.</p>'
+      : !h.draft ? '<div class="ob-ok">Клиенты видят это пространство и могут его бронировать.</div>'
+      : hallReadyToShow(h) ? '<p class="ob-note">Пока это черновик — клиенты его не видят. Покажите, когда будете готовы.</p>'
+      : '<div class="ob-warn">Пока это черновик — клиенты его не видят. Чтобы показать, закончите отмеченное «!».</div>';
+    return '<h2 class="ob-h">Проверьте, как его увидят клиенты</h2><p class="ob-lead">Так пространство выглядит в каталоге. Описание, удобства и правила добавите на его странице.</p>' +
+      '<div class="ob-check"><div class="pv-card">' + hallPreviewHtml(h) + '</div><div class="ob-checks">' +
+        ck(!r.gaps.some(function(g){ return g.key !== 'media'; }), 'Название, тип и цена', go('data-nhstep="1"', 'Изменить')) +
+        ck(photos >= PHOTOS_MIN, photos >= PHOTOS_MIN ? 'Фото: ' + photos : 'Фото: нужно ещё ' + (PHOTOS_MIN - photos), go('data-nhstep="2"', photos >= PHOTOS_MIN ? 'Изменить' : 'Добавить')) +
+        ck(true, 'Часы — ' + hours, go('data-nhpage="hours"', 'Задать свои')) +
+        ck(true, 'Брони — как у площадки: ' + (settingsDraft.autoConfirm ? 'сразу встают в расписание' : 'подтверждаете вручную'), go('data-nhpage="pricing"', 'Своё для цели')) +
+        status +
+      '</div></div>';
   }
   function nhSide(){
     var t = nhType();
@@ -8707,6 +8770,20 @@ var PF = (function(){
       '<dt>Часы</dt><dd>как у площадки · ' + esc(fmtWeek(hoursDraft)) + '</dd>' +
       '</dl></div>';
   }
+  function nhFootRight(){
+    var h = NH.idx >= 0 ? hallsDraft[NH.idx] : null;
+    if(NH.step < 3) return '<button type="button" class="btn" id="nhNext">Дальше</button>';
+    if(!hallIsDraft(h)) return '<button type="button" class="btn" id="nhDone">Готово</button>';
+    return '<button type="button" class="btn ghost" id="nhDone">Оставить черновиком</button>' +
+      '<button type="button" class="btn" id="nhShow"' + (hallReadyToShow(h) ? '' : ' disabled') + '>Показать клиентам</button>';
+  }
+  // Закончили: на страницу пространства (с нужным разделом).
+  function nhFinish(section){
+    var i = NH.idx;
+    $('nhView').hidden = true;
+    wzOpen(i, section && section !== 'pricing' ? { section:section } : null);
+    if(section === 'pricing') hpGoPurposes();
+  }
   function nhRender(){
     $('nhSteps').innerHTML = NH_STEPS.map(function(title, i){
       var reach = i <= NH.max;
@@ -8715,8 +8792,7 @@ var PF = (function(){
     }).join('');
     $('nhScreen').innerHTML = nhScreenHtml() +
       '<div class="ob-foot"><button type="button" class="btn ghost" id="nhBack">' + (NH.step > 0 ? 'Назад' : NH.idx >= 0 ? 'К списку' : 'Отмена') + '</button>' +
-        '<span class="ob-msg" id="nhMsg" role="alert"></span>' +
-        '<button type="button" class="btn" id="nhNext">' + (NH.step === 2 ? 'Готово' : 'Дальше') + '</button></div>';
+        '<span class="ob-msg" id="nhMsg" role="alert"></span>' + nhFootRight() + '</div>';
     $('nhSide').innerHTML = nhSide();
     nhWire();
   }
@@ -8732,7 +8808,15 @@ var PF = (function(){
       if(NH.step === 0){ $('nhView').hidden = true; $('hallsListView').hidden = false; renderHalls(); return; }
       NH.step--; nhRender(); window.scrollTo(0, 0);
     };
-    $('nhNext').onclick = nhNext;
+    if($('nhNext')) $('nhNext').onclick = nhNext;
+    if($('nhDone')) $('nhDone').onclick = function(){ nhFinish(); };
+    if($('nhShow')) $('nhShow').onclick = function(){
+      var b = this; b.disabled = true; nhMsg('');
+      setHallVisible(NH.idx, true).then(function(){ renderHalls(); nhRender(); hallFlash('Пространство видно клиентам', true); },
+        function(e){ b.disabled = false; nhMsg((e && e.message) || 'Не получилось — попробуйте ещё раз'); });
+    };
+    scr.querySelectorAll('[data-nhpage]').forEach(function(b){ b.onclick = function(){ nhFinish(b.dataset.nhpage); }; });
+    scr.querySelectorAll('[data-nhstep]').forEach(function(b){ b.onclick = function(){ NH.step = +b.dataset.nhstep; nhRender(); window.scrollTo(0, 0); }; });
   }
   $('nhSteps').addEventListener('click', function(e){
     var b = e.target.closest('[data-nhstep]'); if(!b || b.disabled) return;
@@ -8756,7 +8840,6 @@ var PF = (function(){
   function nhNext(){
     var btn = $('nhNext'); btn.disabled = true; nhMsg('');
     nhAction().then(function(){
-      if(NH.step === 2){ $('nhView').hidden = true; wzOpen(NH.idx); return; }
       NH.step++; NH.max = Math.max(NH.max, NH.step); nhRender(); window.scrollTo(0, 0);
     }).catch(function(e){ btn.disabled = false; nhMsg((e && e.message) || 'Не получилось сохранить — попробуйте ещё раз'); });
   }
