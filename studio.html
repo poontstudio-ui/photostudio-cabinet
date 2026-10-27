@@ -962,6 +962,35 @@
   .fld input.name,.fld textarea.name{width:100%;display:block;}
   .fld input.num{width:120px;}
   .nh-f{display:block;font-size:var(--fs-sm);font-weight:600;color:var(--text-2);margin:14px 0 5px;}
+  /* Фото пространства: превью 4:3 и зона загрузки (renderHallPhotos) */
+  .hall-photos{display:flex;flex-direction:column;gap:10px;min-width:0;}
+  .ph-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px;}
+  .ph-thumb{position:relative;aspect-ratio:4/3;border-radius:var(--r-sm);overflow:hidden;background:var(--surface-2);border:1px solid var(--line);cursor:grab;}
+  .ph-thumb img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;}
+  .ph-thumb.dragging{opacity:.4;}
+  .ph-thumb.target{outline:2px solid var(--accent);outline-offset:1px;}
+  .ph-cover{position:absolute;left:6px;bottom:6px;background:rgba(17,19,24,.72);color:#fff;font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;pointer-events:none;}
+  .ph-del{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(17,19,24,.72);color:#fff;font-size:15px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0;}
+  .ph-del:hover,.ph-del:focus-visible{background:var(--red);}
+  .ph-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:100%;text-align:center;font:inherit;color:var(--text-2);
+    background:transparent;border:1.5px dashed var(--line-strong);border-radius:var(--r-md);padding:28px 16px;cursor:pointer;transition:border-color .12s,background .12s;}
+  .ph-drop.compact{padding:16px;}
+  .ph-drop svg{width:28px;height:28px;color:var(--accent-dark);}
+  .ph-drop.compact svg{width:22px;height:22px;}
+  .ph-drop b{color:var(--text);font-weight:600;}
+  .ph-sub{font-size:var(--fs-xs);color:var(--text-3);}
+  button.ph-drop:hover,button.ph-drop:focus-visible{border-color:var(--accent);outline:none;}
+  .ph-drop.over{border-style:solid;border-color:var(--accent);background:var(--accent-bg);}
+  .ph-drop.busy,.ph-drop.full{cursor:default;}
+  .ph-bar{width:min(260px,100%);height:6px;border-radius:var(--r-pill);background:var(--line);overflow:hidden;}
+  .ph-bar i{display:block;height:100%;background:var(--accent);transition:width .2s;}
+  .ph-t-touch,.ph-t-over{display:none;}
+  .ph-drop.over .ph-t-over{display:inline;}
+  .ph-drop.over .ph-t-drag,.ph-drop.over .ph-t-touch{display:none;}
+  @media (pointer:coarse){ .ph-t-drag{display:none;} .ph-t-touch{display:inline;} }
+  .ph-hint{font-size:var(--fs-xs);color:var(--text-3);}
+  .ph-msg{font-size:var(--fs-sm);} .ph-msg.err{color:var(--red);} .ph-msg.ok{color:var(--green);}
+  @media (prefers-reduced-motion:reduce){ .ph-drop,.ph-bar i{transition:none;} }
   .listing-photo-empty{display:grid;place-items:center;color:var(--text-3);font-size:var(--fs-sm);}
   @media(max-width:600px){ .listing-photo.listing-photo-empty{aspect-ratio:auto;height:72px;} }
   .listing-ready{margin-top:8px;}
@@ -2274,7 +2303,7 @@
     <!-- Запуск площадки (0051): что осталось до публикации, по шагам. -->
     <div class="card" id="sec-launch" data-folder="launch">
       <div class="ob-steps" id="obSteps"></div>
-      <div class="ob-wrap"><div class="ob-card" id="obScreen"></div><aside class="ob-side" id="obSide"></aside></div>
+      <div class="ob-wrap"><div class="ob-card fld" id="obScreen"></div><aside class="ob-side" id="obSide"></aside></div>
     </div>
 
     <!-- «Площадка» — всё общее для всех залов: название, адрес, парковка и
@@ -2315,7 +2344,7 @@
            название, тип, цена → фото), дальше — страница пространства. См. nhOpen. -->
       <div id="nhView" hidden>
         <div class="ob-steps" id="nhSteps"></div>
-        <div class="ob-wrap"><div class="ob-card" id="nhScreen"></div><aside class="ob-side" id="nhSide"></aside></div>
+        <div class="ob-wrap"><div class="ob-card fld" id="nhScreen"></div><aside class="ob-side" id="nhSide"></aside></div>
       </div>
 
       <!-- Страница пространства: разделы-карточки со сводкой и статусом,
@@ -4585,10 +4614,26 @@ var PF = (function(){
       .catch(function(e){ if(n) flash(n, e.message); });
   }
 
+  // Блок фото пространства — один на странице пространства, в мастере запуска и в
+  // «+ Добавить пространство». Зона принимает файлы перетаскиванием или выбором и
+  // показывает, что происходит: ждёт → «отпустите» → «загружаем N из M» → итог
+  // (ошибка остаётся видна до следующего действия) → «это максимум».
+  // Состояние — по id пространства: перерисовка блока его не теряет.
+  var PH_UP = {};      // id → { busy, done, total } | { kind:'err'|'ok', msg }
+  var PH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg>';
+  function dragHasFiles(e){ var t = e.dataTransfer && e.dataTransfer.types; return !!t && [].indexOf.call(t, 'Files') >= 0; }
+  function phSay(id, kind, msg){
+    PH_UP[id] = { kind:kind, msg:msg };
+    if(kind === 'ok') setTimeout(function(){ if(PH_UP[id] && PH_UP[id].msg === msg) delete PH_UP[id]; var k = pmIdx(id); if(k >= 0) renderHallPhotos(k); }, 5000);
+  }
+  // Блоков одного пространства может быть несколько сразу (страница пространства и
+  // скрытый шаг мастера) — рисуем все, иначе фото уехали бы в невидимую копию.
   function renderHallPhotos(i){
+    document.querySelectorAll('.hall-photos[data-i="'+i+'"]').forEach(function(box){ renderPhotoBox(box, i); });
+  }
+  function renderPhotoBox(box, i){
     var h = hallsDraft[i];
-    var box = document.querySelector('.hall-photos[data-i="'+i+'"]');
-    if(!box) return;
+    if(!h) return;
     if(!h.id){
       box.innerHTML = '<span class="muted">Сохраните пространство, чтобы добавить фото.</span>';
       return;
@@ -4596,45 +4641,67 @@ var PF = (function(){
     // Первое фото — обложка (так его уже читает клиент, см. listing-photo/
     // renderHalls). Перетаскивание меняет порядок и, если нужно, обложку —
     // без отдельного «сделать обложкой», сама позиция это и значит.
-    var thumbs = (h.photos||[]).map(function(u, pi){
-      return '<span class="ph-thumb" draggable="true" data-url="'+esc(u)+'" data-pi="'+pi+'" ' +
-        'style="position:relative;display:inline-block;cursor:grab">' +
-        '<img src="'+esc(photoUrl(u, 160))+'" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--line);pointer-events:none">' +
-        (pi===0 ? '<span style="position:absolute;left:2px;bottom:2px;background:rgba(20,22,28,.72);color:#fff;font-size:9px;padding:1px 5px;border-radius:4px;pointer-events:none">обложка</span>' : '') +
-        '<button class="ph-del" data-url="'+esc(u)+'" type="button" title="Удалить" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1">×</button>' +
-        '</span>';
+    var photos = h.photos || [], st = PH_UP[h.id] || {}, left = PHOTO_MAX - photos.length;
+    var need = PHOTOS_MIN - photos.length;
+    var thumbs = photos.map(function(u, pi){
+      return '<div class="ph-thumb" draggable="true" data-pi="'+pi+'">' +
+        '<img src="'+esc(photoUrl(u, 320))+'" alt="">' +
+        (pi === 0 ? '<span class="ph-cover">обложка</span>' : '') +
+        '<button class="ph-del" data-url="'+esc(u)+'" type="button" aria-label="Удалить фото">×</button></div>';
     }).join('');
-    box.innerHTML =
-      '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' + thumbs +
-      ((h.photos||[]).length < 8
-        ? '<button class="btn ghost small ph-add" type="button">+ Добавить фото</button>' : '') +
-      '</div>' +
-      '<div class="muted" style="margin-top:6px">Можно выбрать сразу несколько файлов (до ' + PHOTO_MAX + ' фото) прямо с камеры: мы сами уменьшим и повернём их.' +
-        ((h.photos||[]).length > 1 ? ' Перетащите фото, чтобы поменять порядок — первое становится обложкой.' : '') + '</div>' +
-      '<div class="note ph-note"></div>';
+    var zone;
+    if(st.busy){
+      zone = '<div class="ph-drop busy" role="status"><b>Загружаем ' + st.done + ' из ' + st.total + '…</b>' +
+        '<span class="ph-bar"><i style="width:' + Math.round(st.done * 100 / st.total) + '%"></i></span>' +
+        '<span class="ph-sub">Не закрывайте страницу, пока идёт загрузка</span></div>';
+    } else if(left <= 0){
+      zone = '<div class="ph-drop full"><b>Это максимум — ' + PHOTO_MAX + ' фото</b><span class="ph-sub">Удалите лишнее, чтобы добавить другие</span></div>';
+    } else {
+      zone = '<button type="button" class="ph-drop' + (photos.length ? ' compact' : '') + '">' + PH_ICON +
+        '<b><span class="ph-t-drag">Перетащите фото сюда</span><span class="ph-t-touch">Выберите фото</span><span class="ph-t-over">Отпустите, чтобы добавить</span></b>' +
+        '<span class="ph-sub"><span class="ph-t-drag">или нажмите, чтобы выбрать · </span>JPG, PNG или WebP · ' +
+          (need > 0 ? 'нужно ещё ' + need : 'можно ещё ' + left) + '</span></button>';
+    }
+    box.innerHTML = (photos.length ? '<div class="ph-grid">' + thumbs + '</div>' : '') + zone +
+      (photos.length > 1 ? '<div class="ph-hint">Перетащите фото, чтобы поменять порядок. Первое — обложка.</div>' : '') +
+      (st.msg ? '<div class="ph-msg ' + st.kind + '" role="alert">' + esc(st.msg) + '</div>' : '');
 
     box.querySelectorAll('.ph-del').forEach(function(b){
       b.addEventListener('click', function(){
-        var next = (h.photos||[]).filter(function(u){ return u !== b.dataset.url; });
-        saveHallPhotos(i, next);
+        delete PH_UP[h.id];
+        saveHallPhotos(i, (h.photos||[]).filter(function(u){ return u !== b.dataset.url; }));
       });
     });
-    var add = box.querySelector('.ph-add');
-    if(add) add.addEventListener('click', function(){
+    var drop = box.querySelector('button.ph-drop');
+    if(drop) drop.addEventListener('click', function(){
       var inp = document.createElement('input');
       inp.type = 'file'; inp.accept = 'image/jpeg,image/png,image/webp'; inp.multiple = true;
       inp.addEventListener('change', function(){ if(inp.files.length) uploadHallPhotos(i, inp.files); });
       inp.click();
     });
+    // Файлы с компьютера — на весь блок (и на превью тоже), зона подсвечивается.
+    var depth = 0;
+    var over = function(on){ if(drop) drop.classList.toggle('over', on); };
+    box.ondragenter = function(e){ if(!dragHasFiles(e) || !drop) return; e.preventDefault(); depth++; over(true); };
+    box.ondragover = function(e){ if(!dragHasFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = drop ? 'copy' : 'none'; };
+    box.ondragleave = function(e){ if(!dragHasFiles(e)) return; depth = Math.max(0, depth - 1); if(!depth) over(false); };
+    box.ondrop = function(e){
+      if(!dragHasFiles(e)) return;
+      e.preventDefault(); depth = 0; over(false);
+      if(drop && e.dataTransfer.files.length) uploadHallPhotos(i, e.dataTransfer.files);
+    };
+    // Порядок — перетаскиванием превью между собой.
     var dragFrom = null;
     box.querySelectorAll('.ph-thumb').forEach(function(el){
-      el.addEventListener('dragstart', function(){ dragFrom = +el.dataset.pi; el.style.opacity = '.4'; });
-      el.addEventListener('dragend', function(){ el.style.opacity = ''; });
-      el.addEventListener('dragover', function(e){ e.preventDefault(); });
+      el.addEventListener('dragstart', function(e){ dragFrom = +el.dataset.pi; el.classList.add('dragging'); try{ e.dataTransfer.setData('text/x-ph', el.dataset.pi); e.dataTransfer.effectAllowed = 'move'; }catch(_){} });
+      el.addEventListener('dragend', function(){ dragFrom = null; el.classList.remove('dragging'); box.querySelectorAll('.ph-thumb.target').forEach(function(x){ x.classList.remove('target'); }); });
+      el.addEventListener('dragover', function(e){ if(dragFrom == null) return; e.preventDefault(); el.classList.toggle('target', +el.dataset.pi !== dragFrom); });
+      el.addEventListener('dragleave', function(){ el.classList.remove('target'); });
       el.addEventListener('drop', function(e){
+        if(dragFrom == null) return;
         e.preventDefault();
         var to = +el.dataset.pi;
-        if(dragFrom == null || dragFrom === to) return;
+        if(dragFrom === to) return;
         var arr = (h.photos||[]).slice();
         var moved = arr.splice(dragFrom, 1)[0];
         arr.splice(to, 0, moved);
@@ -4642,14 +4709,21 @@ var PF = (function(){
       });
     });
   }
+  // Файл, брошенный мимо зоны, браузер открыл бы вместо кабинета — не даём.
+  ['dragover', 'drop'].forEach(function(t){
+    window.addEventListener(t, function(e){
+      if(!dragHasFiles(e) || (e.target.closest && e.target.closest('.hall-photos'))) return;
+      e.preventDefault(); if(t === 'dragover') e.dataTransfer.dropEffect = 'none';
+    });
+  });
 
   function saveHallPhotos(i, photos){
     var h = hallsDraft[i];
     return api('PUT', '/admin/halls/' + encodeURIComponent(h.id) + '/photos', photos)
       .then(function(r){ h.photos = Array.isArray(r.photos) ? r.photos : photos;
         if(HALLS_BY_ID[h.id]) HALLS_BY_ID[h.id].photos = h.photos;
-        renderHallPhotos(i); })
-      .catch(function(e){ var n = document.querySelector('.hall-photos[data-i="'+i+'"] .ph-note'); if(n) flash(n, e.message); });
+        renderHallPhotos(i); return true; })
+      .catch(function(e){ phSay(h.id, 'err', 'Не сохранилось: ' + e.message); renderHallPhotos(i); return false; });
   }
 
   // Несколько фото сразу: выбранные файлы грузятся параллельно (по 3), в
@@ -4684,21 +4758,22 @@ var PF = (function(){
     });
   }
   function uploadHallPhotos(i, fileList){
-    var h = hallsDraft[i];
-    var n = document.querySelector('.hall-photos[data-i="'+i+'"] .ph-note');
-    var say = function(t, ok){ if(n) flash(n, t, ok); };
+    var h = hallsDraft[i], id = h.id;
+    if(PH_UP[id] && PH_UP[id].busy) return;
+    var fail = function(t){ phSay(id, 'err', t); renderHallPhotos(i); };
     var have = (h.photos || []).length, room = PHOTO_MAX - have;
     var all = [].slice.call(fileList);
     var files = all.filter(function(f){ return /^image\/(jpeg|png|webp)$/.test(f.type); });
     var skipped = [];
-    if(!files.length){ say('Подходят JPG, PNG и WebP'); return; }
-    if(files.length < all.length) skipped.push((all.length - files.length) + ' не фото (нужны JPG, PNG или WebP)');
+    if(!files.length){ fail(all.length === 1 ? 'Это не фото: подходят JPG, PNG и WebP' : 'Среди файлов нет фото: подходят JPG, PNG и WebP'); return; }
+    if(files.length < all.length) skipped.push((all.length - files.length) + ' не фото');
     var big = files.filter(function(f){ return f.size > PHOTO_RAW_MB*1024*1024; });
     if(big.length){ skipped.push(big.length + ' больше ' + PHOTO_RAW_MB + ' МБ'); files = files.filter(function(f){ return f.size <= PHOTO_RAW_MB*1024*1024; }); }
-    if(files.length > room){ skipped.push((files.length - room) + ' сверх лимита ' + PHOTO_MAX + ' фото'); files = files.slice(0, Math.max(0, room)); }
-    if(!files.length){ say('Не загружено: ' + skipped.join(', ')); return; }
+    if(files.length > room){ skipped.push((files.length - room) + ' сверх ' + PHOTO_MAX + ' фото'); files = files.slice(0, Math.max(0, room)); }
+    if(!files.length){ fail('Не загружено: ' + skipped.join(', ')); return; }
     var done = 0, urls = new Array(files.length), failed = 0, next = 0;
-    say('Загрузка 0 из ' + files.length + '…', true);
+    var tick = function(){ PH_UP[id] = { busy:true, done:done, total:files.length }; var k = pmIdx(id); if(k >= 0) renderHallPhotos(k); };
+    tick();
     function one(k){
       var file = files[k];
       return normalizePhoto(file)
@@ -4706,14 +4781,14 @@ var PF = (function(){
         .then(function(blob){
           if(blob.size > PHOTO_MAX_MB*1024*1024) throw new Error('слишком большое фото');
           var type = blob.type || file.type;
-          return api('POST', '/admin/halls/' + encodeURIComponent(h.id) + '/photo-upload', { contentType: type })
+          return api('POST', '/admin/halls/' + encodeURIComponent(id) + '/photo-upload', { contentType: type })
             .then(function(r){
               return fetch(r.uploadUrl, { method:'PUT', body:blob, headers:{ 'Content-Type': type } })
                 .then(function(res){ if(!res.ok) throw new Error('хранилище отклонило загрузку (' + res.status + ')'); urls[k] = r.publicUrl; });
             });
         })
         .catch(function(){ failed++; })
-        .then(function(){ done++; say('Загрузка ' + done + ' из ' + files.length + '…', true); });
+        .then(function(){ done++; tick(); });
     }
     function worker(){
       if(next >= files.length) return Promise.resolve();
@@ -4723,12 +4798,15 @@ var PF = (function(){
     var pool = [];
     for(var w = 0; w < Math.min(3, files.length); w++) pool.push(worker());
     Promise.all(pool).then(function(){
-      var ok = urls.filter(Boolean);
-      if(!ok.length){ say('Не удалось загрузить фото. Проверьте соединение и попробуйте ещё раз.'); return; }
-      return saveHallPhotos(i, (h.photos || []).concat(ok)).then(function(){
-        var m = document.querySelector('.hall-photos[data-i="'+i+'"] .ph-note');
-        var msg = 'Добавлено: ' + ok.length + (failed ? ', не загрузилось: ' + failed : '') + (skipped.length ? ' (пропущено: ' + skipped.join(', ') + ')' : '');
-        if(m) flash(m, msg, !failed && !skipped.length);
+      delete PH_UP[id];
+      var ok = urls.filter(Boolean), k = pmIdx(id);
+      if(k < 0) return;
+      if(!ok.length){ fail('Не удалось загрузить фото. Проверьте соединение и попробуйте ещё раз.'); return; }
+      return saveHallPhotos(k, (hallsDraft[k].photos || []).concat(ok)).then(function(saved){
+        if(!saved) return;
+        var bad = (failed ? 'не загрузилось ' + failed : '') + (skipped.length ? (failed ? '; ' : '') + 'пропущено: ' + skipped.join(', ') : '');
+        phSay(id, bad ? 'err' : 'ok', 'Добавлено фото: ' + ok.length + (bad ? '. ' + bad.charAt(0).toUpperCase() + bad.slice(1) : ''));
+        var kk = pmIdx(id); if(kk >= 0) renderHallPhotos(kk);
       });
     });
   }
@@ -8254,22 +8332,19 @@ var PF = (function(){
   }
   function obSpaceScreen(){
     var t = obType() || OB_TYPES[5], hi = obHallIdx();
-    if(hi >= 0){
-      var h = hallsDraft[hi];
-      return '<h2 class="ob-h">Первое пространство</h2><p class="ob-lead">Оно уже создано. Цены, цели и всё остальное о нём — на странице пространства.</p>' +
-        '<div class="ob-done-row"><b>' + esc(h.title || h.name) + '</b><span>' + esc(hallPriceText(h) || 'цена не указана') + ' · до ' + esc(h.capacity) + ' чел.</span>' +
-        '<button type="button" class="linkish" data-obgo-hall="' + hi + '">Открыть страницу пространства</button></div>';
-    }
+    if(hi >= 0 && OBD.forId !== hallsDraft[hi].id) spaceDraftFromHall(hallsDraft[hi], OBD);
     if(OBD.purposes == null) OBD.purposes = t.purposes.slice();
     if(!OBD.typeText) OBD.typeText = t.spaceType;
-    return '<h2 class="ob-h">Первое пространство</h2><p class="ob-lead">Комната или зал, который бронируют. Остальные добавите потом в разделе «Пространства».</p>' +
+    return '<h2 class="ob-h">Первое пространство</h2><p class="ob-lead">' + (hi >= 0
+        ? 'Оно уже создано — здесь можно поправить главное. Остальное о нём — на странице пространства.'
+        : 'Комната или зал, который бронируют. Остальные добавите потом в разделе «Пространства».') + '</p>' +
       spaceFormHtml('ob', t, OBD);
   }
   function obPhotosScreen(){
     var hi = obHallIdx();
     if(hi < 0) return '<h2 class="ob-h">Фото пространства</h2><p class="ob-lead">Сначала создайте пространство на прошлом шаге.</p>';
     var n = (hallsDraft[hi].photos || []).length;
-    return '<h2 class="ob-h">Фото пространства</h2><p class="ob-lead">Нужно хотя бы ' + PHOTOS_MIN + ' фото — без них пространство почти не выбирают. Первое станет обложкой, порядок меняется перетаскиванием.</p>' +
+    return '<h2 class="ob-h">Фото пространства</h2><p class="ob-lead">Нужно хотя бы ' + PHOTOS_MIN + ' фото — без них пространство почти не выбирают.</p>' +
       '<div class="hall-photos" data-i="' + hi + '"></div>' +
       (n < PHOTOS_MIN ? '<div><button type="button" class="linkish" id="obPhotosLater">Добавлю позже — дальше без фото</button></div>' +
         (OB.photosLater ? '<div class="ob-warn">Хорошо. Без ' + PHOTOS_MIN + ' фото отправить на публикацию не получится — напомним в конце.</div>' : '') : '');
@@ -8376,7 +8451,8 @@ var PF = (function(){
     var scr = $('obScreen');
     var all = function(sel){ return scr.querySelectorAll(sel); };
     all('[data-obtype]').forEach(function(b){ b.onclick = function(){
-      if(OB.type !== b.dataset.obtype){ OB.type = b.dataset.obtype; OBD.purposes = null; OBD.typeText = ''; OB.hoursSet = false; }
+      if(OB.type !== b.dataset.obtype){ OB.type = b.dataset.obtype; OBD.purposes = null; OBD.typeText = ''; OBD.hallType = null; OB.hoursSet = false;
+        if(obHallIdx() >= 0) OBD.forId = hallsDraft[obHallIdx()].id; }
       obRender(); }; });
     if($('obAddr')){
       wzAddrHelper({ addr:'obAddr', box:'obAddrSuggest', map:'obMap', mapHint:'obMapHint' }, profileDraft);
@@ -8447,8 +8523,7 @@ var PF = (function(){
           $('sName').textContent = profileDraft.name; setPageHead(profileDraft.name, profileDraft.city, profileDraft.address);
         });
       case 3:
-        if(obHallIdx() >= 0) return Promise.resolve();
-        return obCreateHall(t);
+        return spaceSave('ob', OBD, t, null, obHallIdx());
       case 4:
         var hi = obHallIdx(), n = hi >= 0 ? (hallsDraft[hi].photos || []).length : 0;
         if(n < PHOTOS_MIN && !OB.photosLater) return Promise.reject(new Error('Добавьте ещё ' + (PHOTOS_MIN - n) + ' фото или нажмите «Добавлю позже»'));
@@ -8468,47 +8543,89 @@ var PF = (function(){
   function obNext(){
     var btn = $('obNext'); btn.disabled = true; obMsg('');
     // Сначала — тип пространства: из поля «Тип» в словарь (новое слово заведётся само).
-    var pre = OB.step === 3 && obHallIdx() < 0 && $('obSpaceType') && $('obSpaceType').value.trim() ? wzComboResolve('obSpaceType', 'space_type', OBD, 'hallType') : Promise.resolve();
+    var pre = OB.step === 3 && $('obSpaceType') && $('obSpaceType').value.trim() ? wzComboResolve('obSpaceType', 'space_type', OBD, 'hallType') : Promise.resolve();
     pre.then(obAction).then(function(){
       OB.step++; OB.max = Math.max(OB.max, OB.step); obRender(); window.scrollTo(0, 0);
     }).catch(function(e){ btn.disabled = false; obMsg((e && e.message) || 'Не получилось сохранить — попробуйте ещё раз'); });
   }
+  // Черновик формы из уже созданного пространства — когда к шагу возвращаются.
+  // Цели «за гостя» в форме не показываем (там нет цены за час) и не трогаем при сохранении.
+  function spaceHourly(p){ return p.active !== false && !(p.guestPricing && p.guestPricing.mode === 'perPerson'); }
+  function spaceDraftFromHall(h, D){
+    var act = hallPurposes(h).filter(spaceHourly);
+    D.forId = h.id;
+    D.title = h.title || h.name || ''; D.cap = h.capacity ? String(h.capacity) : '';
+    D.hallType = h.hallType || null; D.typeText = h.hallType ? hallTypeLabel(h.hallType) : '';
+    D.purposes = act.map(function(p){ return p.code; });
+    D.prices = {}; act.forEach(function(p){ if(p.rate > 0) D.prices[p.code] = String(p.rate); });
+  }
   // Пространство и его цели — одними запросами и для мастера запуска, и для «+ Добавить пространство».
-  // Минимальная бронь по типу (баня — от 2 ч) — у цели: у площадки минимум до 1 ч.
+  // idx >= 0 — пространство уже создано (вернулись к шагу): правим его, а не создаём второе.
+  // Минимальная бронь по типу (баня — от 2 ч) — у новой цели: у площадки минимум до 1 ч.
   // extra — поля пространства поверх обязательных (свой шаг времени); onCreated(idx) —
   // как только пространство сохранено, до записи целей: при сбое целей повторное «Дальше» его не задвоит.
-  function spaceCreate(P, D, t, extra, onCreated){
+  function spaceSave(P, D, t, extra, idx, onCreated){
     var title = ($(P + 'Title').value || '').trim(), cap = parseInt($(P + 'Cap').value, 10);
+    var old = idx >= 0 ? hallsDraft[idx] : null;
+    var otherActive = old && hallPurposes(old).some(function(p){ return p.active !== false && !spaceHourly(p); });
     if(title.length < 2) return Promise.reject(new Error('Введите название пространства'));
     if(!D.hallType) return Promise.reject(new Error('Укажите тип пространства — например, «баня» или «переговорная»'));
     if(!(cap >= 1 && cap <= 1000)) return Promise.reject(new Error('Вместимость — от 1 до 1000 человек'));
-    if(!D.purposes.length) return Promise.reject(new Error('Выберите, для чего сдаёте пространство'));
+    if(!D.purposes.length && !otherActive) return Promise.reject(new Error('Выберите, для чего сдаёте пространство'));
     var bad = D.purposes.filter(function(c){ var r = Number(D.prices[c]); return !(r > 0 && r <= 100000); })[0];
     if(bad) return Promise.reject(new Error('Укажите цену за час для ' + purposeGen(bad)));
-    var rate = Math.min.apply(null, D.purposes.map(function(c){ return Number(D.prices[c]); }));
-    var before = hallsDraft.map(function(h){ return h.id; });
-    var nh = mapHall(Object.assign({ name:title, title:title, capacity:cap, rate:rate, hallType:D.hallType }, extra || {}));
-    hallsDraft.push(nh);
+    var rate = D.purposes.length ? Math.min.apply(null, D.purposes.map(function(c){ return Number(D.prices[c]); })) : (old ? old.rate : 0);
+    if(old){
+      // Вернулись к шагу и ничего не поменяли — писать нечего.
+      var same = old.name === title && old.capacity === cap && old.hallType === D.hallType &&
+        Object.keys(extra || {}).every(function(f){ return old[f] === extra[f]; }) &&
+        hallPurposes(old).filter(spaceHourly).length === D.purposes.length &&
+        D.purposes.every(function(c){ var p = hallPurposes(old).filter(function(x){ return x.code === c; })[0]; return p && spaceHourly(p) && p.rate === Number(D.prices[c]); });
+      if(same) return Promise.resolve(idx);
+    }
+    var nh = null, before = hallsDraft.map(function(h){ return h.id; });
+    if(old){
+      old.name = title; old.title = title; old.capacity = cap; old.hallType = D.hallType; old.rate = rate;
+      Object.assign(old, extra || {});
+    } else {
+      nh = mapHall(Object.assign({ name:title, title:title, capacity:cap, rate:rate, hallType:D.hallType }, extra || {}));
+      hallsDraft.push(nh);
+    }
     return saveHallsNow().then(function(){
-      var idx = -1;
-      hallsDraft.forEach(function(h, i){ if(before.indexOf(h.id) < 0) idx = i; });
-      if(idx < 0) throw new Error('Пространство сохранено, но не найдено — обновите страницу');
-      if(onCreated) onCreated(idx);
-      var h = hallsDraft[idx];
-      var clean = D.purposes.map(function(c){
-        var p = { code:c, active:true, rate:Number(D.prices[c]) };
+      var id = old ? old.id : null, k = -1;
+      if(id) k = pmIdx(id);
+      else hallsDraft.forEach(function(h, i){ if(before.indexOf(h.id) < 0) k = i; });
+      if(k < 0) throw new Error('Пространство сохранено, но не найдено — обновите страницу');
+      if(!old && onCreated) onCreated(k);
+      var h = hallsDraft[k];
+      D.forId = h.id;
+      // Цели правим поверх того, что у пространства уже есть: пакеты, сетки цен и состав
+      // аренды остаются. Убранную в форме цель выключаем, а не удаляем.
+      var list = hallPurposes(h).map(mapPurpose);
+      D.purposes.forEach(function(c){
+        var pr = Number(D.prices[c]), p = list.filter(function(x){ return x.code === c; })[0];
+        if(p){ p.active = true; p.rate = pr; return; }
+        p = mapPurpose({ code:c, active:true, rate:pr });
         if(t && t.min > 60) p.minBookingMin = t.min;
-        return p;
+        list.push(p);
       });
-      return api('PUT', '/admin/halls/' + encodeURIComponent(h.id) + '/purposes', clean)
-        .then(function(res){ h.purposes = Array.isArray(res.purposes) ? res.purposes : clean; return idx; })
-        .catch(function(e){ throw new Error('Пространство создано, но цены не сохранились: ' + e.message + '. Задайте их на странице пространства.'); });
+      list.forEach(function(p){ if(spaceHourly(p) && D.purposes.indexOf(p.code) < 0) p.active = false; });
+      h.purposes = list;
+      return api('PUT', '/admin/halls/' + encodeURIComponent(h.id) + '/purposes', pmClean(h))
+        .then(function(res){
+          h.purposes = (Array.isArray(res.purposes) ? res.purposes : pmClean(h)).map(mapPurpose);
+          var mr = hallMinRate(h); if(mr != null) h.rate = mr;
+          if(HALLS_BY_ID[h.id]){ HALLS_BY_ID[h.id].purposes = clone(h.purposes); HALLS_BY_ID[h.id].rate = h.rate; }
+          pmSnap(k);
+          return k;
+        })
+        .catch(function(e){ throw new Error('Пространство ' + (old ? 'сохранено' : 'создано') + ', но цены не сохранились: ' + e.message + '. Задайте их на странице пространства.'); });
     }).catch(function(e){
-      var k = hallsDraft.indexOf(nh); if(k >= 0 && !nh.id) hallsDraft.splice(k, 1);
+      if(nh){ var j = hallsDraft.indexOf(nh); if(j >= 0 && !nh.id) hallsDraft.splice(j, 1); }
       throw e;
     });
   }
-  function obCreateHall(t){ return spaceCreate('ob', OBD, t); }
+
 
   // Запуск студии виден владельцу, пока студия не опубликована.
   function syncLaunchNav(){
@@ -8562,20 +8679,16 @@ var PF = (function(){
         typeChoicesHtml('data-nhtype', NH.type);
     }
     if(NH.step === 1){
-      if(NH.idx >= 0){
-        var h = hallsDraft[NH.idx];
-        return '<h2 class="ob-h">Новое пространство</h2><p class="ob-lead">Оно уже создано. Цены, цели и всё остальное о нём — на странице пространства.</p>' +
-          '<div class="ob-done-row"><b>' + esc(h.title || h.name) + '</b><span>' + esc(hallPriceText(h) || 'цена не указана') + ' · до ' + esc(h.capacity) + ' чел.</span>' +
-          '<button type="button" class="linkish" data-nhgo="' + NH.idx + '">Открыть страницу пространства</button></div>';
-      }
       t = t || OB_TYPES[5];
       if(d.purposes == null) d.purposes = t.purposes.slice();
       if(!d.typeText) d.typeText = t.spaceType;
-      return '<h2 class="ob-h">Название, тип и цена</h2><p class="ob-lead">Комната или зал, который бронируют. Остальное — описание, удобства, правила — в его карточке, когда понадобится.</p>' +
+      return '<h2 class="ob-h">Название, тип и цена</h2><p class="ob-lead">' + (NH.idx >= 0
+          ? 'Пространство уже создано — здесь можно поправить главное.'
+          : 'Комната или зал, который бронируют. Остальное — описание, удобства, правила — в его карточке, когда понадобится.') + '</p>' +
         spaceFormHtml('nh', t, d);
     }
     var n = NH.idx >= 0 ? (hallsDraft[NH.idx].photos || []).length : 0;
-    return '<h2 class="ob-h">Фото пространства</h2><p class="ob-lead">Нужно хотя бы ' + PHOTOS_MIN + ' фото — без них пространство почти не выбирают. Первое станет обложкой, порядок меняется перетаскиванием.</p>' +
+    return '<h2 class="ob-h">Фото пространства</h2><p class="ob-lead">Нужно хотя бы ' + PHOTOS_MIN + ' фото — без них пространство почти не выбирают.</p>' +
       '<div class="hall-photos" data-i="' + NH.idx + '"></div>' +
       (n < PHOTOS_MIN ? '<div><button type="button" class="linkish" id="nhPhotosLater">Добавлю позже — открыть страницу пространства</button></div>' +
         (NH.photosLater ? '<div class="ob-warn">Хорошо. Без ' + PHOTOS_MIN + ' фото пространство не считается готовым — добавите на его странице.</div>' : '') : '');
@@ -8595,14 +8708,13 @@ var PF = (function(){
       '</dl></div>';
   }
   function nhRender(){
-    var idx = NH.idx;
     $('nhSteps').innerHTML = NH_STEPS.map(function(title, i){
-      var reach = i <= NH.max && !(idx >= 0 && i < 2);       // пространство создано — к вводу данных не вернуться
+      var reach = i <= NH.max;
       return '<button type="button" class="ob-st' + (i === NH.step ? ' cur' : i < NH.max ? ' done' : '') + '" data-nhstep="' + i + '"' +
         (reach && i !== NH.step ? '' : ' disabled') + (i === NH.step ? ' aria-current="step"' : '') + '><i>' + (i !== NH.step && i < NH.max ? '✓' : i + 1) + '</i>' + esc(title) + '</button>';
     }).join('');
     $('nhScreen').innerHTML = nhScreenHtml() +
-      '<div class="ob-foot"><button type="button" class="btn ghost" id="nhBack">' + (NH.step === 0 ? 'Отмена' : NH.step === 2 ? 'К списку' : 'Назад') + '</button>' +
+      '<div class="ob-foot"><button type="button" class="btn ghost" id="nhBack">' + (NH.step > 0 ? 'Назад' : NH.idx >= 0 ? 'К списку' : 'Отмена') + '</button>' +
         '<span class="ob-msg" id="nhMsg" role="alert"></span>' +
         '<button type="button" class="btn" id="nhNext">' + (NH.step === 2 ? 'Готово' : 'Дальше') + '</button></div>';
     $('nhSide').innerHTML = nhSide();
@@ -8614,11 +8726,10 @@ var PF = (function(){
       if(NH.type !== b.dataset.nhtype){ NH.type = b.dataset.nhtype; NH.d.purposes = null; NH.d.typeText = ''; NH.d.hallType = null; }
       nhRender(); }; });
     spaceFormWire('nh', scr, NH.d, nhRender);
-    scr.querySelectorAll('[data-nhgo]').forEach(function(b){ b.onclick = function(){ $('nhView').hidden = true; wzOpen(+b.dataset.nhgo); }; });
     var ph = scr.querySelector('.hall-photos[data-i]'); if(ph) renderHallPhotos(+ph.dataset.i);
     if($('nhPhotosLater')) $('nhPhotosLater').onclick = function(){ NH.photosLater = true; nhRender(); };
     $('nhBack').onclick = function(){
-      if(NH.step === 0 || NH.step === 2){ $('nhView').hidden = true; $('hallsListView').hidden = false; renderHalls(); return; }
+      if(NH.step === 0){ $('nhView').hidden = true; $('hallsListView').hidden = false; renderHalls(); return; }
       NH.step--; nhRender(); window.scrollTo(0, 0);
     };
     $('nhNext').onclick = nhNext;
@@ -8633,10 +8744,9 @@ var PF = (function(){
       case 0:
         return t ? Promise.resolve() : Promise.reject(new Error('Выберите, что вы сдаёте'));
       case 1:
-        if(NH.idx >= 0) return Promise.resolve();       // уже создано (повторное «Дальше» после ошибки в целях)
         // Сначала — тип пространства: из поля «Тип» в словарь (новое слово заведётся само).
         var pre = $('nhSpaceType') && $('nhSpaceType').value.trim() ? wzComboResolve('nhSpaceType', 'space_type', NH.d, 'hallType') : Promise.resolve();
-        return pre.then(function(){ return spaceCreate('nh', NH.d, t, nhOwnSteps(t), function(i){ NH.idx = i; }); });
+        return pre.then(function(){ return spaceSave('nh', NH.d, t, nhOwnSteps(t), NH.idx, function(i){ NH.idx = i; }); }).then(function(k){ NH.idx = k; });
       default:
         var n = (hallsDraft[NH.idx].photos || []).length;
         if(n < PHOTOS_MIN && !NH.photosLater) return Promise.reject(new Error('Добавьте ещё ' + (PHOTOS_MIN - n) + ' фото или нажмите «Добавлю позже»'));
