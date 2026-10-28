@@ -1627,7 +1627,9 @@
   .listing-name{font-weight:700;font-size:var(--fs-lg);line-height:1.25;}
   .listing-meta{font-size:var(--fs-sm);color:var(--text-2);margin-top:4px;}
   .listing-rate{font-weight:700;font-size:var(--fs-lg);color:var(--blue);margin-top:6px;}
-  .listing-actions{display:flex;gap:8px;align-items:flex-start;position:relative;flex:none;}
+  .listing-actions{display:flex;flex-direction:column;gap:12px;align-items:flex-end;position:relative;flex:none;}
+  .la-row{display:flex;gap:8px;align-items:flex-start;}
+  .hall-pub{margin-right:2px;}
   .hall-card-add{border:none;background:none;padding:0;text-align:left;
     color:var(--blue);font:inherit;font-size:var(--fs-md);font-weight:600;cursor:pointer;}
   .hall-card-add:hover{color:var(--blue-dark);}
@@ -3544,7 +3546,7 @@ var PF = (function(){
       rentalMode:h.rentalMode === 'nightly' ? 'nightly' : 'hourly',
       nightly:h.nightly ? JSON.parse(JSON.stringify(h.nightly)) : null,
       // Черновик (0067): у опубликованной площадки клиенты его не видят. Пишется своим запросом (/visibility).
-      draft:!!h.draft};
+      draft:!!h.draft, unpublishedAt:h.unpublishedAt || null};
     HALL_BOOLS.forEach(function(f){ o[f] = !!h[f]; });
     // Описания — тоже через белый список: поле, забытое здесь, вернулось бы
     // с сервера, не попало в черновик и ушло обратно пустым, стерев текст.
@@ -4855,14 +4857,17 @@ var PF = (function(){
               '<div class="listing-name">'+esc(h.title || h.name || 'Без названия')+'</div>' +
               '<div class="listing-meta">'+esc(meta)+'</div>' +
               '<div class="listing-rate">'+(hallPriceText(h) ? esc(hallPriceText(h)) : '<span class="muted">цена не указана</span>')+'</div>' +
-              '<div class="listing-ready">' + (hallIsDraft(h) ? '<span class="sc-chip rec">черновик · клиенты не видят</span> ' : '') + (r.missing.length
+              '<div class="listing-ready">' + (HALL_STATUS_CHIP[hallStatus(h)] || '') + ' ' + (r.missing.length
                 ? '<span class="sc-chip req">не хватает: '+esc(r.missing.join(', '))+'</span>'
                 : '<span class="sc-chip ok">готово на '+r.pct+'%</span>') + '</div>' +
             '</div>' +
           '</button>' +
           '<div class="listing-actions">' +
-            '<button class="btn ghost small" type="button" data-edit="'+i+'">Открыть</button>' +
-            '<button class="hall-card-menu-btn" type="button" data-menu="'+i+'" aria-label="Ещё">⋯</button>' +
+            '<div class="la-row">' +
+              '<button class="btn ghost small" type="button" data-edit="'+i+'">Редактировать</button>' +
+              '<button class="hall-card-menu-btn" type="button" data-menu="'+i+'" aria-label="Ещё">⋯</button>' +
+            '</div>' +
+            (hallStatus(h) ? '<label class="pm-sw hall-pub"><input type="checkbox" role="switch" data-pub="'+i+'"' + (hallStatus(h) === 'pub' ? ' checked' : '') + '><span>Публикация</span></label>' : '') +
             '<div class="hall-card-menu" data-menu-box="'+i+'" hidden>' +
               '<button type="button" data-delete="'+i+'">Удалить пространство</button>' +
             '</div>' +
@@ -4878,6 +4883,18 @@ var PF = (function(){
 
     g.querySelectorAll('[data-edit]').forEach(function(b){
       b.addEventListener('click', function(){ wzOpen(+b.dataset.edit); });
+    });
+    // Тумблер публикации: включить — если всё готово, выключить — после подтверждения.
+    // Любой исход перерисовывает список, так что тумблер всегда показывает настоящее состояние.
+    g.querySelectorAll('[data-pub]').forEach(function(b){
+      b.addEventListener('change', function(){
+        var i = +b.dataset.pub, want = b.checked, nm = hallsDraft[i].title || hallsDraft[i].name || 'Пространство';
+        b.disabled = true;
+        setHallVisible(i, want).then(function(done){
+          renderHalls();
+          if(done) hallFlash('«' + nm + '» ' + (want ? 'опубликовано' : 'снято с публикации'), true);
+        }, function(e){ renderHalls(); hallFlash((e && e.message) || 'Не получилось — попробуйте ещё раз'); });
+      });
     });
     g.querySelectorAll('[data-menu]').forEach(function(b){
       b.addEventListener('click', function(e){
@@ -8112,31 +8129,46 @@ var PF = (function(){
     var card = document.querySelector('#hpSecs .sc[data-sec="pricing"]');
     if(card && card.scrollIntoView) card.scrollIntoView({ block:'start', behavior: scReduced() ? 'auto' : 'smooth' });
   }
-  // ---------- видят ли пространство клиенты (0067) ----------
-  // Черновик имеет смысл только у опубликованной площадки: до публикации клиенты
-  // не видят ничего, и пространства появятся вместе с площадкой.
+  // ---------- публикация пространства (0067, 0069) ----------
+  // Статус: «Опубликовано» (клиенты видят), «Снято с публикации» (публиковали и скрыли),
+  // «Черновик» (ещё не публиковали). У неопубликованной площадки статусов нет: клиенты не
+  // видят ничего, пространства выйдут вместе с площадкой.
+  function hallStatus(h){
+    if(!h || !h.id || ONB.status !== 'published') return null;
+    return !h.draft ? 'pub' : h.unpublishedAt ? 'unpub' : 'draft';
+  }
+  var HALL_STATUS_CHIP = {
+    pub:   '<span class="sc-chip ok">Опубликовано</span>',
+    unpub: '<span class="sc-chip rec">Снято с публикации</span>',
+    draft: '<span class="sc-chip inh">Черновик</span>',
+  };
   function hallIsDraft(h){ return !!h && !!h.draft && ONB.status === 'published'; }
   function hallReadyToShow(h){ return !hallReadiness(h).missing.length; }
-  function hallVisHtml(h){
-    if(ONB.status !== 'published' || !h || !h.id) return '';
-    if(h.draft){
-      var ok = hallReadyToShow(h);
-      return '<div class="hp-vis draft"><div><b>Черновик</b> — клиенты пока не видят это пространство.' +
-          (ok ? '' : '<span class="hp-vis-sub">Показать можно, когда будет всё обязательное.</span>') + '</div>' +
-        '<button type="button" class="btn small" data-vis="1"' + (ok ? '' : ' disabled') + '>Показать клиентам</button></div>';
-    }
-    return '<div class="hp-vis"><div>Клиенты видят это пространство и могут его бронировать.</div>' +
-      '<button type="button" class="btn ghost small" data-vis="0">Скрыть от клиентов</button></div>';
-  }
+  // Опубликовать / снять. Опубликовать можно, когда есть всё обязательное — иначе отказ
+  // с перечнем, чего не хватает (без заблокированных кнопок). Снять — после подтверждения.
+  // Резолвится true, если состояние изменилось, false — если владелец передумал.
   function setHallVisible(i, visible){
-    var h = hallsDraft[i];
-    if(!visible && !confirm('Скрыть «' + (h.title || h.name) + '» от клиентов? Принятые брони останутся, новых клиенты сделать не смогут.')) return Promise.resolve(false);
+    var h = hallsDraft[i], nm = h.title || h.name || 'пространство';
+    if(visible){
+      var r = hallReadiness(h);
+      if(r.missing.length) return Promise.reject(new Error('Чтобы опубликовать «' + nm + '», не хватает: ' + r.missing.join(', ')));
+    } else if(!confirm('Снять «' + nm + '» с публикации? Принятые брони останутся, новых клиенты сделать не смогут.')) return Promise.resolve(false);
     return api('PUT', '/admin/halls/' + encodeURIComponent(h.id) + '/visibility', { visible:visible })
       .then(function(u){
-        h.draft = !!u.draft;
-        if(HALLS_BY_ID[h.id]) HALLS_BY_ID[h.id].draft = h.draft;
+        h.draft = !!u.draft; h.unpublishedAt = u.unpublishedAt || null;
+        if(HALLS_BY_ID[h.id]){ HALLS_BY_ID[h.id].draft = h.draft; HALLS_BY_ID[h.id].unpublishedAt = h.unpublishedAt; }
         return true;
       });
+  }
+  // Строка на странице пространства: статус и кнопка.
+  function hallVisHtml(h){
+    var st = hallStatus(h);
+    if(!st) return '';
+    if(st === 'pub') return '<div class="hp-vis"><div><b>Опубликовано</b> — клиенты видят это пространство и могут его бронировать.</div>' +
+      '<button type="button" class="btn ghost small" data-vis="0">Снять с публикации</button></div>';
+    return '<div class="hp-vis draft"><div><b>' + (st === 'unpub' ? 'Снято с публикации' : 'Черновик') + '</b> — клиенты пока не видят это пространство.' +
+        (hallReadyToShow(h) ? '' : '<span class="hp-vis-sub">Опубликовать можно, когда будет всё обязательное.</span>') + '</div>' +
+      '<button type="button" class="btn small" data-vis="1">Опубликовать</button></div>';
   }
   function wireHallVis(scope, i, after){
     scope.querySelectorAll('[data-vis]').forEach(function(b){
@@ -8159,7 +8191,7 @@ var PF = (function(){
         ? 'Для публикации нужно: ' + readyGapsHtml(r) + '. Рекомендуемые разделы помогают клиентам выбрать именно это пространство.'
         : 'Рекомендуемые разделы помогают клиентам выбрать именно это пространство.') + '</div>' +
       hallVisHtml(h);
-    wireHallVis($('hpReady'), WZ.hallIndex, function(){ renderHallPage(); renderHalls(); flash($('hpNote'), hallsDraft[WZ.hallIndex].draft ? 'Скрыто от клиентов' : 'Пространство видно клиентам', true); });
+    wireHallVis($('hpReady'), WZ.hallIndex, function(){ renderHallPage(); renderHalls(); flash($('hpNote'), hallsDraft[WZ.hallIndex].draft ? 'Снято с публикации' : 'Опубликовано', true); });
     $('hpReady').querySelectorAll('[data-ready-go]').forEach(function(b){
       b.onclick = function(){
         var key = b.dataset.readyGo;
@@ -8845,9 +8877,9 @@ var PF = (function(){
     var hours = Array.isArray(h.hours) ? 'свои: ' + fmtWeek(h.hours) : 'как у площадки: ' + fmtWeek(hoursDraft);
     var status = !pub
       ? '<p class="ob-note">Клиенты увидят его вместе с площадкой — после публикации.</p>'
-      : !h.draft ? '<div class="ob-ok">Клиенты видят это пространство и могут его бронировать.</div>'
-      : hallReadyToShow(h) ? '<p class="ob-note">Пока это черновик — клиенты его не видят. Покажите, когда будете готовы.</p>'
-      : '<div class="ob-warn">Пока это черновик — клиенты его не видят. Чтобы показать, закончите отмеченное «!».</div>';
+      : !h.draft ? '<div class="ob-ok">Опубликовано: клиенты видят это пространство и могут его бронировать.</div>'
+      : hallReadyToShow(h) ? '<p class="ob-note">Пока это черновик — клиенты его не видят. Опубликуйте, когда будете готовы.</p>'
+      : '<div class="ob-warn">Пока это черновик — клиенты его не видят. Чтобы опубликовать, закончите отмеченное «!».</div>';
     return '<h2 class="ob-h">Проверьте, как его увидят клиенты</h2><p class="ob-lead">Так пространство выглядит в каталоге. Описание, удобства и правила добавите на его странице.</p>' +
       '<div class="ob-check"><div class="pv-card">' + hallPreviewHtml(h) + '</div><div class="ob-checks">' +
         ck(!r.gaps.some(function(g){ return g.key !== 'media'; }), 'Название, тип и цена', go('data-nhstep="1"', 'Изменить')) +
@@ -8877,7 +8909,7 @@ var PF = (function(){
     if(NH.step < 3) return '<button type="button" class="btn" id="nhNext">Дальше</button>';
     if(!hallIsDraft(h)) return '<button type="button" class="btn" id="nhDone">Готово</button>';
     return '<button type="button" class="btn ghost" id="nhDone">Оставить черновиком</button>' +
-      '<button type="button" class="btn" id="nhShow"' + (hallReadyToShow(h) ? '' : ' disabled') + '>Показать клиентам</button>';
+      '<button type="button" class="btn" id="nhShow"' + (hallReadyToShow(h) ? '' : ' disabled') + '>Опубликовать</button>';
   }
   // Закончили: на страницу пространства (с нужным разделом).
   function nhFinish(section){
@@ -8914,7 +8946,7 @@ var PF = (function(){
     if($('nhDone')) $('nhDone').onclick = function(){ nhFinish(); };
     if($('nhShow')) $('nhShow').onclick = function(){
       var b = this; b.disabled = true; nhMsg('');
-      setHallVisible(NH.idx, true).then(function(){ renderHalls(); nhRender(); hallFlash('Пространство видно клиентам', true); },
+      setHallVisible(NH.idx, true).then(function(){ renderHalls(); nhRender(); hallFlash('Пространство опубликовано', true); },
         function(e){ b.disabled = false; nhMsg((e && e.message) || 'Не получилось — попробуйте ещё раз'); });
     };
     scr.querySelectorAll('[data-nhpage]').forEach(function(b){ b.onclick = function(){ nhFinish(b.dataset.nhpage); }; });
