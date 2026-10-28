@@ -902,13 +902,15 @@
   .ob-choice.on{border-color:var(--accent);background:var(--accent-bg);box-shadow:inset 0 0 0 1px var(--accent);}
   .ob-purps{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));}
   .ob-purps .ob-choice{position:relative;}
-  .ob-tick{position:absolute;top:12px;right:12px;width:18px;height:18px;border-radius:5px;border:1.5px solid var(--line-strong);background:var(--surface);}
-  .ob-choice.on .ob-tick{background:var(--accent);border-color:var(--accent);}
-  .ob-choice.on .ob-tick::after{content:'';position:absolute;left:5px;top:1.5px;width:4px;height:8px;border:solid var(--on-solid);border-width:0 2px 2px 0;transform:rotate(45deg);}
+  .ob-purps .ob-choice::after{content:'→';position:absolute;top:12px;right:14px;font-size:var(--fs-lg);color:var(--text-3);opacity:0;transform:translateX(-4px);transition:opacity .12s,transform .12s;}
+  .ob-purps .ob-choice:hover::after,.ob-purps .ob-choice:focus-visible::after{opacity:1;transform:none;color:var(--accent-dark);}
+  @media (hover:none){ .ob-purps .ob-choice::after{opacity:1;transform:none;} }
+  @media (prefers-reduced-motion:reduce){ .ob-purps .ob-choice::after{transition:none;} }
+  .ob-other-row{display:flex;gap:8px;} .ob-other-row .name{flex:1;min-width:0;}
   .ob-examples{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;}
   .ob-examples i{font-style:normal;font-size:var(--fs-xs);color:var(--text-2);background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-pill);padding:1px 8px;}
   .ob-choice.on .ob-examples i{background:var(--surface);}
-  .ob-other{max-width:420px;}
+  .ob-other{max-width:480px;}
   .ob-tsug{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
   .ob-tsug-b{font:inherit;font-size:var(--fs-xs);border:1px dashed var(--line-strong);background:none;color:var(--text-2);border-radius:var(--r-pill);padding:3px 10px;cursor:pointer;}
   .ob-tsug-b:hover{border-color:var(--accent);color:var(--accent-dark);}
@@ -8352,39 +8354,42 @@ var PF = (function(){
         later.map(function(x){ return '<span>' + esc(x) + '</span>'; }).join('') + '</div><p class="ob-note">Ничего из этого не нужно, чтобы начать принимать брони.</p></div></div>' +
       '<div class="ob-prep"><span class="ob-lbl">Пригодится под рукой</span><div class="ob-prep-row"><span>адрес</span><span>цена за час</span><span>' + PHOTOS_MIN + ' фото пространства</span></div></div>';
   }
-  // Карточки целей (P — префикс: 'ob' мастер запуска, 'nh' новое пространство) и строка
-  // «Ничего не подходит? Напишите, что сдаёте».
+  // Карточки целей (P — префикс: 'ob' мастер запуска, 'nh' новое пространство). Выбрать
+  // можно одну — клик сразу ведёт на следующий шаг, кнопки «Дальше» нет; другие цели
+  // владелец добавит на шаге «Пространство». Строка «Ничего не подходит?» открывает поле:
+  // там уйти дальше можно кнопкой или Enter.
   function purposeChoicesHtml(P, sel, other){
     var open = !!other || (P === 'nh' ? NH.otherOpen : OB.otherOpen);
     return '<div class="ob-choices ob-purps">' + OB_PURPOSES.map(function(p){
-      var on = sel.indexOf(p.v) >= 0;
+      var on = !other && sel.indexOf(p.v) >= 0;
       return '<button type="button" class="ob-choice' + (on ? ' on' : '') + '" data-' + P + 'pick="' + p.v + '" aria-pressed="' + on + '">' +
-        '<span class="ob-tick" aria-hidden="true"></span>' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + OB_ICONS[p.v] + '</svg>' +
         '<b>' + esc(p.label) + '</b><span>' + esc(p.sub) + '</span>' +
         '<span class="ob-examples">' + p.tags.map(function(x){ return '<i>' + esc(x) + '</i>'; }).join('') + '</span></button>';
     }).join('') + '</div>' +
       (open
         ? '<div class="ob-f ob-other"><label for="' + P + 'Other">Что сдаёте, если ничего не подошло</label>' +
-          '<input class="name" id="' + P + 'Other" maxlength="80" placeholder="Например, студия звукозаписи" value="' + esc(other) + '"></div>'
+          '<div class="ob-other-row"><input class="name" id="' + P + 'Other" maxlength="80" placeholder="Например, студия звукозаписи" value="' + esc(other) + '">' +
+          '<button type="button" class="btn" data-' + P + 'other-go>Дальше</button></div></div>'
         : '<p class="ob-note">Ничего не подходит? <button type="button" class="linkish" data-' + P + 'other-open>Напишите, что сдаёте</button></p>');
   }
-  // Подключение карточек: sel — массив целей (меняется на месте), onPick() — после выбора,
-  // onOther(text) — при вводе своего варианта (без перерисовки, чтобы не терять фокус).
-  function purposeChoicesWire(P, scope, sel, onPick, onOther, onOpen){
+  // Подключение: onPick(purps, other) — выбрали карточку (purps = [код], other = '') или свой
+  // вариант (purps = [], other = текст); onOther(text) — ввод без перерисовки, чтобы не терять фокус.
+  function purposeChoicesWire(P, scope, onPick, onOther, onOpen){
     scope.querySelectorAll('[data-' + P + 'pick]').forEach(function(b){ b.onclick = function(){
-      var c = b.getAttribute('data-' + P + 'pick'), k = sel.indexOf(c);
-      if(k >= 0) sel.splice(k, 1); else sel.push(c);
-      sel.sort(function(a, z){ return OB_PURPOSES.indexOf(purpDef(a)) - OB_PURPOSES.indexOf(purpDef(z)); });
-      onPick();
+      onPick([b.getAttribute('data-' + P + 'pick')], '');
     }; });
     var op = scope.querySelector('[data-' + P + 'other-open]');
     if(op) op.onclick = function(){ onOpen(); var i = $(P + 'Other'); if(i) i.focus(); };
-    var inp = $(P + 'Other');
-    if(inp) inp.oninput = function(){ onOther(this.value); };
+    var inp = $(P + 'Other'), go = scope.querySelector('[data-' + P + 'other-go]');
+    if(inp){
+      inp.oninput = function(){ onOther(this.value); };
+      inp.onkeydown = function(e){ if(e.key === 'Enter'){ e.preventDefault(); onPick([], inp.value.trim()); } };
+    }
+    if(go) go.onclick = function(){ onPick([], ($(P + 'Other').value || '').trim()); };
   }
   function obTypeScreen(){
-    return '<h2 class="ob-h">Зачем к вам приходят?</h2><p class="ob-lead">Отметьте всё, что подходит, — у каждого варианта будет своя цена. От ответа зависят подсказки и начальные значения, всё можно поменять потом.</p>' +
+    return '<h2 class="ob-h">Зачем к вам приходят?</h2><p class="ob-lead">Выберите главное — другие цели добавите на следующем шаге. От ответа зависят подсказки и начальные значения, всё можно поменять потом.</p>' +
       purposeChoicesHtml('ob', OB.purps, OB.other);
   }
   function obProfileScreen(){
@@ -8562,6 +8567,7 @@ var PF = (function(){
       '<div class="ob-foot">' + (OB.step > 0 ? '<button type="button" class="btn ghost" id="obBack">Назад</button>' : '<span class="ob-note">Можно выйти на любом шаге — продолжите с того же места.</span>') +
         '<span class="ob-msg" id="obMsg" role="alert"></span>' +
         (last ? '<button type="button" class="btn" id="obToDash">Перейти на Дашборд</button>'
+          : OB.step === 1 ? ''
           : '<button type="button" class="btn" id="obNext"' + (check && !ONB.reviewRequestedAt && !obReady() ? ' disabled' : '') + '>' + nextLabel + '</button>') + '</div>';
     $('obSide').innerHTML = obSide();
     obWire();
@@ -8572,10 +8578,9 @@ var PF = (function(){
   function obWire(){
     var scr = $('obScreen');
     var all = function(sel){ return scr.querySelectorAll(sel); };
-    // Выбор целей задаёт цели пространства: шаг «Пространство» начнётся с них.
-    purposeChoicesWire('ob', scr, OB.purps,
-      function(){ OBD.purposes = null; OB.hoursSet = false; if(obHallIdx() >= 0) OBD.forId = hallsDraft[obHallIdx()].id; obRender(); },
-      function(v){ var was = OB.other; OB.other = v; if(!OBD.typeText || OBD.typeText === was) OBD.typeText = v.trim(); OBD.purposes = null; $('obSide').innerHTML = obSide(); obSave(); },
+    // Выбор цели — сразу дальше: это и есть цель пространства, шаг «Пространство» начнётся с неё.
+    purposeChoicesWire('ob', scr, obChoose,
+      function(v){ OB.other = v; obSave(); },
       function(){ OB.otherOpen = true; obRender(); });
     if($('obAddr')){
       wzAddrHelper({ addr:'obAddr', box:'obAddrSuggest', map:'obMap', mapHint:'obMapHint' }, profileDraft);
@@ -8628,7 +8633,7 @@ var PF = (function(){
     var t = obType();
     switch(OB.step){
       case 1:
-        if(!t) return Promise.reject(new Error('Отметьте, зачем к вам приходят, или напишите, что сдаёте'));
+        if(!t) return Promise.reject(new Error('Выберите вариант или напишите, что сдаёте'));
         if(OB.appliedType === t.key) return Promise.resolve();
         // Начальные значения по типу: уборка и шаги времени — в правила брони площадки.
         return saveSettingsPatch({ bufferMin:t.buf, slotStepMin:t.step, durationStepMin:t.step, minBookingMin:60 })
@@ -8663,13 +8668,27 @@ var PF = (function(){
     }
     return Promise.resolve();
   }
+  function obChoose(purps, other){
+    if(OB.busy) return;
+    var changed = OB.purps.join() !== purps.join() || (OB.other || '') !== other;
+    OB.purps = purps; OB.other = other;
+    if(changed){
+      OBD.purposes = null; OB.hoursSet = false;
+      if(obHallIdx() >= 0) OBD.forId = hallsDraft[obHallIdx()].id;
+      else { OBD.typeText = ''; OBD.hallType = null; }
+    }
+    obNext();
+  }
   function obNext(){
-    var btn = $('obNext'); btn.disabled = true; obMsg('');
+    if(OB.busy) return;
+    OB.busy = true;
+    var btn = $('obNext'); if(btn) btn.disabled = true; obMsg('');
     // Сначала — тип пространства: из поля «Тип» в словарь (новое слово заведётся само).
     var pre = OB.step === 3 && $('obSpaceType') && $('obSpaceType').value.trim() ? wzComboResolve('obSpaceType', 'space_type', OBD, 'hallType') : Promise.resolve();
     pre.then(obAction).then(function(){
+      OB.busy = false;
       OB.step++; OB.max = Math.max(OB.max, OB.step); obRender(); window.scrollTo(0, 0);
-    }).catch(function(e){ btn.disabled = false; obMsg((e && e.message) || 'Не получилось сохранить — попробуйте ещё раз'); });
+    }).catch(function(e){ OB.busy = false; if(btn) btn.disabled = false; obMsg((e && e.message) || 'Не получилось сохранить — попробуйте ещё раз'); });
   }
   // Черновик формы из уже созданного пространства — когда к шагу возвращаются.
   // Цели «за гостя» в форме не показываем (там нет цены за час) и не трогаем при сохранении.
@@ -8799,7 +8818,7 @@ var PF = (function(){
   function nhScreenHtml(){
     var t = nhType(), d = NH.d;
     if(NH.step === 0){
-      return '<h2 class="ob-h">Зачем приходят в это пространство?</h2><p class="ob-lead">Отметьте всё, что подходит, — у каждого варианта будет своя цена. Часы работы, уборку и условия отмены не трогаем — они общие для площадки.</p>' +
+      return '<h2 class="ob-h">Зачем приходят в это пространство?</h2><p class="ob-lead">Выберите главное — другие цели добавите на следующем шаге. Часы работы, уборку и условия отмены не трогаем — они общие для площадки.</p>' +
         purposeChoicesHtml('nh', NH.purps, NH.other);
     }
     if(NH.step === 1){
@@ -8854,6 +8873,7 @@ var PF = (function(){
   }
   function nhFootRight(){
     var h = NH.idx >= 0 ? hallsDraft[NH.idx] : null;
+    if(NH.step === 0) return '';       // на первом шаге выбор карточки сразу ведёт дальше
     if(NH.step < 3) return '<button type="button" class="btn" id="nhNext">Дальше</button>';
     if(!hallIsDraft(h)) return '<button type="button" class="btn" id="nhDone">Готово</button>';
     return '<button type="button" class="btn ghost" id="nhDone">Оставить черновиком</button>' +
@@ -8880,9 +8900,8 @@ var PF = (function(){
   }
   function nhWire(){
     var scr = $('nhScreen');
-    purposeChoicesWire('nh', scr, NH.purps,
-      function(){ NH.d.purposes = null; nhRender(); },
-      function(v){ var was = NH.other; NH.other = v; if(!NH.d.typeText || NH.d.typeText === was) NH.d.typeText = v.trim(); NH.d.purposes = null; $('nhSide').innerHTML = nhSide(); },
+    purposeChoicesWire('nh', scr, nhChoose,
+      function(v){ NH.other = v; },
       function(){ NH.otherOpen = true; nhRender(); });
     spaceFormWire('nh', scr, NH.d, nhRender);
     var ph = scr.querySelector('.hall-photos[data-i]'); if(ph) renderHallPhotos(+ph.dataset.i);
@@ -8909,7 +8928,7 @@ var PF = (function(){
     var t = nhType();
     switch(NH.step){
       case 0:
-        return t ? Promise.resolve() : Promise.reject(new Error('Отметьте, зачем приходят, или напишите, что сдаёте'));
+        return t ? Promise.resolve() : Promise.reject(new Error('Выберите вариант или напишите, что сдаёте'));
       case 1:
         // Сначала — тип пространства: из поля «Тип» в словарь (новое слово заведётся само).
         var pre = $('nhSpaceType') && $('nhSpaceType').value.trim() ? wzComboResolve('nhSpaceType', 'space_type', NH.d, 'hallType') : Promise.resolve();
@@ -8920,11 +8939,24 @@ var PF = (function(){
         return Promise.resolve();
     }
   }
+  function nhChoose(purps, other){
+    if(NH.busy) return;
+    var changed = NH.purps.join() !== purps.join() || NH.other !== other;
+    NH.purps = purps; NH.other = other;
+    if(changed){
+      NH.d.purposes = null;
+      if(NH.idx < 0){ NH.d.typeText = ''; NH.d.hallType = null; }   // пространство уже создано — его тип остаётся
+    }
+    nhNext();
+  }
   function nhNext(){
-    var btn = $('nhNext'); btn.disabled = true; nhMsg('');
+    if(NH.busy) return;
+    NH.busy = true;
+    var btn = $('nhNext'); if(btn) btn.disabled = true; nhMsg('');
     nhAction().then(function(){
+      NH.busy = false;
       NH.step++; NH.max = Math.max(NH.max, NH.step); nhRender(); window.scrollTo(0, 0);
-    }).catch(function(e){ btn.disabled = false; nhMsg((e && e.message) || 'Не получилось сохранить — попробуйте ещё раз'); });
+    }).catch(function(e){ NH.busy = false; if(btn) btn.disabled = false; nhMsg((e && e.message) || 'Не получилось сохранить — попробуйте ещё раз'); });
   }
 
   // ======== «Бронирование»: правила карточками ========
