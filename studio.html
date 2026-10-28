@@ -1056,6 +1056,16 @@
   .bk-seg.work{background:var(--blue-bg);color:var(--blue-dark);}
   .bk-seg.clean{background:repeating-linear-gradient(135deg,var(--surface-2) 0 6px,var(--bg) 6px 12px);color:var(--text-2);min-width:96px;}
   .bk-bar-cap{font-size:var(--fs-sm);color:var(--text-3);margin-top:6px;}
+  .bk-seg.pack{background:repeating-linear-gradient(135deg,var(--blue-bg) 0 6px,var(--surface) 6px 12px);color:var(--blue-dark);}
+  .bk-seg.prep{background:var(--amber-bg);color:var(--amber);}
+  .bk-seg.lost{background:repeating-linear-gradient(135deg,var(--surface-2) 0 6px,var(--bg) 6px 12px);color:var(--text-3);}
+  .bk-seg.next{background:var(--green-bg);color:var(--green);}
+  .bk-leg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:var(--fs-xs);color:var(--text-2);margin-top:8px;}
+  .bk-leg i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:5px;padding:0;}
+  .bk-warn{font-size:var(--fs-sm);background:var(--amber-bg);color:var(--amber);border-radius:var(--r-sm);padding:8px 12px;margin-top:8px;}
+  .qb-prep{position:relative;z-index:1;margin:1px 3px;border-radius:6px;pointer-events:none;display:flex;align-items:flex-start;padding:2px 6px;
+    background:repeating-linear-gradient(135deg,var(--amber-bg) 0 5px,transparent 5px 10px);border:1px dashed var(--amber);}
+  .qb-prep span{font-size:10px;font-weight:600;color:var(--amber);}
   .bk-tl-row{display:flex;align-items:stretch;gap:3px;}
   .bk-tl-seg{flex:1 1 0;min-width:0;border-radius:var(--r-sm);padding:9px 10px;font-size:var(--fs-sm);}
   .bk-tl-seg.full{background:var(--green-bg);}
@@ -3503,7 +3513,7 @@ var PF = (function(){
   });
 
   var hallsDraft = [], equipDraft = [], hoursDraft = [];
-  var settingsDraft = { autoConfirm:false, bufferMin:10, minBookingMin:60, slotStep:60,
+  var settingsDraft = { autoConfirm:false, bufferMin:5, prepMin:0, minBookingMin:60, slotStep:60,
     lastminuteEnabled:false, lastminuteHours:24, lastminutePct:20,
     reminderEnabled:true, reminderMinutesBefore:60,
     noShowFeePct:100, rescheduleFeePct:25, debtBlocksAutoconfirm:true };
@@ -3907,6 +3917,9 @@ var PF = (function(){
       active:p.active !== false,
       // autoConfirm: null — «как у студии» (0043), явное true/false — своё на цель.
       autoConfirm: typeof p.autoConfirm === 'boolean' ? p.autoConfirm : null,
+      // сборы и подготовка (0070): null — как у площадки
+      bufferMin: Number.isInteger(p.bufferMin) ? p.bufferMin : null,
+      prepMin: Number.isInteger(p.prepMin) ? p.prepMin : null,
       fullDayDiscountPct: Number.isInteger(p.fullDayDiscountPct) ? p.fullDayDiscountPct : null,
       guestPricing: p.guestPricing ? JSON.parse(JSON.stringify(p.guestPricing)) : null,
       equipmentQty: p.equipmentQty && typeof p.equipmentQty === 'object' ? Object.assign({}, p.equipmentQty) : {},
@@ -3922,6 +3935,8 @@ var PF = (function(){
     var out = { code:p.code, active:p.active !== false };
     if(typeof p.rate === 'number' && isFinite(p.rate)) out.rate = p.rate;
     if(Number.isInteger(p.minBookingMin)) out.minBookingMin = p.minBookingMin;
+    if(Number.isInteger(p.bufferMin)) out.bufferMin = p.bufferMin;
+    if(Number.isInteger(p.prepMin)) out.prepMin = p.prepMin;
     if(Number.isInteger(p.capacity)) out.capacity = p.capacity;
     if(Number.isInteger(p.standingCapacity)) out.standingCapacity = p.standingCapacity;
     if(Number.isInteger(p.seatedCapacity)) out.seatedCapacity = p.seatedCapacity;
@@ -4244,6 +4259,12 @@ var PF = (function(){
     if(Number.isInteger(p.minBookingMin) && [30,60,120,180,240].indexOf(p.minBookingMin) === -1) minOpts.push([p.minBookingMin, pmMinTxt(p.minBookingMin)]);
     html += '<div class="pm-blk"><div class="pm-blk-h"><h4>Бронирование</h4><span>Правила для этой цели</span></div>' +
       pmRow('Минимальная бронь', pmSeg('minH', minOpts, Number.isInteger(p.minBookingMin) ? p.minBookingMin : 'inherit')) +
+      pmRow('Время на сборы', pmSeg('pack', [['inherit', 'Как у площадки · ' + (settingsDraft.bufferMin ? durLabel(settingsDraft.bufferMin) : 'нет')]]
+          .concat(withOwn(PACK_OPTS, p.bufferMin)), Number.isInteger(p.bufferMin) ? p.bufferMin : 'inherit'),
+        { small:'в конце брони клиента' }) +
+      pmRow('Подготовка', pmSeg('prep', [['inherit', 'Как у площадки · ' + (settingsDraft.prepMin ? durLabel(settingsDraft.prepMin) : 'нет')]]
+          .concat(withOwn([[0, 'Нет'], [15, '15 мин'], [30, '30 мин'], [60, '1 ч'], [120, '2 ч']], p.prepMin)), Number.isInteger(p.prepMin) ? p.prepMin : 'inherit'),
+        { small:'перерыв после брони', hint:'После праздника обычно нужно больше времени, чем после съёмки.' }) +
       pmRow('Подтверждение', pmSeg('confirm', [['inherit','Как у площадки · ' + (settingsDraft.autoConfirm ? 'сразу' : 'вручную')],['yes','Сразу'],['no','Вручную']], p.autoConfirm == null ? 'inherit' : p.autoConfirm ? 'yes' : 'no'),
         { hint:p.autoConfirm == null ? '' : p.autoConfirm ? 'Бронь сразу встаёт в расписание.' : 'Каждая заявка ждёт вашего ответа.' }) +
       (pmRent(p) ? pmRow('Целый день', pmIn('dayPct', p.fullDayDiscountPct, { int:true, sm:true, ph:'0', bad:e.dayPct }) + '<span class="pm-u">% скидки на бронь в 8 часов</span>',
@@ -4495,6 +4516,8 @@ var PF = (function(){
       var id = sg.parentNode.dataset.pmSeg, v = sg.dataset.v;
       if(id === 'xunit' || id === 'gunit') p.guestPricing.unit = v;
       else if(id === 'minH') p.minBookingMin = v === 'inherit' ? null : +v;
+      else if(id === 'pack') p.bufferMin = v === 'inherit' ? null : +v;
+      else if(id === 'prep') p.prepMin = v === 'inherit' ? null : +v;
       else if(id === 'confirm') p.autoConfirm = v === 'inherit' ? null : v === 'yes';
       pmRerender(i); return;
     }
@@ -5680,11 +5703,23 @@ var PF = (function(){
     // нарочно): клиенту прошедшая бронь не нужна вообще, а владельцу важно
     // видеть и открывать по клику уже прошедшие брони на сегодняшней сетке —
     // иначе они неотличимы от просто прошедшего пустого времени.
-    var busy = QB.busy[hallId] || [];
-    for(var i=0;i<busy.length;i++){ if(s0 < busy[i].end && e0 > busy[i].start) return 'busy'; }
+    // Чужая бронь занимает и свою подготовку (prep, 0070); перед чужой бронью свою надо
+    // закончить на свою подготовку раньше — так проверяет сервер.
+    var busy = QB.busy[hallId] || [], myPrep = qbMyPrep(hallId);
+    for(var i=0;i<busy.length;i++){ if(s0 < busy[i].end + (busy[i].prep || 0) && e0 + myPrep > busy[i].start) return 'busy'; }
     var now = qbWallClock();
     if(QB.date < now.date || (QB.date === now.date && s0 < now.minutes)) return 'past';
     return 'free';
+  }
+  // Своя подготовка брони, которую сейчас ставит владелец: у переносимой — её снимок,
+  // у новой — по выбранной цели (или первой включённой), иначе как у площадки.
+  function qbMyPrep(hallId){
+    if(QB.reschedule) return Number.isInteger(QB.reschedule.prepMin) ? QB.reschedule.prepMin : 0;
+    var h = qbHallById(hallId); if(!h) return 0;
+    var list = Array.isArray(h.purposes) ? h.purposes : [], p = null;
+    if(QB.purpose) p = list.filter(function(x){ return x.code === QB.purpose; })[0] || null;
+    if(!p) p = list.filter(function(x){ return x.active !== false; })[0] || null;
+    return p && Number.isInteger(p.prepMin) ? p.prepMin : (settingsDraft.prepMin || 0);
   }
   // Модель выбора (тап, перенос, растягивание, «запомненная» длительность), блок,
   // попадание пальцем и жест — общий модуль сетки PGrid (_dev/timegrid.js, тот же,
@@ -5864,6 +5899,11 @@ var PF = (function(){
           + ' title="'+esc(title)+' · '+minLabel(span.start)+'–'+minLabel(span.end)+'"'
           + ' style="grid-column:'+(idx+2)+';grid-row:'+(s0-start+1)+' / '+(e0-start+1)+'">'
           + '<b>'+esc(title)+'</b><span>'+minLabel(span.start)+'–'+minLabel(span.end)+'</span></div>';
+        if(iv.prep > 0){
+          var p0 = Math.max(start, Math.floor(iv.end / QB.slotMin)), p1 = Math.min(end, Math.ceil((iv.end + iv.prep) / QB.slotMin));
+          if(p1 > p0) html += '<div class="qb-prep" aria-hidden="true" title="Подготовка · '+minLabel(iv.end)+'–'+minLabel(Math.min(1440, iv.end + iv.prep))+'"'
+            + ' style="grid-column:'+(idx+2)+';grid-row:'+(p0-start+1)+' / '+(p1-start+1)+'"><span>подготовка</span></div>';
+        }
       });
     });
     wrap.innerHTML = html;
@@ -6328,6 +6368,7 @@ var PF = (function(){
       pkgSlots: booking.packageHours != null
         ? Math.max(1, Math.round(booking.packageHours * 60 / QB.slotMin)) : null,
       originalDate: booking.date, originalStart: booking.start, originalEnd: booking.end,
+      prepMin: Number.isInteger(booking.prepMin) ? booking.prepMin : 0,
       // длина нового блока по умолчанию — как у самой брони
       lenSlots: Math.max(1, Math.round((booking.end - booking.start) / QB.slotMin)),
     };
@@ -9065,8 +9106,12 @@ var PF = (function(){
       if([15, 30, 60].indexOf(h.slotStepMin) >= 0) parts.push(startPhrase(h.slotStepMin));
       if(parts.length) out.push({ who:hallNm(h), what:parts.join(', ') });
       (h.purposes || []).forEach(function(pp){
-        if(pp.active !== false && Number.isInteger(pp.minBookingMin) && pp.minBookingMin !== settingsDraft.minBookingMin)
-          out.push({ who:hallNm(h) + ' · ' + purposeLabel(pp.code), what:'минимум ' + durLabel(pp.minBookingMin) });
+        if(pp.active === false) return;
+        var w = [];
+        if(Number.isInteger(pp.minBookingMin) && pp.minBookingMin !== settingsDraft.minBookingMin) w.push('минимум ' + durLabel(pp.minBookingMin));
+        if(Number.isInteger(pp.bufferMin) && pp.bufferMin !== settingsDraft.bufferMin) w.push(pp.bufferMin ? 'сборы ' + durLabel(pp.bufferMin) : 'без сборов');
+        if(Number.isInteger(pp.prepMin) && pp.prepMin !== settingsDraft.prepMin) w.push(pp.prepMin ? 'подготовка ' + durLabel(pp.prepMin) : 'без подготовки');
+        if(w.length) out.push({ who:hallNm(h) + ' · ' + purposeLabel(pp.code), what:w.join(', ') });
       });
     });
     return out;
@@ -9094,6 +9139,41 @@ var PF = (function(){
       : step('Клиент отправляет заявку') + arrow + step('Слот держится до ' + HOLD_HOURS_UI + ' ч', 'wait') + arrow +
         step('Вы подтверждаете', 'ok') + '<span class="bk-flow-or">или не успели — заявка истекает, слот свободен</span>') +
       '</div>' + (auto && debt ? '<div class="bk-note">Клиенты с долгом — через ваше подтверждение: их бронь придёт заявкой.</div>' : '');
+  }
+  // ---- Сборы и подготовка (0070) ----
+  // Сборы срезаются из конца брони клиента (на сетку не влияют), подготовка — перерыв после
+  // брони, его нельзя занять. Пример — бронь 14:00 на минимальную длительность, но не меньше 2 ч.
+  var PACK_OPTS = [[0, 'Нет'], [5, '5 мин'], [10, '10 мин'], [15, '15 мин'], [20, '20 мин'], [30, '30 мин']];
+  var PREP_OPTS = [[0, 'Нет'], [15, '15 мин'], [30, '30 мин'], [60, '1 ч']];
+  function withOwn(opts, v){ return opts.some(function(o){ return o[0] === v; }) || !Number.isInteger(v) ? opts : opts.concat([[v, durLabel(v)]]); }
+  function startEvery(step){ return step === 60 ? 'ровно в час' : 'каждые ' + step + ' мин'; }
+  function prepWarnHtml(prep, step){
+    if(!prep || !(prep % step)) return '';
+    var real = Math.ceil(prep / step) * step;
+    return '<div class="bk-warn">Брони начинаются ' + startEvery(step) + ', поэтому подготовка ' + durLabel(prep) +
+      ' фактически займёт ' + durLabel(real) + '. Точнее — с началом брони каждые ' + (prep % 30 ? 15 : 30) + ' мин (в «Тонкой настройке времени»).</div>';
+  }
+  function packPrepBarHtml(minDur, pack, prep, step){
+    var from = 14 * 60, len = Math.max(120, minDur), end = from + len, free = end - pack;
+    var next = Math.ceil((end + prep) / step) * step, lost = next - (end + prep), to = next + 60, span = to - from;
+    var pc = function(a, b){ return ((b - a) * 100 / span).toFixed(2) + '%'; };
+    var parts = [['work', from, free, 'клиент ' + minLabel(from) + '–' + minLabel(free)]];
+    if(pack) parts.push(['pack', free, end, 'сборы ' + pack + ' мин — в брони клиента']);
+    if(prep) parts.push(['prep', end, end + prep, 'подготовка ' + durLabel(prep)]);
+    if(lost) parts.push(['lost', end + prep, next, 'не продаётся из-за шага · ' + durLabel(lost)]);
+    parts.push(['next', next, to, 'следующий клиент с ' + minLabel(next)]);
+    return '<div class="bk-bar" role="img" aria-label="Пример: бронь ' + minLabel(from) + '–' + minLabel(end) + ', следующий клиент с ' + minLabel(next) + '">' +
+        parts.map(function(p){
+          var wide = (p[2] - p[1]) / span > 0.22, inner = p[0] === 'next' ? 'с ' + minLabel(next) : p[3];
+          return '<span class="bk-seg ' + p[0] + '" style="flex-basis:' + pc(p[1], p[2]) + '" title="' + esc(p[3]) + '">' + (wide || p[0] === 'next' ? esc(inner) : '') + '</span>';
+        }).join('') + '</div>' +
+      '<div class="bk-leg">' + parts.map(function(p){ return '<span><i class="bk-seg ' + p[0] + '"></i>' + esc(p[3]) + '</span>'; }).join('') + '</div>' +
+      '<div class="bk-bar-cap">Пример: бронь ' + minLabel(from) + '–' + minLabel(end) + ' (клиент платит за ' + durLabel(len) + ')' +
+        (pack ? ', освобождает пространство в ' + minLabel(free) : '') + '. Следующий клиент — с ' + minLabel(next) + '.</div>';
+  }
+  function packPrepPhrase(pack, prep){
+    return (pack ? 'Сборы — <b>' + esc(durLabel(pack)) + '</b> в конце брони' : 'Без сборов в конце брони') + ', ' +
+      (prep ? 'подготовка — <b>' + esc(durLabel(prep)) + '</b> между бронями' : 'без подготовки между бронями') + '.';
   }
   function refundTone(p){ return p >= 100 ? 'full' : p > 0 ? 'part' : 'none'; }
   // Шкала «чем ближе к началу брони — тем меньше возврат» + прогул после начала.
@@ -9139,6 +9219,7 @@ var PF = (function(){
       case 'bkConfirm': return confirmFlowHtml(s.autoConfirm, s.debtBlocksAutoconfirm) + diffHtml(confirmDiffs());
       case 'bkTiming':
         return '<div class="bk-line">Бронь от <b>' + esc(durLabel(s.minBookingMin)) + '</b>, ' + esc(stepsPhrase(s.durationStep || s.slotStep, s.slotStep)) + '.</div>' +
+          '<div class="bk-line">' + packPrepPhrase(s.bufferMin || 0, s.prepMin || 0) + '</div>' +
           diffHtml(timingDiffs());
       case 'bkCancel': return cancelTimelineHtml(policyDraft, s.noShowFeePct, s.rescheduleFeePct) +
         '<div class="bk-note">Платформа деньги не принимает: суммы по этим правилам записываются клиенту как <b>предложенные</b>. В карточке клиента вы подтверждаете их, отмечаете оплаченными или списываете. Клиент видит эти условия до брони и перед отменой.</div>';
@@ -9190,6 +9271,7 @@ var PF = (function(){
       settingsDraft = {
         autoConfirm: typeof u.autoConfirm === 'boolean' ? u.autoConfirm : prev.autoConfirm,
         bufferMin: Number.isInteger(u.bufferMin) ? u.bufferMin : prev.bufferMin,
+        prepMin: Number.isInteger(u.prepMin) ? u.prepMin : prev.prepMin,
         minBookingMin: Number.isInteger(u.minBookingMin) ? u.minBookingMin : prev.minBookingMin,
         slotStep: [15, 30, 60].indexOf(u.slotStepMin) >= 0 ? u.slotStepMin
           : (Number.isInteger(u.minBookingMin) ? (u.minBookingMin === 30 ? 30 : 60) : prev.slotStep),
@@ -9282,6 +9364,11 @@ var PF = (function(){
     $('wzBody').innerHTML =
       frow('Минимальная бронь', frSeg('bkMinDur', [[30, '30 мин'], [60, '1 ч']], s.minBookingMin),
         { note:'Клиент не сможет забронировать меньше. У отдельной цели пространства минимум может быть больше — это в ценах пространства.' }) +
+      frow('Время на сборы', frSeg('bkPack', withOwn(PACK_OPTS, s.bufferMin), s.bufferMin),
+        { hint:'в конце брони клиента', note:'Входит в бронь: клиент платит за всё время, но освобождает пространство раньше. Клиент видит это при бронировании.' }) +
+      frow('Подготовка', frSeg('bkPrep', withOwn(PREP_OPTS, s.prepMin), s.prepMin) + '<div id="bkPrepWarn"></div>',
+        { hint:'между бронями', note:'Перерыв после каждой брони: это время нельзя забронировать, следующий клиент начнёт не раньше. У цели пространства можно задать своё — в её ценах.' }) +
+      '<div id="bkPackPrep" class="bk-prev"></div>' +
       fineHtml('bkFine', own(), own(), fineSum(),
         frow('Удлинять бронь', frSeg('bkDurStep', DUR_OPTS, s.durationStep), { note:'Сверх минимальной брони — на это время за раз.' }) +
         frow('Начало брони', frSeg('bkStep', START_OPTS, s.slotStep), { note:'В какие минуты часа можно начать.' }) +
@@ -9292,7 +9379,11 @@ var PF = (function(){
     function sync(){
       fineSet('bkFine', own(), fineSum());
       $('bkTimeEx').innerHTML = timeExHtml(Number(s.minBookingMin), Number(s.durationStep), Number(s.slotStep));
+      $('bkPrepWarn').innerHTML = prepWarnHtml(Number(s.prepMin) || 0, Number(s.slotStep) || 60);
+      $('bkPackPrep').innerHTML = packPrepBarHtml(Number(s.minBookingMin), Number(s.bufferMin) || 0, Number(s.prepMin) || 0, Number(s.slotStep) || 60);
     }
+    wireSeg('bkPack', function(v){ s.bufferMin = Number(v); sync(); });
+    wireSeg('bkPrep', function(v){ s.prepMin = Number(v); sync(); });
     // Минимум должен делиться на шаг начала (так проверяет сервер): подстраиваем второе.
     wireSeg('bkMinDur', function(v){ s.minBookingMin = Number(v); if(s.slotStep > s.minBookingMin){ s.slotStep = s.minBookingMin; pick('bkStep', s.slotStep); } sync(); });
     wireSeg('bkStep', function(v){ s.slotStep = Number(v); if(s.minBookingMin % s.slotStep){ s.minBookingMin = 60; pick('bkMinDur', 60); } sync(); });
@@ -9312,7 +9403,9 @@ var PF = (function(){
     if(min % step) return bad('Минимальная бронь должна быть кратна шагу: при шаге 1 час — от 1 часа', '#bkMinDur');
     var dstep = Number(BKE.s.durationStep || step);
     if([15, 30, 60].indexOf(dstep) < 0) return bad('Шаг длительности — 15, 30 или 60 минут', '#bkDurStep');
-    return saveSettingsPatch({ minBookingMin: min, slotStepMin: step, durationStepMin: dstep });
+    var pack = Number(BKE.s.bufferMin) || 0, prep = Number(BKE.s.prepMin) || 0;
+    if(pack >= min) return bad('Время на сборы должно быть короче минимальной брони', '#bkPack');
+    return saveSettingsPatch({ minBookingMin: min, slotStepMin: step, durationStepMin: dstep, bufferMin: pack, prepMin: prep });
   };
 
   WZ_RENDERERS.bkCancel = function(){
@@ -10078,7 +10171,8 @@ var PF = (function(){
         var rem = cfg.reminder || {};
         settingsDraft = {
           autoConfirm: !!cfg.autoConfirm,
-          bufferMin: Number.isInteger(cfg.bufferMin) ? cfg.bufferMin : 10,
+          bufferMin: Number.isInteger(cfg.bufferMin) ? cfg.bufferMin : 5,
+          prepMin: Number.isInteger(cfg.prepMin) ? cfg.prepMin : 0,
           minBookingMin: Number.isInteger(cfg.minBookingMin) ? cfg.minBookingMin : 60,
           slotStep: [15, 30, 60].indexOf(cfg.slotStep) >= 0 ? cfg.slotStep : 60,
           durationStep: [15, 30, 60].indexOf(cfg.durationStepMin) >= 0 ? cfg.durationStepMin : null,
