@@ -1627,9 +1627,8 @@
   .listing-name{font-weight:700;font-size:var(--fs-lg);line-height:1.25;}
   .listing-meta{font-size:var(--fs-sm);color:var(--text-2);margin-top:4px;}
   .listing-rate{font-weight:700;font-size:var(--fs-lg);color:var(--blue);margin-top:6px;}
-  .listing-actions{display:flex;flex-direction:column;gap:12px;align-items:flex-end;position:relative;flex:none;}
-  .la-row{display:flex;gap:8px;align-items:flex-start;}
-  .hall-pub{margin-right:2px;}
+  .listing-actions{display:flex;gap:8px;align-items:center;position:relative;flex:none;}
+  .hall-pub{margin-left:4px;}
   .hall-card-add{border:none;background:none;padding:0;text-align:left;
     color:var(--blue);font:inherit;font-size:var(--fs-md);font-weight:600;cursor:pointer;}
   .hall-card-add:hover{color:var(--blue-dark);}
@@ -4863,11 +4862,9 @@ var PF = (function(){
             '</div>' +
           '</button>' +
           '<div class="listing-actions">' +
-            '<div class="la-row">' +
-              '<button class="btn ghost small" type="button" data-edit="'+i+'">Редактировать</button>' +
-              '<button class="hall-card-menu-btn" type="button" data-menu="'+i+'" aria-label="Ещё">⋯</button>' +
-            '</div>' +
-            (hallStatus(h) ? '<label class="pm-sw hall-pub"><input type="checkbox" role="switch" data-pub="'+i+'"' + (hallStatus(h) === 'pub' ? ' checked' : '') + '><span>Публикация</span></label>' : '') +
+            '<button class="btn ghost small" type="button" data-edit="'+i+'">Редактировать</button>' +
+            '<button class="hall-card-menu-btn" type="button" data-menu="'+i+'" aria-label="Ещё">⋯</button>' +
+            (hallStatus(h) ? '<label class="pm-sw hall-pub" title="Опубликовано — клиенты видят пространство"><input type="checkbox" role="switch" data-pub="'+i+'" aria-label="Опубликовано"' + (hallStatus(h) === 'pub' ? ' checked' : '') + '></label>' : '') +
             '<div class="hall-card-menu" data-menu-box="'+i+'" hidden>' +
               '<button type="button" data-delete="'+i+'">Удалить пространство</button>' +
             '</div>' +
