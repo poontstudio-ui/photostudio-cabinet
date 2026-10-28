@@ -3295,7 +3295,7 @@ var PF = (function(){
     {f:'aboutSound',label:'Звук',ph:'Колонка, микрофон, слышно ли соседей, до скольки можно шуметь'},
     {f:'aboutAccess',label:'Доступ на площадку',ph:'Как попасть внутрь: домофон, ключи, лифт, как заносить реквизит'},
     {f:'aboutElectrical',label:'Электрика',ph:'Сколько розеток и где они, допустимая мощность, удлинители'},
-    {f:'aboutRules',label:'Правила',ph:'Сменная обувь, еда, уборка, что нельзя — своими словами'},
+    {f:'aboutRules',label:'Правила',ph:'Сменная обувь, еда, что нельзя — своими словами'},
   ];
   var SHOW_HALL_STYLES = false;   // стиль интерьера пока не показываем ни клиенту, ни в кабинете
   var HALL_STYLES = [
@@ -7814,8 +7814,8 @@ var PF = (function(){
       done:function(h){ return activeHallPurposes(h).some(function(p){ return p.rate > 0 || !gpRentApplies(p.guestPricing); }); }},
     {key:'describe', grp:'Описание', title:'Удобства и техника', need:'rec',
       done:function(h){ return hallAmenityLabels(h).length >= 3; }},
-    {key:'rules',   grp:'Описание', title:'Правила и уборка', need:'rec',
-      done:function(h){ return !!((h.aboutRules || '').trim() || (h.aboutCleaning || '').trim()); }},
+    {key:'rules',   grp:'Описание', title:'Правила', need:'rec',
+      done:function(h){ return !!(h.aboutRules || '').trim(); }},
     {key:'access',  grp:'Для гостя', title:'Доступ', need:'rec',
       done:function(h){ return !!((h.aboutAccess || '').trim() || (h.wifiSsid || '').trim() || hallAccessLabels(h).length); }},
     {key:'hallLocation', grp:'Адрес и часы', title:'Адрес', need:'inh',
@@ -7940,8 +7940,7 @@ var PF = (function(){
           (st.length && SHOW_HALL_STYLES ? '<br>Стиль: ' + esc(st.join(', ')) : '') +
           (tech ? '<br>Технические детали: ' + tech + ' из 3' : '');
       case 'rules':
-        return ((h.aboutRules || '').trim() ? esc(clip(h.aboutRules, 160)) : emptyLine('Правил нет')) + '<br>' +
-          ((h.aboutCleaning || '').trim() ? 'Уборка: ' + esc(clip(h.aboutCleaning, 140)) : emptyLine('Про уборку между бронями не рассказано'));
+        return (h.aboutRules || '').trim() ? esc(clip(h.aboutRules, 160)) : emptyLine('Правил нет');
       case 'access':
         var acc = hallAccessLabels(h);
         return (acc.length ? esc(acc.join(' · ')) + '<br>' : '') +
@@ -8259,16 +8258,16 @@ var PF = (function(){
   var OB_PURPOSES = [
     { v:'photo',   label:'Снимать',            sub:'фото, видео, подкасты',
       tags:['фотостудия', 'циклорама', 'подкаст-студия'], types:['Фотостудия', 'Циклорама', 'Пространство для подкастов'],
-      min:60,  buf:10, step:60, cap:8,  price:40, hours:'daily', bizPh:'Студия «Свет»', spacePh:'Белый зал' },
+      min:60,  step:60, cap:8,  price:40, hours:'daily', bizPh:'Студия «Свет»', spacePh:'Белый зал' },
     { v:'event',   label:'Праздновать',        sub:'дни рождения, банкеты, вечеринки',
       tags:['банкетный зал', 'лофт', 'детский праздник'], types:['Зал для праздников', 'Банкетный зал', 'Лофт для мероприятий', 'Детское пространство'],
-      min:180, buf:30, step:60, cap:40, price:90, hours:'late', bizPh:'Зал «Праздник»', spacePh:'Банкетный зал' },
+      min:180, step:60, cap:40, price:90, hours:'late', bizPh:'Зал «Праздник»', spacePh:'Банкетный зал' },
     { v:'leisure', label:'Отдыхать компанией', sub:'игры, кино, пар — своим кругом',
       tags:['игровая комната', 'баня', 'караоке', 'кинозал'], types:['Игровая комната', 'Баня', 'Караоке-бар', 'Кинозал', 'Квест-комната'],
-      min:120, buf:30, step:60, cap:8,  price:60, hours:'late', bizPh:'Игровая «Пиксель»', spacePh:'Игровая комната' },
+      min:120, step:60, cap:8,  price:60, hours:'late', bizPh:'Игровая «Пиксель»', spacePh:'Игровая комната' },
     { v:'meeting', label:'Работать и учиться', sub:'встречи, тренинги, занятия',
       tags:['переговорная', 'учебный класс', 'кабинет'], types:['Переговорная в офисе', 'Учебный класс', 'Учебный класс для тренингов'],
-      min:60,  buf:0,  step:30, cap:10, price:25, hours:'weekdays', bizPh:'Коворкинг «Точка»', spacePh:'Переговорная на 10' },
+      min:60,   step:30, cap:10, price:25, hours:'weekdays', bizPh:'Коворкинг «Точка»', spacePh:'Переговорная на 10' },
   ];
   var OB_ICONS = {
     photo:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
@@ -8279,8 +8278,8 @@ var PF = (function(){
   function purpDef(c){ return OB_PURPOSES.filter(function(p){ return p.v === c; })[0] || null; }
   // Минимальная бронь, с которой новая цель заводится (у площадки минимум — до 1 ч).
   function purpMin(c){ var p = purpDef(c); return p ? p.min : 60; }
-  // Профиль выбора: что подставить. Несколько целей — уборка по самой долгой, шаг по самому
-  // мелкому, вместимость по самой большой; подсказки и часы — по первой отмеченной.
+  // Профиль выбора: что подставить. Несколько целей — шаг по самому мелкому,
+  // вместимость по самой большой; подсказки и часы — по первой отмеченной.
   // other — «Напишите, что сдаёте»: целей нет, текст станет типом пространства.
   function purpProfile(sel, other){
     sel = (sel || []).filter(purpDef); other = String(other || '').trim();
@@ -8293,12 +8292,12 @@ var PF = (function(){
     return { v: sel.length ? 'purp' : 'other', key: sel.join(',') + (other ? '|' + other : ''),
       purposes: sel.slice(), other: other,
       label: sel.length ? sel.map(function(c){ return purposeLabel(c).toLowerCase(); }).join(', ') : '«' + other + '»',
-      buf: max('buf', 10), step: ps.length ? Math.min.apply(null, ps.map(function(p){ return p.step; })) : 60, cap: max('cap', 10),
+      step: ps.length ? Math.min.apply(null, ps.map(function(p){ return p.step; })) : 60, cap: max('cap', 10),
       price: p0 ? p0.price : 30, hours: p0 ? p0.hours : 'daily', types: types.slice(0, 6),
       spaceType: sel.length ? '' : other, bizPh: p0 ? p0.bizPh : 'Название', spacePh: p0 ? p0.spacePh : 'Название пространства' };
   }
   // Ничего не выбрано — нейтральные подсказки.
-  var PURP_NONE = { v:'other', key:'', purposes:[], other:'', label:'', buf:10, step:60, cap:10, price:30, hours:'daily',
+  var PURP_NONE = { v:'other', key:'', purposes:[], other:'', label:'', step:60, cap:10, price:30, hours:'daily',
     types:[], spaceType:'', bizPh:'Название', spacePh:'Название пространства' };
   // Старый выбор «типа» из localStorage (до 2026-10-28) — в цели.
   var OB_LEGACY = { shoot:['photo'], event:['event'], sauna:['leisure'], meeting:['meeting'], loft:['photo', 'event'], other:[] };
@@ -8559,13 +8558,12 @@ var PF = (function(){
   }
   function obSide(){
     var t = obType();
-    if(!t) return '<div class="ob-panel"><h3>Заполнено за вас</h3><p>Здесь появится то, что мы подставим сами по вашему выбору: минимальная бронь, уборка, часы. Видно сразу — и всё меняется в кабинете.</p></div>';
+    if(!t) return '<div class="ob-panel"><h3>Заполнено за вас</h3><p>Здесь появится то, что мы подставим сами по вашему выбору: минимальная бронь, часы. Видно сразу — и всё меняется в кабинете.</p></div>';
     var pp = OBD.purposes || t.purposes;
     return '<div class="ob-panel"><h3>Заполнено за вас</h3><p>По выбору: ' + esc(t.label) + '. Поменять — в кабинете, в любой момент.</p><dl class="ob-kv">' +
       '<dt>Цели</dt><dd>' + (pp.length ? esc(pp.map(purposeLabel).join(', ')) : 'выберете сами') + '</dd>' +
       '<dt>Мин. бронь</dt><dd>' + esc(purpMinsText(pp, 60)) + '</dd>' +
       '<dt>Время</dt><dd>' + esc(stepsPhrase(t.step, t.step)) + '</dd>' +
-      '<dt>Уборка</dt><dd>' + (t.buf ? t.buf + ' мин после брони' : 'не нужна') + '</dd>' +
       '<dt>Часы</dt><dd>' + esc(fmtWeek(hoursDraft)) + '</dd>' +
       '</dl><p class="ob-note">Уведомления о бронях придут вам в Telegram. Тексты для клиентов — стандартные.</p></div>';
   }
@@ -8664,8 +8662,8 @@ var PF = (function(){
       case 1:
         if(!t) return Promise.reject(new Error('Выберите вариант или напишите, что сдаёте'));
         if(OB.appliedType === t.key) return Promise.resolve();
-        // Начальные значения по типу: уборка и шаги времени — в правила брони площадки.
-        return saveSettingsPatch({ bufferMin:t.buf, slotStepMin:t.step, durationStepMin:t.step, minBookingMin:60 })
+        // Начальные значения по цели: шаги времени — в правила брони площадки.
+        return saveSettingsPatch({ slotStepMin:t.step, durationStepMin:t.step, minBookingMin:60 })
           .then(function(){ OB.appliedType = t.key; });
       case 2:
         var name = $('obName').value.trim(), city = $('obCity').value.trim(), addr = $('obAddr').value.trim();
@@ -8815,7 +8813,7 @@ var PF = (function(){
 
   // ---------- новое пространство: те же экраны, что у мастера запуска ----------
   // Что сдаёте → название, тип и цена → фото → проверка. Тип подставляет цели, цену-ориентир и
-  // минимальную бронь; общие правила площадки (часы, уборка, отмена) не трогаем — они уже
+  // минимальную бронь; общие правила площадки (часы, отмена) не трогаем — они уже
   // заданы. Пространство создаётся на втором шаге, уже с ценой: у опубликованной площадки
   // оно сразу видно клиентам, и нулевая цена там не должна появиться даже на минуту.
   // Фото — третьим шагом: загрузке нужен id пространства. У опубликованной площадки
@@ -8847,7 +8845,7 @@ var PF = (function(){
   function nhScreenHtml(){
     var t = nhType(), d = NH.d;
     if(NH.step === 0){
-      return '<h2 class="ob-h">Зачем приходят в это пространство?</h2><p class="ob-lead">Выберите главное — другие цели добавите на следующем шаге. Часы работы, уборку и условия отмены не трогаем — они общие для площадки.</p>' +
+      return '<h2 class="ob-h">Зачем приходят в это пространство?</h2><p class="ob-lead">Выберите главное — другие цели добавите на следующем шаге. Часы работы и условия отмены не трогаем — они общие для площадки.</p>' +
         purposeChoicesHtml('nh', NH.purps, NH.other);
     }
     if(NH.step === 1){
@@ -8888,7 +8886,7 @@ var PF = (function(){
   }
   function nhSide(){
     var t = nhType();
-    if(!t) return '<div class="ob-panel"><h3>Заполнено за вас</h3><p>Здесь появится то, что подставим по вашему выбору: цели, минимальная бронь, шаг времени. Общие правила площадки — часы, уборка, отмена — остаются как есть.</p></div>';
+    if(!t) return '<div class="ob-panel"><h3>Заполнено за вас</h3><p>Здесь появится то, что подставим по вашему выбору: цели, минимальная бронь, шаг времени. Общие правила площадки — часы и отмена — остаются как есть.</p></div>';
     var pp = NH.d.purposes || t.purposes, own = nhOwnSteps(t);
     var sS = own.slotStepMin || settingsDraft.slotStep || 60, sD = own.durationStepMin || settingsDraft.durationStep || settingsDraft.slotStep || 60;
     var hasOwn = own.slotStepMin != null || own.durationStepMin != null;
@@ -8896,7 +8894,6 @@ var PF = (function(){
       '<dt>Цели</dt><dd>' + (pp.length ? esc(pp.map(purposeLabel).join(', ')) : 'выберете сами') + '</dd>' +
       '<dt>Мин. бронь</dt><dd>' + esc(purpMinsText(pp, settingsDraft.minBookingMin || 60)) + '</dd>' +
       '<dt>Время</dt><dd>' + (hasOwn ? 'своё · ' : 'как у площадки · ') + esc(stepsPhrase(sD, sS)) + '</dd>' +
-      '<dt>Уборка</dt><dd>как у площадки · ' + (settingsDraft.bufferMin ? settingsDraft.bufferMin + ' мин' : 'не нужна') + '</dd>' +
       '<dt>Часы</dt><dd>как у площадки · ' + esc(fmtWeek(hoursDraft)) + '</dd>' +
       '</dl></div>';
   }
@@ -9098,16 +9095,6 @@ var PF = (function(){
         step('Вы подтверждаете', 'ok') + '<span class="bk-flow-or">или не успели — заявка истекает, слот свободен</span>') +
       '</div>' + (auto && debt ? '<div class="bk-note">Клиенты с долгом — через ваше подтверждение: их бронь придёт заявкой.</div>' : '');
   }
-  // Бронь 2 ч (или минимальная, если она больше): сколько работает клиент и сколько уходит на уборку.
-  function timingBarHtml(minDur, buffer){
-    var total = Math.max(120, minDur), work = Math.max(0, total - buffer);
-    var wPct = total ? Math.round(work * 100 / total) : 100;
-    return '<div class="bk-bar" role="img" aria-label="Бронь ' + durLabel(total) + ': ' + durLabel(work) + ' у клиента и ' + durLabel(buffer) + ' на уборку">' +
-        '<span class="bk-seg work" style="flex-basis:' + wPct + '%">время клиента · ' + esc(durLabel(work)) + '</span>' +
-        (buffer ? '<span class="bk-seg clean" style="flex-basis:' + (100 - wPct) + '%">уборка · ' + esc(buffer + ' мин') + '</span>' : '') +
-      '</div><div class="bk-bar-cap">Пример: бронь на ' + esc(durLabel(total)) +
-        (buffer ? '. Последние ' + buffer + ' мин — на уборку, следующий клиент приходит ровно в своё время.' : ' — без перерыва на уборку.') + '</div>';
-  }
   function refundTone(p){ return p >= 100 ? 'full' : p > 0 ? 'part' : 'none'; }
   // Шкала «чем ближе к началу брони — тем меньше возврат» + прогул после начала.
   function cancelTimelineHtml(pol, noShowPct, reschedPct){
@@ -9152,7 +9139,7 @@ var PF = (function(){
       case 'bkConfirm': return confirmFlowHtml(s.autoConfirm, s.debtBlocksAutoconfirm) + diffHtml(confirmDiffs());
       case 'bkTiming':
         return '<div class="bk-line">Бронь от <b>' + esc(durLabel(s.minBookingMin)) + '</b>, ' + esc(stepsPhrase(s.durationStep || s.slotStep, s.slotStep)) + '.</div>' +
-          timingBarHtml(s.minBookingMin, s.bufferMin) + diffHtml(timingDiffs());
+          diffHtml(timingDiffs());
       case 'bkCancel': return cancelTimelineHtml(policyDraft, s.noShowFeePct, s.rescheduleFeePct) +
         '<div class="bk-note">Платформа деньги не принимает: суммы по этим правилам записываются клиенту как <b>предложенные</b>. В карточке клиента вы подтверждаете их, отмечаете оплаченными или списываете. Клиент видит эти условия до брони и перед отменой.</div>';
       case 'bkLastminute':
@@ -9295,20 +9282,16 @@ var PF = (function(){
     $('wzBody').innerHTML =
       frow('Минимальная бронь', frSeg('bkMinDur', [[30, '30 мин'], [60, '1 ч']], s.minBookingMin),
         { note:'Клиент не сможет забронировать меньше. У отдельной цели пространства минимум может быть больше — это в ценах пространства.' }) +
-      frow('Уборка после брони', frSeg('bkBufSeg', [[0, 'Не нужна'], [10, '10 мин'], [15, '15 мин'], [30, '30 мин']], s.bufferMin) +
-        ' ' + frNum('bkBuffer', s.bufferMin, 'мин', ' type="number" min="0" max="120" step="5"'),
-        { note:'Время уборки входит в бронь клиента: следующий клиент может занять время сразу после окончания предыдущей брони.' }) +
       fineHtml('bkFine', own(), own(), fineSum(),
         frow('Удлинять бронь', frSeg('bkDurStep', DUR_OPTS, s.durationStep), { note:'Сверх минимальной брони — на это время за раз.' }) +
         frow('Начало брони', frSeg('bkStep', START_OPTS, s.slotStep), { note:'В какие минуты часа можно начать.' }) +
         '<div><button class="linkish" type="button" id="bkFineReset">Вернуть «по часу»</button></div>') +
-      '<div id="bkTimeEx"></div><div id="bkTimePrev" class="bk-prev"></div>';
+      '<div id="bkTimeEx"></div>';
     wireFine('bkFine');
     function pick(id, v){ $(id).querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', Number(x.dataset.v) === Number(v)); }); }
     function sync(){
       fineSet('bkFine', own(), fineSum());
-      $('bkTimeEx').innerHTML = timeExHtml(Number(s.minBookingMin), Number(s.durationStep), Number(s.slotStep), Number(s.bufferMin) || 0);
-      $('bkTimePrev').innerHTML = timingBarHtml(Number(s.minBookingMin), Number(s.bufferMin) || 0);
+      $('bkTimeEx').innerHTML = timeExHtml(Number(s.minBookingMin), Number(s.durationStep), Number(s.slotStep));
     }
     // Минимум должен делиться на шаг начала (так проверяет сервер): подстраиваем второе.
     wireSeg('bkMinDur', function(v){ s.minBookingMin = Number(v); if(s.slotStep > s.minBookingMin){ s.slotStep = s.minBookingMin; pick('bkStep', s.slotStep); } sync(); });
@@ -9319,25 +9302,17 @@ var PF = (function(){
       if(s.minBookingMin % 60){ s.minBookingMin = 60; pick('bkMinDur', 60); }
       sync();
     });
-    wireSeg('bkBufSeg', function(v){ s.bufferMin = Number(v); $('bkBuffer').value = v; sync(); });
-    $('bkBuffer').addEventListener('input', function(){
-      s.bufferMin = parseInt(this.value, 10) || 0;
-      $('bkBufSeg').querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', Number(x.dataset.v) === s.bufferMin); });
-      sync();
-    });
     sync();
   };
   WZ_SAVERS.bkTiming = function(){
-    var buf = parseInt($('bkBuffer').value, 10), min = Number(BKE.s.minBookingMin);
-    if(!Number.isInteger(buf) || buf < 0 || buf > 120) return bad('Уборка — от 0 до 120 минут', '#bkBuffer');
+    var min = Number(BKE.s.minBookingMin);
     var step = Number(BKE.s.slotStep);
     if([30, 60].indexOf(min) < 0) return bad('Минимальная бронь — 30 минут или 1 час', '#bkMinDur');
     if([15, 30, 60].indexOf(step) < 0) return bad('Шаг — 15, 30 или 60 минут', '#bkStep');
     if(min % step) return bad('Минимальная бронь должна быть кратна шагу: при шаге 1 час — от 1 часа', '#bkMinDur');
-    if(buf >= min) return bad('Уборка должна быть короче минимальной брони', '#bkBuffer');
     var dstep = Number(BKE.s.durationStep || step);
     if([15, 30, 60].indexOf(dstep) < 0) return bad('Шаг длительности — 15, 30 или 60 минут', '#bkDurStep');
-    return saveSettingsPatch({ bufferMin: buf, minBookingMin: min, slotStepMin: step, durationStepMin: dstep });
+    return saveSettingsPatch({ minBookingMin: min, slotStepMin: step, durationStepMin: dstep });
   };
 
   WZ_RENDERERS.bkCancel = function(){
@@ -9745,18 +9720,16 @@ var PF = (function(){
     return saveHallsNow();
   };
 
-  // ---------- Правила и уборка ----------
+  // ---------- Правила ----------
   WZ_RENDERERS.rules = function(){
     var h = wzHall();
     $('wzBody').innerHTML =
       frow('Правила', frArea('wzAboutRules', h.aboutRules, 3, ' maxlength="1000" placeholder="Сменная обувь, еда только на кухне, без конфетти"'), { forId:'wzAboutRules',
-        hint:'животные, дети, 18+ — в разделе «Площадка»' }) +
-      frow('Уборка', frArea('wzCleaning', h.aboutCleaning, 3, ' maxlength="1000" placeholder="Проветривание и влажная уборка после каждой брони"'), { forId:'wzCleaning', hint:'что делаете между бронями' });
+        hint:'животные, дети, 18+ — в разделе «Площадка»' });
   };
   WZ_SAVERS.rules = function(){
     var h = wzHall();
     h.aboutRules = $('wzAboutRules').value;
-    h.aboutCleaning = $('wzCleaning').value;
     return saveHallsNow();
   };
 
