@@ -900,6 +900,19 @@
   .ob-choice span{font-size:var(--fs-xs);color:var(--text-3);}
   .ob-choice:hover{border-color:var(--accent);}
   .ob-choice.on{border-color:var(--accent);background:var(--accent-bg);box-shadow:inset 0 0 0 1px var(--accent);}
+  .ob-purps{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));}
+  .ob-purps .ob-choice{position:relative;}
+  .ob-tick{position:absolute;top:12px;right:12px;width:18px;height:18px;border-radius:5px;border:1.5px solid var(--line-strong);background:var(--surface);}
+  .ob-choice.on .ob-tick{background:var(--accent);border-color:var(--accent);}
+  .ob-choice.on .ob-tick::after{content:'';position:absolute;left:5px;top:1.5px;width:4px;height:8px;border:solid var(--on-solid);border-width:0 2px 2px 0;transform:rotate(45deg);}
+  .ob-examples{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;}
+  .ob-examples i{font-style:normal;font-size:var(--fs-xs);color:var(--text-2);background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-pill);padding:1px 8px;}
+  .ob-choice.on .ob-examples i{background:var(--surface);}
+  .ob-other{max-width:420px;}
+  .ob-tsug{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+  .ob-tsug-b{font:inherit;font-size:var(--fs-xs);border:1px dashed var(--line-strong);background:none;color:var(--text-2);border-radius:var(--r-pill);padding:3px 10px;cursor:pointer;}
+  .ob-tsug-b:hover{border-color:var(--accent);color:var(--accent-dark);}
+  .ob-tsug-b.on{border-style:solid;border-color:var(--accent);background:var(--accent-bg);color:var(--accent-dark);}
   .ob-opts{display:flex;flex-direction:column;gap:8px;}
   .ob-opt{display:flex;gap:12px;align-items:flex-start;text-align:left;font:inherit;color:var(--text);background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r-md);padding:12px 14px;cursor:pointer;}
   .ob-opt > i{width:18px;height:18px;border-radius:50%;border:2px solid var(--line-strong);flex:none;margin-top:1px;}
@@ -8206,28 +8219,58 @@ var PF = (function(){
   }
   function goFolder(f){ if(window.PS_SELECT_FOLDER) window.PS_SELECT_FOLDER(f); }
 
-  var OB_TYPES = [
-    { v:'shoot',   label:'Студия для съёмок',   sub:'фото, видео, подкасты',       purposes:['photo'],          min:60,  buf:10, step:60, cap:8,  price:40, hours:'daily',
-      spaceType:'Фотостудия', bizPh:'Студия «Свет»', spacePh:'Белый зал' },
-    { v:'event',   label:'Зал для мероприятий', sub:'дни рождения, банкеты',       purposes:['event'],          min:180, buf:30, step:60, cap:40, price:90, hours:'late',
-      spaceType:'Зал для праздников', bizPh:'Зал «Праздник»', spacePh:'Банкетный зал' },
-    { v:'sauna',   label:'Баня или сауна',      sub:'отдых компанией',             purposes:['leisure'],        min:120, buf:30, step:60, cap:8,  price:60, hours:'late',
-      spaceType:'Баня', bizPh:'Банный двор «Пар»', spacePh:'Русская баня' },
-    { v:'meeting', label:'Переговорная',        sub:'встречи, тренинги',           purposes:['meeting'],        min:60,  buf:0,  step:30, cap:10, price:25, hours:'weekdays',
-      spaceType:'Переговорная в офисе', bizPh:'Коворкинг «Точка»', spacePh:'Переговорная на 10' },
-    { v:'loft',    label:'Лофт под разное',     sub:'съёмки, праздники, встречи',  purposes:['photo','event'],  min:120, buf:15, step:60, cap:25, price:50, hours:'daily',
-      spaceType:'Лофт для мероприятий', bizPh:'Лофт «Кирпич»', spacePh:'Большой зал' },
-    { v:'other',   label:'Другое',              sub:'выберете цели сами',          purposes:[],                 min:60,  buf:10, step:60, cap:10, price:30, hours:'daily',
-      spaceType:'', bizPh:'Название', spacePh:'Название пространства' },
+  // Первый шаг мастеров (запуск площадки и новое пространство) — «зачем к вам приходят»:
+  // четыре цели, можно отметить несколько. От выбора — цели пространства, подсказки
+  // (тип, цена, вместимость) и начальные значения. Примеры площадок под каждой целью — чтобы
+  // себя узнал и владелец игровой, и владелец бани. Название карточки — только в кабинете:
+  // у клиентов цель подписана как в HALL_PURPOSE_LIST («Отдых» и т.д.).
+  // types — подсказки поля «Тип» на шаге «Пространство» (подписи из справочника space_type).
+  var OB_PURPOSES = [
+    { v:'photo',   label:'Снимать',            sub:'фото, видео, подкасты',
+      tags:['фотостудия', 'циклорама', 'подкаст-студия'], types:['Фотостудия', 'Циклорама', 'Пространство для подкастов'],
+      min:60,  buf:10, step:60, cap:8,  price:40, hours:'daily', bizPh:'Студия «Свет»', spacePh:'Белый зал' },
+    { v:'event',   label:'Праздновать',        sub:'дни рождения, банкеты, вечеринки',
+      tags:['банкетный зал', 'лофт', 'детский праздник'], types:['Зал для праздников', 'Банкетный зал', 'Лофт для мероприятий', 'Детское пространство'],
+      min:180, buf:30, step:60, cap:40, price:90, hours:'late', bizPh:'Зал «Праздник»', spacePh:'Банкетный зал' },
+    { v:'leisure', label:'Отдыхать компанией', sub:'игры, кино, пар — своим кругом',
+      tags:['игровая комната', 'баня', 'караоке', 'кинозал'], types:['Игровая комната', 'Баня', 'Караоке-бар', 'Кинозал', 'Квест-комната'],
+      min:120, buf:30, step:60, cap:8,  price:60, hours:'late', bizPh:'Игровая «Пиксель»', spacePh:'Игровая комната' },
+    { v:'meeting', label:'Работать и учиться', sub:'встречи, тренинги, занятия',
+      tags:['переговорная', 'учебный класс', 'кабинет'], types:['Переговорная в офисе', 'Учебный класс', 'Учебный класс для тренингов'],
+      min:60,  buf:0,  step:30, cap:10, price:25, hours:'weekdays', bizPh:'Коворкинг «Точка»', spacePh:'Переговорная на 10' },
   ];
   var OB_ICONS = {
-    shoot:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+    photo:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
     event:'<path d="M8 3c2 2 2 4 0 6M12 3c2 2 2 4 0 6M16 3c2 2 2 4 0 6"/><rect x="4" y="11" width="16" height="9" rx="2"/>',
-    sauna:'<path d="M3 20h18M5 20V10l7-5 7 5v10"/><path d="M10 14c0-1.5 1.5-1.5 1.5-3M13 14c0-1.5 1.5-1.5 1.5-3"/>',
+    leisure:'<path d="M7 9h10a4 4 0 0 1 4 4v1a3 3 0 0 1-5.3 1.9L14.5 14h-5l-1.2 1.9A3 3 0 0 1 3 14v-1a4 4 0 0 1 4-4z"/><path d="M8 11v3M6.5 12.5h3"/><path d="M15.5 12h.01M17.5 13.5h.01"/>',
     meeting:'<rect x="4" y="9" width="16" height="6" rx="1.5"/><path d="M7 15v4M17 15v4M8 6h8"/>',
-    loft:'<path d="M3 21V9l9-6 9 6v12"/><path d="M8 21v-7h8v7M8 11h1M15 11h1"/>',
-    other:'<circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/>',
   };
+  function purpDef(c){ return OB_PURPOSES.filter(function(p){ return p.v === c; })[0] || null; }
+  // Минимальная бронь, с которой новая цель заводится (у площадки минимум — до 1 ч).
+  function purpMin(c){ var p = purpDef(c); return p ? p.min : 60; }
+  // Профиль выбора: что подставить. Несколько целей — уборка по самой долгой, шаг по самому
+  // мелкому, вместимость по самой большой; подсказки и часы — по первой отмеченной.
+  // other — «Напишите, что сдаёте»: целей нет, текст станет типом пространства.
+  function purpProfile(sel, other){
+    sel = (sel || []).filter(purpDef); other = String(other || '').trim();
+    if(!sel.length && !other) return null;
+    var ps = sel.map(purpDef), p0 = ps[0] || null;
+    var max = function(f, d){ return ps.length ? Math.max.apply(null, ps.map(function(p){ return p[f]; })) : d; };
+    // подсказки типа — по очереди от каждой цели, чтобы при нескольких целях были видны все
+    var types = [];
+    for(var k = 0; k < 6; k++) ps.forEach(function(p){ var x = p.types[k]; if(x && types.indexOf(x) < 0) types.push(x); });
+    return { v: sel.length ? 'purp' : 'other', key: sel.join(',') + (other ? '|' + other : ''),
+      purposes: sel.slice(), other: other,
+      label: sel.length ? sel.map(function(c){ return purposeLabel(c).toLowerCase(); }).join(', ') : '«' + other + '»',
+      buf: max('buf', 10), step: ps.length ? Math.min.apply(null, ps.map(function(p){ return p.step; })) : 60, cap: max('cap', 10),
+      price: p0 ? p0.price : 30, hours: p0 ? p0.hours : 'daily', types: types.slice(0, 6),
+      spaceType: sel.length ? '' : other, bizPh: p0 ? p0.bizPh : 'Название', spacePh: p0 ? p0.spacePh : 'Название пространства' };
+  }
+  // Ничего не выбрано — нейтральные подсказки.
+  var PURP_NONE = { v:'other', key:'', purposes:[], other:'', label:'', buf:10, step:60, cap:10, price:30, hours:'daily',
+    types:[], spaceType:'', bizPh:'Название', spacePh:'Название пространства' };
+  // Старый выбор «типа» из localStorage (до 2026-10-28) — в цели.
+  var OB_LEGACY = { shoot:['photo'], event:['event'], sauna:['leisure'], meeting:['meeting'], loft:['photo', 'event'], other:[] };
   // Готовые расписания: [с, до] на Пн…Вс (null — выходной).
   var OB_HOURS = [
     { v:'daily',    t:'Каждый день 9–22',            days:[[9,22],[9,22],[9,22],[9,22],[9,22],[9,22],[9,22]] },
@@ -8245,17 +8288,19 @@ var PF = (function(){
     { v:'strict', t:'Строгие', s:'За 72 ч — бесплатно, позже — вправе потребовать 100%. Поздний перенос — 50%.',
       pol:[{ hoursBefore:72, refundPct:100, rescheduleFree:true }, { hoursBefore:0, refundPct:0, rescheduleFree:false }], ns:100, rs:50 },
   ];
-  var OB_STEPS = ['Начало', 'Что сдаёте', 'Название и адрес', 'Пространство', 'Фото', 'Часы работы', 'Брони и отмена', 'Проверка', 'Готово'];
+  var OB_STEPS = ['Начало', 'Для чего', 'Название и адрес', 'Пространство', 'Фото', 'Часы работы', 'Брони и отмена', 'Проверка', 'Готово'];
   var OB_KEY = 'ps_onb_' + STUDIO_ID;
   var OB = (function(){ try{ return JSON.parse(localStorage.getItem(OB_KEY) || 'null') || {}; }catch(e){ return {}; } })();
   OB.step = OB.step || 0; OB.max = OB.max || 0;
+  if(!Array.isArray(OB.purps)){ OB.purps = (OB.type && OB_LEGACY[OB.type]) || []; OB.other = ''; }
+  delete OB.type;
   var OBD = { title:'', typeText:'', cap:'', purposes:null, prices:{}, hallType:null, confirm:null, cancel:null };   // черновики экранов
   var ME_PHONE = '';
   var MINIAPP_URL = 'https://book.poont.space/';
   var PUBLIC_PAGE_BASE = 'https://poont.space/s/';   // короткий адрес; /s/* отдаёт тот же сервер через Cloudflare
-  function obSave(){ try{ localStorage.setItem(OB_KEY, JSON.stringify({ step:OB.step, max:OB.max, type:OB.type, appliedType:OB.appliedType,
+  function obSave(){ try{ localStorage.setItem(OB_KEY, JSON.stringify({ step:OB.step, max:OB.max, purps:OB.purps, other:OB.other, appliedType:OB.appliedType,
     photosLater:OB.photosLater, hoursSet:OB.hoursSet, hoursFor:OB.hoursFor })); }catch(e){} }
-  function obType(){ return OB_TYPES.filter(function(t){ return t.v === OB.type; })[0] || null; }
+  function obType(){ return purpProfile(OB.purps, OB.other); }
   function obHallIdx(){ var ri = readyHallIndex(); return ri >= 0 ? ri : (hallsDraft.length ? 0 : -1); }
   function obProfileOk(){ return (profileDraft.name || '').trim().length >= 2 && !!(profileDraft.city || '').trim() && !!(profileDraft.address || '').trim() && profileDraft.lat != null; }
   function obWeekFromHours(){   // hoursDraft по getDay → сетка Пн…Вс
@@ -8284,7 +8329,7 @@ var PF = (function(){
   function obDerivedMax(){
     if(ONB.reviewRequestedAt) return 8;
     var hi = obHallIdx(), h = hi >= 0 ? hallsDraft[hi] : null;
-    var done = [true, !!OB.type || !!h, obProfileOk(), !!h, !!h && ((h.photos || []).length >= PHOTOS_MIN || !!OB.photosLater),
+    var done = [true, !!obType() || !!h, obProfileOk(), !!h, !!h && ((h.photos || []).length >= PHOTOS_MIN || !!OB.photosLater),
       !!OB.hoursSet, !!ONB.rulesConfirmedAt];
     var k = 0; while(k < done.length && done[k]) k++;
     return k;
@@ -8295,7 +8340,7 @@ var PF = (function(){
 
   // ---- экраны ----
   function obIntro(){
-    var now = [['Что сдаёте', 'от этого зависят подсказки'], ['Название и адрес', 'чтобы вас нашли'], ['Пространство и цена за час', 'одно, остальные — потом'],
+    var now = [['Для чего приходят', 'от этого зависят подсказки'], ['Название и адрес', 'чтобы вас нашли'], ['Пространство и цена за час', 'одно, остальные — потом'],
       ['Фото', 'можно добавить позже'], ['Часы работы', 'готовым вариантом или на сетке'], ['Как принимать брони и отмену', 'выбрать из трёх вариантов']];
     var later = ['Цены в часы пик', 'Оплата за гостей', 'Пакеты часов', 'Брони по 15 и 30 минут', 'Перерывы в расписании', 'Свои часы у пространства',
       'Отмена по ступеням', 'Что входит в аренду', 'Допы за плату', 'Скидка на горящие окна', 'Напоминания клиентам', 'Команда и администраторы'];
@@ -8307,19 +8352,43 @@ var PF = (function(){
         later.map(function(x){ return '<span>' + esc(x) + '</span>'; }).join('') + '</div><p class="ob-note">Ничего из этого не нужно, чтобы начать принимать брони.</p></div></div>' +
       '<div class="ob-prep"><span class="ob-lbl">Пригодится под рукой</span><div class="ob-prep-row"><span>адрес</span><span>цена за час</span><span>' + PHOTOS_MIN + ' фото пространства</span></div></div>';
   }
-  function typeChoicesHtml(attr, sel){
-    return '<div class="ob-choices">' + OB_TYPES.map(function(t){
-      return '<button type="button" class="ob-choice' + (sel === t.v ? ' on' : '') + '" ' + attr + '="' + t.v + '" aria-pressed="' + (sel === t.v) + '">' +
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + OB_ICONS[t.v] + '</svg>' +
-        '<b>' + esc(t.label) + '</b><span>' + esc(t.sub) + '</span></button>';
-    }).join('') + '</div>';
+  // Карточки целей (P — префикс: 'ob' мастер запуска, 'nh' новое пространство) и строка
+  // «Ничего не подходит? Напишите, что сдаёте».
+  function purposeChoicesHtml(P, sel, other){
+    var open = !!other || (P === 'nh' ? NH.otherOpen : OB.otherOpen);
+    return '<div class="ob-choices ob-purps">' + OB_PURPOSES.map(function(p){
+      var on = sel.indexOf(p.v) >= 0;
+      return '<button type="button" class="ob-choice' + (on ? ' on' : '') + '" data-' + P + 'pick="' + p.v + '" aria-pressed="' + on + '">' +
+        '<span class="ob-tick" aria-hidden="true"></span>' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + OB_ICONS[p.v] + '</svg>' +
+        '<b>' + esc(p.label) + '</b><span>' + esc(p.sub) + '</span>' +
+        '<span class="ob-examples">' + p.tags.map(function(x){ return '<i>' + esc(x) + '</i>'; }).join('') + '</span></button>';
+    }).join('') + '</div>' +
+      (open
+        ? '<div class="ob-f ob-other"><label for="' + P + 'Other">Что сдаёте, если ничего не подошло</label>' +
+          '<input class="name" id="' + P + 'Other" maxlength="80" placeholder="Например, студия звукозаписи" value="' + esc(other) + '"></div>'
+        : '<p class="ob-note">Ничего не подходит? <button type="button" class="linkish" data-' + P + 'other-open>Напишите, что сдаёте</button></p>');
+  }
+  // Подключение карточек: sel — массив целей (меняется на месте), onPick() — после выбора,
+  // onOther(text) — при вводе своего варианта (без перерисовки, чтобы не терять фокус).
+  function purposeChoicesWire(P, scope, sel, onPick, onOther, onOpen){
+    scope.querySelectorAll('[data-' + P + 'pick]').forEach(function(b){ b.onclick = function(){
+      var c = b.getAttribute('data-' + P + 'pick'), k = sel.indexOf(c);
+      if(k >= 0) sel.splice(k, 1); else sel.push(c);
+      sel.sort(function(a, z){ return OB_PURPOSES.indexOf(purpDef(a)) - OB_PURPOSES.indexOf(purpDef(z)); });
+      onPick();
+    }; });
+    var op = scope.querySelector('[data-' + P + 'other-open]');
+    if(op) op.onclick = function(){ onOpen(); var i = $(P + 'Other'); if(i) i.focus(); };
+    var inp = $(P + 'Other');
+    if(inp) inp.oninput = function(){ onOther(this.value); };
   }
   function obTypeScreen(){
-    return '<h2 class="ob-h">Что вы сдаёте?</h2><p class="ob-lead">От ответа зависят только подсказки и начальные значения — всё можно поменять сейчас или потом.</p>' +
-      typeChoicesHtml('data-obtype', OB.type);
+    return '<h2 class="ob-h">Зачем к вам приходят?</h2><p class="ob-lead">Отметьте всё, что подходит, — у каждого варианта будет своя цена. От ответа зависят подсказки и начальные значения, всё можно поменять потом.</p>' +
+      purposeChoicesHtml('ob', OB.purps, OB.other);
   }
   function obProfileScreen(){
-    var t = obType() || OB_TYPES[5];
+    var t = obType() || PURP_NONE;
     return '<h2 class="ob-h">Как называется площадка и где она?</h2><p class="ob-lead">Название и адрес увидят клиенты. Метку на карте поставим по адресу — её можно подвинуть на вход.</p>' +
       '<div class="ob-f"><label for="obName">Название</label><input class="name" id="obName" maxlength="120" placeholder="Например, ' + esc(t.bizPh) + '" value="' + esc(profileDraft.name || '') + '"></div>' +
       '<div class="ob-two"><div class="ob-f"><label for="obCity">Город</label><input class="name" id="obCity" maxlength="120" placeholder="Минск" value="' + esc(profileDraft.city || '') + '"></div>' +
@@ -8335,11 +8404,12 @@ var PF = (function(){
   function spaceFormHtml(P, t, D){
     var others = HALL_PURPOSE_LIST.filter(function(p){ return D.purposes.indexOf(p.v) < 0; });
     return '<div class="ob-f"><label for="' + P + 'Title">Название пространства</label><input class="name" id="' + P + 'Title" maxlength="120" placeholder="Например, ' + esc(t.spacePh) + '" value="' + esc(D.title) + '"></div>' +
-      '<div class="ob-two"><div class="ob-f"><label for="' + P + 'SpaceType">Тип</label><div style="position:relative"><input class="name" id="' + P + 'SpaceType" autocomplete="off" placeholder="Начните печатать" value="' + esc(D.typeText) + '"><div id="' + P + 'SpaceTypeSuggest" class="addr-suggest" hidden></div></div></div>' +
+      '<div class="ob-two"><div class="ob-f"><label for="' + P + 'SpaceType">Тип</label><div style="position:relative"><input class="name" id="' + P + 'SpaceType" autocomplete="off" placeholder="Начните печатать" value="' + esc(D.typeText) + '"><div id="' + P + 'SpaceTypeSuggest" class="addr-suggest" hidden></div></div>' +
+        ((t.types || []).length ? '<div class="ob-tsug">' + t.types.map(function(x){ return '<button type="button" class="ob-tsug-b' + (x === D.typeText ? ' on' : '') + '" data-' + P + 'tsug="' + esc(x) + '">' + esc(x) + '</button>'; }).join('') + '</div>' : '') + '</div>' +
         '<div class="ob-f"><label for="' + P + 'Cap">Сколько человек вмещает</label><span class="unitwrap"><input class="num" id="' + P + 'Cap" type="number" min="1" max="1000" placeholder="' + t.cap + '" value="' + esc(D.cap) + '"><span class="u">чел.</span></span></div></div>' +
       D.purposes.map(function(code){
         var lab = (HALL_PURPOSE_LIST.filter(function(p){ return p.v === code; })[0] || {}).label || code;
-        return '<div class="ob-f"><label for="' + P + 'Price-' + code + '">Цена за час — ' + esc(lab.toLowerCase()) + '</label><div class="ob-price-row"><span class="unitwrap"><input class="num" id="' + P + 'Price-' + code + '" data-' + P + 'price="' + code + '" type="number" min="1" placeholder="' + t.price + '" value="' + esc(D.prices[code] || '') + '"><span class="u">' + esc(CUR) + '/ч</span></span>' +
+        return '<div class="ob-f"><label for="' + P + 'Price-' + code + '">Цена за час — ' + esc(lab.toLowerCase()) + '</label><div class="ob-price-row"><span class="unitwrap"><input class="num" id="' + P + 'Price-' + code + '" data-' + P + 'price="' + code + '" type="number" min="1" placeholder="' + ((purpDef(code) || t).price) + '" value="' + esc(D.prices[code] || '') + '"><span class="u">' + esc(CUR) + '/ч</span></span>' +
           (D.purposes.length > 1 ? '<button type="button" class="linkish" data-' + P + 'unpurp="' + code + '">Не сдаю для ' + esc(purposeGen(code)) + '</button>' : '') + '</div></div>';
       }).join('') +
       (others.length ? '<div class="ob-f"><span class="ob-lbl">' + (D.purposes.length ? 'Сдаю ещё и для:' : 'Для чего сдаёте:') + '</span><div class="ob-chips">' +
@@ -8365,6 +8435,13 @@ var PF = (function(){
       typeFill(); loadDict('space_type').then(typeFill);
       $(typeId).addEventListener('input', function(){ D.typeText = this.value; D.hallType = null; });
       $(P + 'Title').oninput = function(){ D.title = this.value; };
+      // Подсказки типа по выбранным целям: клик — в поле, код из справочника, если слово там есть.
+      all('[data-' + P + 'tsug]').forEach(function(b){ b.onclick = function(){
+        var v = b.getAttribute('data-' + P + 'tsug'), el = $(typeId);
+        var hit = (DICT_CACHE.space_type || []).find(function(d){ return (d.labelRu || '').toLowerCase() === v.toLowerCase(); });
+        D.typeText = v; D.hallType = hit ? hit.code : null; el.value = v;
+        all('[data-' + P + 'tsug]').forEach(function(x){ x.classList.toggle('on', x === b); });
+      }; });
       $(P + 'Cap').oninput = function(){ D.cap = this.value; };
     }
     all('[data-' + P + 'price]').forEach(function(i){ i.oninput = function(){ D.prices[i.getAttribute('data-' + P + 'price')] = i.value; }; });
@@ -8372,7 +8449,7 @@ var PF = (function(){
     all('[data-' + P + 'unpurp]').forEach(function(b){ b.onclick = function(){ var c = b.getAttribute('data-' + P + 'unpurp'); D.purposes = D.purposes.filter(function(x){ return x !== c; }); rerender(); }; });
   }
   function obSpaceScreen(){
-    var t = obType() || OB_TYPES[5], hi = obHallIdx();
+    var t = obType() || PURP_NONE, hi = obHallIdx();
     if(hi >= 0 && OBD.forId !== hallsDraft[hi].id) spaceDraftFromHall(hallsDraft[hi], OBD);
     if(OBD.purposes == null) OBD.purposes = t.purposes.slice();
     if(!OBD.typeText) OBD.typeText = t.spaceType;
@@ -8442,13 +8519,17 @@ var PF = (function(){
   }
   var OB_SCREENS = [obIntro, obTypeScreen, obProfileScreen, obSpaceScreen, obPhotosScreen, obHoursScreen, obRulesScreen, obCheckScreen, obDoneScreen];
 
+  // Минимальная бронь по каждой выбранной цели: «съёмка — 1 ч, отдых — 2 ч».
+  function purpMinsText(codes, fallback){
+    return codes.length ? codes.map(function(c){ return purposeLabel(c).toLowerCase() + ' — ' + durLabel(purpMin(c) > 60 ? purpMin(c) : fallback); }).join(', ') : durLabel(fallback);
+  }
   function obSide(){
     var t = obType();
-    if(!t) return '<div class="ob-panel"><h3>Заполнено за вас</h3><p>Здесь появится то, что мы подставим сами по типу пространства: минимальная бронь, уборка, часы. Видно сразу — и всё меняется в кабинете.</p></div>';
+    if(!t) return '<div class="ob-panel"><h3>Заполнено за вас</h3><p>Здесь появится то, что мы подставим сами по вашему выбору: минимальная бронь, уборка, часы. Видно сразу — и всё меняется в кабинете.</p></div>';
     var pp = OBD.purposes || t.purposes;
-    return '<div class="ob-panel"><h3>Заполнено за вас</h3><p>По типу «' + esc(t.label) + '». Поменять — в кабинете, в любой момент.</p><dl class="ob-kv">' +
-      '<dt>Цели</dt><dd>' + (pp.length ? esc(pp.map(function(c){ return (HALL_PURPOSE_LIST.filter(function(p){ return p.v === c; })[0] || {}).label; }).join(', ')) : 'выберете сами') + '</dd>' +
-      '<dt>Мин. бронь</dt><dd>' + esc(durLabel(t.min)) + '</dd>' +
+    return '<div class="ob-panel"><h3>Заполнено за вас</h3><p>По выбору: ' + esc(t.label) + '. Поменять — в кабинете, в любой момент.</p><dl class="ob-kv">' +
+      '<dt>Цели</dt><dd>' + (pp.length ? esc(pp.map(purposeLabel).join(', ')) : 'выберете сами') + '</dd>' +
+      '<dt>Мин. бронь</dt><dd>' + esc(purpMinsText(pp, 60)) + '</dd>' +
       '<dt>Время</dt><dd>' + esc(stepsPhrase(t.step, t.step)) + '</dd>' +
       '<dt>Уборка</dt><dd>' + (t.buf ? t.buf + ' мин после брони' : 'не нужна') + '</dd>' +
       '<dt>Часы</dt><dd>' + esc(fmtWeek(hoursDraft)) + '</dd>' +
@@ -8466,7 +8547,7 @@ var PF = (function(){
     if(!$('obScreen') || ROLE !== 'owner') return;
     var tt = obType();
     // Часы — по типу пространства, один раз: их видно на сетке, сохраняются по «Дальше».
-    if(OB.step === 5 && tt && !OB.hoursSet && OB.hoursFor !== tt.v){ obApplyHours(tt.hours); OB.hoursFor = tt.v; }
+    if(OB.step === 5 && tt && !OB.hoursSet && OB.hoursFor !== tt.key){ obApplyHours(tt.hours); OB.hoursFor = tt.key; }
     OB.max = Math.max(OB.max, obDerivedMax());
     if(ONB.reviewRequestedAt && OB.step < 8 && !OB.reviewing) OB.step = 8;
     if(OB.step > OB.max) OB.step = OB.max;
@@ -8491,10 +8572,11 @@ var PF = (function(){
   function obWire(){
     var scr = $('obScreen');
     var all = function(sel){ return scr.querySelectorAll(sel); };
-    all('[data-obtype]').forEach(function(b){ b.onclick = function(){
-      if(OB.type !== b.dataset.obtype){ OB.type = b.dataset.obtype; OBD.purposes = null; OBD.typeText = ''; OBD.hallType = null; OB.hoursSet = false;
-        if(obHallIdx() >= 0) OBD.forId = hallsDraft[obHallIdx()].id; }
-      obRender(); }; });
+    // Выбор целей задаёт цели пространства: шаг «Пространство» начнётся с них.
+    purposeChoicesWire('ob', scr, OB.purps,
+      function(){ OBD.purposes = null; OB.hoursSet = false; if(obHallIdx() >= 0) OBD.forId = hallsDraft[obHallIdx()].id; obRender(); },
+      function(v){ var was = OB.other; OB.other = v; if(!OBD.typeText || OBD.typeText === was) OBD.typeText = v.trim(); OBD.purposes = null; $('obSide').innerHTML = obSide(); obSave(); },
+      function(){ OB.otherOpen = true; obRender(); });
     if($('obAddr')){
       wzAddrHelper({ addr:'obAddr', box:'obAddrSuggest', map:'obMap', mapHint:'obMapHint' }, profileDraft);
       PF.attach($('obPhone'), { iso: profileDraft.country || 'BY' }); PF.setValue($('obPhone'), $('obPhone').value);
@@ -8546,11 +8628,11 @@ var PF = (function(){
     var t = obType();
     switch(OB.step){
       case 1:
-        if(!t) return Promise.reject(new Error('Выберите, что вы сдаёте'));
-        if(OB.appliedType === t.v) return Promise.resolve();
+        if(!t) return Promise.reject(new Error('Отметьте, зачем к вам приходят, или напишите, что сдаёте'));
+        if(OB.appliedType === t.key) return Promise.resolve();
         // Начальные значения по типу: уборка и шаги времени — в правила брони площадки.
         return saveSettingsPatch({ bufferMin:t.buf, slotStepMin:t.step, durationStepMin:t.step, minBookingMin:60 })
-          .then(function(){ OB.appliedType = t.v; });
+          .then(function(){ OB.appliedType = t.key; });
       case 2:
         var name = $('obName').value.trim(), city = $('obCity').value.trim(), addr = $('obAddr').value.trim();
         if(name.length < 2) return Promise.reject(new Error('Название — хотя бы 2 символа'));
@@ -8647,7 +8729,7 @@ var PF = (function(){
         var pr = Number(D.prices[c]), p = list.filter(function(x){ return x.code === c; })[0];
         if(p){ p.active = true; p.rate = pr; return; }
         p = mapPurpose({ code:c, active:true, rate:pr });
-        if(t && t.min > 60) p.minBookingMin = t.min;
+        if(purpMin(c) > 60) p.minBookingMin = purpMin(c);
         list.push(p);
       });
       list.forEach(function(p){ if(spaceHourly(p) && D.purposes.indexOf(p.code) < 0) p.active = false; });
@@ -8691,8 +8773,8 @@ var PF = (function(){
   // Фото — третьим шагом: загрузке нужен id пространства. У опубликованной площадки
   // новое пространство — черновик (0067): на проверке его показывают клиентам или оставляют черновиком.
   var NH = null;
-  var NH_STEPS = ['Что сдаёте', 'Пространство', 'Фото', 'Проверка'];
-  function nhType(){ return NH && OB_TYPES.filter(function(t){ return t.v === NH.type; })[0] || null; }
+  var NH_STEPS = ['Для чего', 'Пространство', 'Фото', 'Проверка'];
+  function nhType(){ return NH && purpProfile(NH.purps, NH.other); }
   // Шаг времени по типу — своим у пространства, только если он отличается от общего у площадки.
   function nhOwnSteps(t){
     if(!t || t.v === 'other') return {};
@@ -8706,7 +8788,7 @@ var PF = (function(){
   function nhOpen(){
     if(ED.key) edCancel();
     WZ.open = false;
-    NH = { step:0, max:0, idx:-1, type:null, photosLater:false,
+    NH = { step:0, max:0, idx:-1, purps:[], other:'', otherOpen:false, photosLater:false,
       d:{ title:'', typeText:'', cap:'', purposes:null, prices:{}, hallType:null } };
     $('hallsListView').hidden = true; $('wzView').hidden = true; $('nhView').hidden = false;
     window.scrollTo(0, 0);
@@ -8717,11 +8799,11 @@ var PF = (function(){
   function nhScreenHtml(){
     var t = nhType(), d = NH.d;
     if(NH.step === 0){
-      return '<h2 class="ob-h">Что сдаёте?</h2><p class="ob-lead">От ответа зависят подсказки: цели, цена-ориентир и минимальная бронь. Часы работы, уборку и условия отмены не трогаем — они общие для площадки.</p>' +
-        typeChoicesHtml('data-nhtype', NH.type);
+      return '<h2 class="ob-h">Зачем приходят в это пространство?</h2><p class="ob-lead">Отметьте всё, что подходит, — у каждого варианта будет своя цена. Часы работы, уборку и условия отмены не трогаем — они общие для площадки.</p>' +
+        purposeChoicesHtml('nh', NH.purps, NH.other);
     }
     if(NH.step === 1){
-      t = t || OB_TYPES[5];
+      t = t || PURP_NONE;
       if(d.purposes == null) d.purposes = t.purposes.slice();
       if(!d.typeText) d.typeText = t.spaceType;
       return '<h2 class="ob-h">Название, тип и цена</h2><p class="ob-lead">' + (NH.idx >= 0
@@ -8758,13 +8840,13 @@ var PF = (function(){
   }
   function nhSide(){
     var t = nhType();
-    if(!t) return '<div class="ob-panel"><h3>Заполнено за вас</h3><p>Здесь появится то, что подставим по типу: цели, минимальная бронь, шаг времени. Общие правила площадки — часы, уборка, отмена — остаются как есть.</p></div>';
+    if(!t) return '<div class="ob-panel"><h3>Заполнено за вас</h3><p>Здесь появится то, что подставим по вашему выбору: цели, минимальная бронь, шаг времени. Общие правила площадки — часы, уборка, отмена — остаются как есть.</p></div>';
     var pp = NH.d.purposes || t.purposes, own = nhOwnSteps(t);
     var sS = own.slotStepMin || settingsDraft.slotStep || 60, sD = own.durationStepMin || settingsDraft.durationStep || settingsDraft.slotStep || 60;
     var hasOwn = own.slotStepMin != null || own.durationStepMin != null;
-    return '<div class="ob-panel"><h3>Заполнено за вас</h3><p>По типу «' + esc(t.label) + '». Поменять — на странице пространства, в любой момент.</p><dl class="ob-kv">' +
-      '<dt>Цели</dt><dd>' + (pp.length ? esc(pp.map(function(c){ return (HALL_PURPOSE_LIST.filter(function(p){ return p.v === c; })[0] || {}).label; }).join(', ')) : 'выберете сами') + '</dd>' +
-      '<dt>Мин. бронь</dt><dd>' + (t.min > 60 ? esc(durLabel(t.min)) : 'как у площадки · ' + esc(durLabel(settingsDraft.minBookingMin || 60))) + '</dd>' +
+    return '<div class="ob-panel"><h3>Заполнено за вас</h3><p>По выбору: ' + esc(t.label) + '. Поменять — на странице пространства, в любой момент.</p><dl class="ob-kv">' +
+      '<dt>Цели</dt><dd>' + (pp.length ? esc(pp.map(purposeLabel).join(', ')) : 'выберете сами') + '</dd>' +
+      '<dt>Мин. бронь</dt><dd>' + esc(purpMinsText(pp, settingsDraft.minBookingMin || 60)) + '</dd>' +
       '<dt>Время</dt><dd>' + (hasOwn ? 'своё · ' : 'как у площадки · ') + esc(stepsPhrase(sD, sS)) + '</dd>' +
       '<dt>Уборка</dt><dd>как у площадки · ' + (settingsDraft.bufferMin ? settingsDraft.bufferMin + ' мин' : 'не нужна') + '</dd>' +
       '<dt>Часы</dt><dd>как у площадки · ' + esc(fmtWeek(hoursDraft)) + '</dd>' +
@@ -8798,9 +8880,10 @@ var PF = (function(){
   }
   function nhWire(){
     var scr = $('nhScreen');
-    scr.querySelectorAll('[data-nhtype]').forEach(function(b){ b.onclick = function(){
-      if(NH.type !== b.dataset.nhtype){ NH.type = b.dataset.nhtype; NH.d.purposes = null; NH.d.typeText = ''; NH.d.hallType = null; }
-      nhRender(); }; });
+    purposeChoicesWire('nh', scr, NH.purps,
+      function(){ NH.d.purposes = null; nhRender(); },
+      function(v){ var was = NH.other; NH.other = v; if(!NH.d.typeText || NH.d.typeText === was) NH.d.typeText = v.trim(); NH.d.purposes = null; $('nhSide').innerHTML = nhSide(); },
+      function(){ NH.otherOpen = true; nhRender(); });
     spaceFormWire('nh', scr, NH.d, nhRender);
     var ph = scr.querySelector('.hall-photos[data-i]'); if(ph) renderHallPhotos(+ph.dataset.i);
     if($('nhPhotosLater')) $('nhPhotosLater').onclick = function(){ NH.photosLater = true; nhRender(); };
@@ -8826,7 +8909,7 @@ var PF = (function(){
     var t = nhType();
     switch(NH.step){
       case 0:
-        return t ? Promise.resolve() : Promise.reject(new Error('Выберите, что вы сдаёте'));
+        return t ? Promise.resolve() : Promise.reject(new Error('Отметьте, зачем приходят, или напишите, что сдаёте'));
       case 1:
         // Сначала — тип пространства: из поля «Тип» в словарь (новое слово заведётся само).
         var pre = $('nhSpaceType') && $('nhSpaceType').value.trim() ? wzComboResolve('nhSpaceType', 'space_type', NH.d, 'hallType') : Promise.resolve();
